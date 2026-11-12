@@ -24,7 +24,7 @@
       </div>
       <div>
         <h1 class="text-base font-bold text-white">Central Administrativa</h1>
-        <p class="text-xs text-slate-400">Aprovações, Gestão de Perfis, Mini Mapas & Suporte</p>
+        <p class="text-xs text-slate-400">Aprovações, Gestão de Perfis, Rastreio Ao Vivo & Suporte</p>
       </div>
     </div>
     <button onclick="carregarTudo()" class="bg-slate-800 hover:bg-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700">
@@ -40,7 +40,7 @@
         <i class="fa-solid fa-user-clock"></i> Cadastros / Aprovações (<span id="count-cad">0</span>)
       </button>
       <button id="btn-aba-motoristas" onclick="mudarAba('motoristas')" class="bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
-        <i class="fa-solid fa-car"></i> Motoristas (<span id="count-mot">0</span>)
+        <i class="fa-solid fa-car"></i> Motoristas & Ao Vivo (<span id="count-mot">0</span>)
       </button>
       <button id="btn-aba-passageiros" onclick="mudarAba('passageiros')" class="bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
         <i class="fa-solid fa-users"></i> Passageiros (<span id="count-pas">0</span>)
@@ -72,10 +72,10 @@
       </div>
     </section>
 
-    <!-- 2. SEÇÃO MOTORISTAS -->
+    <!-- 2. SEÇÃO MOTORISTAS & AO VIVO -->
     <section id="sec-motoristas" class="hidden space-y-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-        <h2 class="text-sm font-bold text-white mb-4">Gerenciamento de Motoristas Parceiros</h2>
+        <h2 class="text-sm font-bold text-white mb-4">Gerenciamento de Motoristas (Online & Em Viagem Ao Vivo)</h2>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
@@ -83,8 +83,8 @@
                 <th class="p-3">Condutor</th>
                 <th class="p-3">ID</th>
                 <th class="p-3">Veículo / Placa</th>
-                <th class="p-3">Status</th>
-                <th class="p-3 text-right">Gerenciar</th>
+                <th class="p-3">Status Online</th>
+                <th class="p-3 text-right">Gerenciar & Rastreio</th>
               </tr>
             </thead>
             <tbody id="lista-motoristas" class="divide-y divide-slate-800"></tbody>
@@ -114,10 +114,9 @@
       </div>
     </section>
 
-    <!-- 4. SEÇÃO SUPORTE SEPARADO (PASSAGEIROS X MOTORISTAS) & AUDITORIA -->
+    <!-- 4. SEÇÃO SUPORTE & AUDITORIA SEPARADA -->
     <section id="sec-suporte" class="hidden space-y-5">
       
-      <!-- Sub-abas de Suporte com Alerta Piscando -->
       <div class="flex gap-3">
         <button id="subtab-sup-pass" onclick="mudarSubAbaSuporte('passageiros')" class="bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2">
           <i class="fa-solid fa-user"></i> Suporte Passageiros (<span id="count-sup-pass">0</span>)
@@ -129,28 +128,33 @@
         </button>
       </div>
 
-      <!-- Lista Suporte Passageiros (ID à Esquerda, Problema & Resposta à Direita) -->
       <div id="painel-sup-passageiros" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
         <h3 class="text-sm font-bold text-white">Solicitações de Ajuda — Passageiros</h3>
         <div id="lista-chamados-passageiros" class="space-y-3"></div>
       </div>
 
-      <!-- Lista Suporte Motoristas (ID à Esquerda, Problema & Resposta à Direita) -->
       <div id="painel-sup-motoristas" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
         <h3 class="text-sm font-bold text-white">Solicitações de Ajuda — Motoristas</h3>
         <div id="lista-chamados-motoristas" class="space-y-3"></div>
       </div>
 
-      <!-- Auditoria de Avaliações abaixo de 5 estrelas -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-        <h2 class="text-sm font-bold text-white mb-4">Auditoria de Avaliações Abaixo de 5 Estrelas</h2>
-        <div id="lista-auditoria-avaliacoes" class="space-y-2 text-xs"></div>
+      <!-- Auditoria de Avaliações Separada por Motorista e Passageiro -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white">Auditoria de Avaliações (Notas & Justificativas)</h2>
+          <div class="flex gap-2 bg-slate-950 p-1 rounded-xl text-xs font-bold">
+            <button id="btn-aud-mot" onclick="mudarSubAbaAuditoria('motoristas')" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg">Notas Motoristas</button>
+            <button id="btn-aud-pas" onclick="mudarSubAbaAuditoria('passageiros')" class="text-slate-400 px-3 py-1.5 rounded-lg">Notas Passageiros</button>
+          </div>
+        </div>
+        <div id="lista-auditoria-motoristas" class="space-y-2 text-xs"></div>
+        <div id="lista-auditoria-passageiros" class="hidden space-y-2 text-xs"></div>
       </div>
     </section>
 
   </main>
 
-  <!-- MODAL FICHA INDIVIDUAL DO USUÁRIO + MINI MAPA -->
+  <!-- MODAL FICHA INDIVIDUAL DO USUÁRIO + MINI MAPA DE RASTREIO AO VIVO -->
   <div id="modal-ficha-usuario" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-3xl w-full p-6 space-y-5 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -204,9 +208,12 @@
         </div>
 
         <div class="space-y-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col">
-          <h4 class="text-xs font-bold text-amber-400 uppercase">Mini Mapa de Roteiro & Histórico</h4>
+          <div class="flex justify-between items-center">
+            <h4 class="text-xs font-bold text-amber-400 uppercase">Rastreio Ao Vivo & Roteiros</h4>
+            <span id="badge-status-ao-vivo" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-bold">Offline</span>
+          </div>
           <div id="mini-mapa-admin" class="w-full h-44 rounded-xl bg-slate-900 border border-slate-800 z-10"></div>
-          <p class="text-[10px] text-slate-400">Clique em uma corrida abaixo para visualizar o roteiro no mini mapa:</p>
+          <p class="text-[10px] text-slate-400" id="lbl-info-mapa">Selecione uma corrida abaixo para ver o roteiro ou aguarde o rastreio ao vivo:</p>
           <div id="ficha-lista-corridas" class="flex-1 max-h-48 overflow-y-auto space-y-2 pr-1"></div>
         </div>
       </div>
@@ -222,6 +229,8 @@
   let usuarioEmEdicao = null;
   let miniMapa = null;
   let camadaRotaMiniMapa = null;
+  let markerAoVivoMot = null;
+  let intervaloRastreioAoVivo = null;
 
   window.onload = () => {
     carregarTudo();
@@ -250,6 +259,13 @@
     document.getElementById('subtab-sup-mot').className = tipo === 'motoristas'
       ? 'bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2'
       : 'bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2';
+  }
+
+  function mudarSubAbaAuditoria(tipo) {
+    document.getElementById('lista-auditoria-motoristas').classList.toggle('hidden', tipo !== 'motoristas');
+    document.getElementById('lista-auditoria-passageiros').classList.toggle('hidden', tipo !== 'passageiros');
+    document.getElementById('btn-aud-mot').className = tipo === 'motoristas' ? 'bg-emerald-600 text-white px-3 py-1.5 rounded-lg' : 'text-slate-400 px-3 py-1.5 rounded-lg';
+    document.getElementById('btn-aud-pas').className = tipo === 'passageiros' ? 'bg-emerald-600 text-white px-3 py-1.5 rounded-lg' : 'text-slate-400 px-3 py-1.5 rounded-lg';
   }
 
   async function carregarTudo() {
@@ -304,7 +320,6 @@
     }
     container.innerHTML = lista.map(s => `
       <div class="bg-slate-950 border ${s.respondido ? 'border-slate-800' : 'border-amber-500/50'} rounded-2xl p-4 flex flex-col md:flex-row justify-between gap-4">
-        <!-- Canto Esquerdo: ID Clicável e Identificação -->
         <div class="md:w-1/3 space-y-1 border-b md:border-b-0 md:border-r border-slate-800 pb-2 md:pb-0 md:pr-3">
           <span class="text-[10px] uppercase font-bold ${s.respondido ? 'text-emerald-400' : 'text-amber-400'}">
             ${s.respondido ? '✔ Respondido' : '● Pendente de Resposta'}
@@ -317,7 +332,6 @@
           ${s.corrida_id ? `<p class="text-[10px] text-slate-400">Viagem: #${s.corrida_id.slice(0, 8)}</p>` : ''}
         </div>
 
-        <!-- Canto Direito: Problema Relatado e Campo de Resposta -->
         <div class="flex-1 space-y-2.5">
           <div>
             <span class="text-[10px] font-bold text-slate-400 uppercase">Problema Relatado:</span>
@@ -330,7 +344,7 @@
             </div>
           ` : `
             <div class="flex gap-2">
-              <input type="text" id="resp-input-${s.id}" placeholder="Digite a resposta para o usuário (aparecerá como pop-up no app)..." class="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white" />
+              <input type="text" id="resp-input-${s.id}" placeholder="Digite a resposta para o usuário..." class="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white" />
               <button onclick="responderChamadoAdmin('${s.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs">
                 Enviar Resposta
               </button>
@@ -350,7 +364,7 @@
       respondido: true,
       visualizado_usuario: false
     }).eq('id', chamadoId);
-    alert('Resposta enviada! Um alerta aparecerá na tela do aplicativo do usuário.');
+    alert('Resposta enviada!');
     carregarTudo();
   }
 
@@ -384,9 +398,9 @@
         </td>
         <td class="p-3 font-mono text-[11px] text-slate-400">${m.id.slice(0, 8)}</td>
         <td class="p-3 text-slate-300">${m.veiculo_modelo || '-'} • <strong>${m.veiculo_placa || '-'}</strong></td>
-        <td class="p-3 text-xs">${m.banido ? '<span class="text-red-500 font-bold">BLOQUEADO</span>' : (m.online ? '<span class="text-emerald-400 font-bold">Online</span>' : '<span class="text-slate-400">Offline</span>')}</td>
+        <td class="p-3 text-xs">${m.banido ? '<span class="text-red-500 font-bold">BLOQUEADO</span>' : (m.online ? '<span class="text-emerald-400 font-bold animate-pulse">● Online Ao Vivo</span>' : '<span class="text-slate-400">Offline</span>')}</td>
         <td class="p-3 text-right">
-          <button onclick="abrirFichaUsuario('${m.id}')" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold px-3 py-1.5 rounded-lg border border-slate-700">Gerenciar & Mapa</button>
+          <button onclick="abrirFichaUsuario('${m.id}')" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold px-3 py-1.5 rounded-lg border border-slate-700">Gerenciar & Rastreio</button>
         </td>
       </tr>
     `).join('');
@@ -411,17 +425,23 @@
   }
 
   function renderizarAuditoriaAvaliacoes(corridas) {
-    const div = document.getElementById('lista-auditoria-avaliacoes');
-    const filtradas = corridas.filter(c => (c.avaliacao_motorista && c.avaliacao_motorista < 5) || (c.avaliacao_passageiro && c.avaliacao_passageiro < 5));
-    if (filtradas.length === 0) {
-      div.innerHTML = '<p class="text-slate-500">Nenhuma avaliação abaixo de 5 estrelas registrada.</p>';
-      return;
-    }
-    div.innerHTML = filtradas.map(c => `
+    const divMot = document.getElementById('lista-auditoria-motoristas');
+    const divPas = document.getElementById('lista-auditoria-passageiros');
+
+    const filtradasMot = corridas.filter(c => c.avaliacao_motorista);
+    const filtradasPas = corridas.filter(c => c.avaliacao_passageiro);
+
+    divMot.innerHTML = filtradasMot.length === 0 ? '<p class="text-slate-500">Nenhuma avaliação de motorista registrada.</p>' : filtradasMot.map(c => `
       <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
-        <p class="font-bold text-white">Corrida #${c.id.slice(0, 8)} • ${c.passageiro_nome} & ${c.motorista_nome || '-'}</p>
-        ${c.avaliacao_motorista && c.avaliacao_motorista < 5 ? `<p class="text-amber-400">Nota ao Motorista: <strong>${c.avaliacao_motorista}★</strong> — Motivo: ${c.motivo_avaliacao_motorista || 'Sem justificativa (Motorista não penalizado)'}</p>` : ''}
-        ${c.avaliacao_passageiro && c.avaliacao_passageiro < 5 ? `<p class="text-red-400">Nota ao Passageiro: <strong>${c.avaliacao_passageiro}★</strong> — Motivo: ${c.motivo_avaliacao_passageiro || 'Sem justificativa'}</p>` : ''}
+        <p class="font-bold text-white">Viagem #${c.id.slice(0, 8)} • Passageiro: ${c.passageiro_nome} | Motorista: ${c.motorista_nome || '-'}</p>
+        <p class="text-amber-400">Nota dada pelo Passageiro: <strong>${c.avaliacao_motorista}★</strong> — Motivo: ${c.motivo_avaliacao_motorista || 'Sem justificativa (Nota 5 ou sem comentário)'}</p>
+      </div>
+    `).join('');
+
+    divPas.innerHTML = filtradasPas.length === 0 ? '<p class="text-slate-500">Nenhuma avaliação de passageiro registrada.</p>' : filtradasPas.map(c => `
+      <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+        <p class="font-bold text-white">Viagem #${c.id.slice(0, 8)} • Passageiro: ${c.passageiro_nome} | Motorista: ${c.motorista_nome || '-'}</p>
+        <p class="text-blue-400">Nota dada pelo Motorista: <strong>${c.avaliacao_passageiro}★</strong> — Motivo: ${c.motivo_avaliacao_passageiro || 'Sem justificativa'}</p>
       </div>
     `).join('');
   }
@@ -431,10 +451,12 @@
     carregarTudo();
   }
 
+  // Ficha Individual + Mini Mapa de Rastreio Ao Vivo
   async function abrirFichaUsuario(userId) {
     const user = todosUsuarios.find(u => u.id === userId);
     if (!user) return;
     usuarioEmEdicao = user;
+    clearInterval(intervaloRastreioAoVivo);
 
     document.getElementById('ficha-titulo').innerText = `Gerenciar ${user.tipo === 'motorista' ? 'Motorista' : 'Passageiro'}`;
     document.getElementById('ficha-id').innerText = user.id;
@@ -457,7 +479,7 @@
 
     setTimeout(() => {
       if (!miniMapa) {
-        miniMapa = L.map('mini-mapa-admin').setView([-28.4811, -48.7811], 13);
+        miniMapa = L.map('mini-mapa-admin').setView([-28.4811, -48.7811], 14);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapa);
         camadaRotaMiniMapa = L.layerGroup().addTo(miniMapa);
       }
@@ -467,19 +489,59 @@
     const campoFiltro = isMot ? 'motorista_id' : 'passageiro_id';
     const { data: historico } = await db.from('corridas').select('*').eq(campoFiltro, user.id).order('criado_em', { ascending: false });
     const listaDiv = document.getElementById('ficha-lista-corridas');
+    
     if (!historico || historico.length === 0) {
       listaDiv.innerHTML = '<p class="text-xs text-slate-500">Sem viagens registradas.</p>';
-      return;
-    }
-    listaDiv.innerHTML = historico.map(c => `
-      <div onclick='desenharRotaMiniMapa(${JSON.stringify(c)})' class="p-2.5 bg-slate-900 hover:bg-slate-800 cursor-pointer rounded-xl border border-slate-800 text-[11px] space-y-1">
-        <div class="flex justify-between font-bold text-white">
-          <span>R$ ${Number(c.valor).toFixed(2)} (${c.status})</span>
-          <span class="text-slate-400">${new Date(c.criado_em).toLocaleDateString()}</span>
+    } else {
+      listaDiv.innerHTML = historico.map(c => `
+        <div onclick='desenharRotaMiniMapa(${JSON.stringify(c)})' class="p-2.5 bg-slate-900 hover:bg-slate-800 cursor-pointer rounded-xl border border-slate-800 text-[11px] space-y-1">
+          <div class="flex justify-between font-bold text-white">
+            <span>R$ ${Number(c.valor).toFixed(2)} (${c.status})</span>
+            <span class="text-slate-400">${new Date(c.criado_em).toLocaleDateString()}</span>
+          </div>
+          <p class="text-slate-300 truncate">${c.origem} ➔ ${c.destino}</p>
         </div>
-        <p class="text-slate-300 truncate">${c.origem} ➔ ${c.destino}</p>
-      </div>
-    `).join('');
+      `).join('');
+    }
+
+    // Se for motorista, ativa rastreio em tempo real caso ele esteja em viagem
+    if (isMot) {
+      iniciarRastreioAoVivoMotorista(user.id);
+    } else {
+      document.getElementById('badge-status-ao-vivo').innerText = 'N/A';
+      document.getElementById('lbl-info-mapa').innerText = 'Histórico de rotas do passageiro:';
+    }
+  }
+
+  function iniciarRastreioAoVivoMotorista(motoristaId) {
+    const badge = document.getElementById('badge-status-ao-vivo');
+    const lbl = document.getElementById('lbl-info-mapa');
+
+    async function checarPosicaoAoVivo() {
+      const { data: motData } = await db.from('usuarios').select('lat, lng, online').eq('id', motoristaId).single();
+      const { data: corrAtiva } = await db.from('corridas').select('*').eq('motorista_id', motoristaId).in('status', ['aceita', 'no_local', 'em_viagem']).limit(1);
+
+      if (corrAtiva && corrAtiva.length > 0) {
+        badge.innerText = 'Em Viagem (Ao Vivo)';
+        badge.className = 'text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded font-bold animate-pulse';
+        lbl.innerText = 'Rastreando localização atual do motorista em tempo real...';
+        desenharRotaMiniMapa(corridaAtiva[0]);
+      } else if (motData && motData.online && motData.lat) {
+        badge.innerText = 'Online (Aguardando Corrida)';
+        badge.className = 'text-[10px] bg-amber-500 text-slate-950 px-2 py-0.5 rounded font-bold';
+        lbl.innerText = 'Motorista online. Sem corrida ativa no momento.';
+        camadaRotaMiniMapa.clearLayers();
+        markerAoVivoMot = L.marker([motData.lat, motData.lng]).addTo(camadaRotaMiniMapa).bindPopup('Posição Atual do Motorista').openPopup();
+        miniMapa.setView([motData.lat, motData.lng], 15);
+      } else {
+        badge.innerText = 'Offline';
+        badge.className = 'text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-bold';
+        lbl.innerText = 'Motorista offline. Clique em uma corrida abaixo para rever o roteiro:';
+      }
+    }
+
+    checarPosicaoAoVivo();
+    intervaloRastreioAoVivo = setInterval(checarPosicaoAoVivo, 5000);
   }
 
   function desenharRotaMiniMapa(corrida) {
@@ -506,7 +568,10 @@
     }
   }
 
-  function fecharFichaUsuario() { document.getElementById('modal-ficha-usuario').classList.add('hidden'); }
+  function fecharFichaUsuario() {
+    clearInterval(intervaloRastreioAoVivo);
+    document.getElementById('modal-ficha-usuario').classList.add('hidden');
+  }
 
   async function salvarFichaAdmin() {
     if (!usuarioEmEdicao) return;
@@ -530,7 +595,7 @@
     if (!usuarioEmEdicao) return;
     const novoBan = !usuarioEmEdicao.banido;
     const updates = { banido: novoBan };
-    if (novoBan) updates.online = false; // Força desconexão imediata do radar
+    if (novoBan) updates.online = false;
     await db.from('usuarios').update(updates).eq('id', usuarioEmEdicao.id);
     alert(novoBan ? 'Usuário bloqueado imediatamente.' : 'Usuário desbloqueado.');
     carregarTudo();

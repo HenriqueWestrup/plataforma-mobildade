@@ -22,7 +22,6 @@
 
 <div class="app-container w-full max-w-[440px] bg-slate-50 dark:bg-slate-900 min-h-screen flex flex-col shadow-2xl overflow-x-hidden relative transition-colors duration-200">
 
-  <!-- TOPO -->
   <header class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md z-30">
     <div class="flex items-center gap-2">
       <div class="w-8 h-8 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center font-bold">
@@ -40,7 +39,6 @@
     </div>
   </header>
 
-  <!-- TELA 1: CADASTRO / LOGIN -->
   <section id="tela-auth" class="p-5 flex-1 flex flex-col justify-center space-y-4 z-30">
     <div class="text-center space-y-1">
       <h2 class="text-xl font-extrabold text-slate-900 dark:text-white">Acesso do Passageiro</h2>
@@ -99,7 +97,6 @@
     </form>
   </section>
 
-  <!-- TELA 2: PENDENTE -->
   <section id="tela-pendente" class="hidden p-6 flex-1 flex flex-col justify-center items-center text-center space-y-4 z-30 bg-slate-50 dark:bg-slate-900">
     <div class="w-20 h-20 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-3xl animate-pulse"><i class="fa-solid fa-clock"></i></div>
     <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">Cadastro em Análise</h2>
@@ -107,7 +104,6 @@
     <button onclick="verificarStatusAtual()" class="bg-slate-900 dark:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow">Atualizar Status</button>
   </section>
 
-  <!-- TELA DE BLOQUEIO PENDENTE -->
   <section id="tela-bloqueio" class="hidden p-6 flex-1 flex flex-col justify-center items-center text-center space-y-4 z-30 bg-slate-950 text-white">
     <div class="w-20 h-20 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center text-3xl">
       <i class="fa-solid fa-ban"></i>
@@ -127,7 +123,6 @@
     </div>
   </section>
 
-  <!-- TELA 3: APLICATIVO PRINCIPAL -->
   <section id="tela-app" class="hidden flex-1 flex flex-col relative">
     <div class="absolute inset-0 z-0">
       <div id="mapa-passageiro" class="map-container"></div>
@@ -231,6 +226,7 @@
             </div>
           </div>
 
+          <!-- Botão de cancelar só aparece antes de iniciar a viagem (status aguardando ou aceita) -->
           <button id="btn-cancelar-corrida" onclick="cancelarCorridaAtual()" class="w-full bg-red-50 text-red-600 border border-red-200 font-bold py-2.5 rounded-xl text-xs">Cancelar Chamada</button>
         </div>
 
@@ -238,7 +234,7 @@
     </div>
   </section>
 
-  <!-- POP-UP DE RESPOSTA DA CENTRAL ADMINISTRATIVA -->
+  <!-- POP-UP DE RESPOSTA DA CENTRAL -->
   <div id="modal-resposta-central" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 space-y-4 border-2 border-emerald-500 shadow-2xl">
       <div class="flex items-center gap-3">
@@ -255,7 +251,7 @@
     </div>
   </div>
 
-  <!-- MODAL CONFIRMAÇÃO DE TERMOS DE PAGAMENTO -->
+  <!-- MODAL DE TERMOS DE PAGAMENTO -->
   <div id="modal-termos-pagamento" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800 shadow-2xl">
       <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl">
@@ -279,7 +275,7 @@
     </div>
   </div>
 
-  <!-- MODAL DE AVALIAÇÃO PÓS-CORRIDA -->
+  <!-- MODAL DE AVALIAÇÃO (CORRIGIDO PARA NÃO ENTRAR EM LOOP) -->
   <div id="modal-avaliacao" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 space-y-4 text-center border border-slate-800">
       <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Viagem Finalizada!</h3>
@@ -299,7 +295,6 @@
     </div>
   </div>
 
-  <!-- MODAL DE CONFIGURAÇÕES COMPLETO -->
   <div id="modal-config" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800">
       <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -347,7 +342,6 @@
     </div>
   </div>
 
-  <!-- MODAL TERMOS DE USO -->
   <div id="modal-termos-uso" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[85vh] overflow-y-auto border border-slate-800">
       <div class="flex justify-between items-center">
@@ -367,7 +361,6 @@
     </div>
   </div>
 
-  <!-- MODAL HISTÓRICO -->
   <div id="modal-historico" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[85vh] overflow-y-auto border border-slate-800">
       <div class="flex justify-between items-center">
@@ -771,9 +764,13 @@
     if (corrida.status === 'finalizada') {
       document.getElementById('box-solicitar').classList.remove('hidden');
       document.getElementById('box-andamento').classList.add('hidden');
-      ultimaCorridaFinalizadaId = corrida.id;
-      corridaAtualId = null;
-      abrirModalAvaliacao();
+      
+      // Só abre o modal se for uma nova corrida finalizada que ainda não foi avaliada por este cliente
+      if (ultimaCorridaFinalizadaId !== corrida.id) {
+        ultimaCorridaFinalizadaId = corrida.id;
+        corridaAtualId = null;
+        abrirModalAvaliacao();
+      }
       return;
     }
 
@@ -783,12 +780,16 @@
     document.getElementById('valor-corrida-label').innerText = `R$ ${Number(corrida.valor).toFixed(2)}`;
 
     const statusLbl = document.getElementById('status-corrida-label');
+    const btnCancelar = document.getElementById('btn-cancelar-corrida');
+
     if (corrida.status === 'aguardando') {
       statusLbl.innerText = 'Buscando motorista mais próximo...';
       document.getElementById('info-motorista-viagem').classList.add('hidden');
       document.getElementById('box-chat').classList.add('hidden');
-    } else {
-      statusLbl.innerText = corrida.status === 'aceita' ? 'Motorista a caminho' : (corrida.status === 'no_local' ? 'Motorista no local de embarque' : 'Em viagem');
+      btnCancelar.classList.remove('hidden'); // Permitido cancelar enquanto aguarda
+    } else if (corrida.status === 'aceita' || corrida.status === 'no_local') {
+      statusLbl.innerText = corrida.status === 'aceita' ? 'Motorista a caminho' : 'Motorista no local de embarque';
+      btnCancelar.classList.remove('hidden'); // Permitido cancelar antes de iniciar
       if (corrida.motorista_id) {
         document.getElementById('info-motorista-viagem').classList.remove('hidden');
         document.getElementById('box-chat').classList.remove('hidden');
@@ -800,6 +801,10 @@
         }
         iniciarChatRealtime(corrida.id);
       }
+    } else if (corrida.status === 'em_viagem') {
+      statusLbl.innerText = 'Em viagem para o destino';
+      // PROIBIDO CANCELAR DURANTE A VIAGEM ATIVA
+      btnCancelar.classList.add('hidden');
     }
   }
 
