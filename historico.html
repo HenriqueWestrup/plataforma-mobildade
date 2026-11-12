@@ -1,0 +1,45 @@
+<div class="p-5 flex-1 overflow-y-auto space-y-3 bg-slate-50 dark:bg-slate-900">
+  <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+    <h2 class="text-base font-extrabold text-slate-900 dark:text-white">Histórico de Corridas</h2>
+  </div>
+  <div id="lista-cards-historico-pass" class="space-y-3"></div>
+</div>
+
+<script>
+  async function carregarModuloHistorico() {
+    const lista = document.getElementById('lista-cards-historico-pass');
+    if (!usuarioAtual) return;
+
+    const { data } = await db.from('corridas').select('*').eq('passageiro_id', usuarioAtual.id).order('criado_em', { ascending: false });
+    if (!data || data.length === 0) {
+      lista.innerHTML = '<p class="text-xs text-slate-500 text-center py-8">Nenhuma viagem realizada.</p>';
+      return;
+    }
+
+    lista.innerHTML = data.map(c => `
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl space-y-2 border border-slate-200 dark:border-slate-700 shadow-sm text-xs">
+        <div class="flex justify-between items-center font-bold text-slate-900 dark:text-white">
+          <span class="text-emerald-600">R$ ${Number(c.valor).toFixed(2)}</span>
+          <span class="text-[10px] text-slate-400">${new Date(c.criado_em).toLocaleString()}</span>
+        </div>
+        <p class="text-[10px] text-slate-400 font-mono">ID: ${c.id}</p>
+        <p class="text-slate-600 dark:text-slate-300"><strong>Rota:</strong> ${c.origem} ➔ ${c.destino}</p>
+        <p class="text-slate-500 text-[11px]"><strong>Status:</strong> ${c.status} | <strong>Motorista:</strong> ${c.motorista_nome || 'Não atribuído'}</p>
+        <button onclick="pedirSuporteHistoricoPass('${c.id}')" class="w-full bg-slate-900 dark:bg-slate-700 text-white font-bold py-2 rounded-xl text-[11px]">Ajuda / Suporte desta Corrida</button>
+      </div>
+    `).join('');
+  }
+
+  async function pedirSuporteHistoricoPass(corridaId) {
+    const motivo = prompt(`Informe o que está acontecendo (Referente à ID da Corrida: ${corridaId.slice(0, 8)}...):`);
+    if (!motivo) return;
+    await db.from('chamados_suporte').insert([{
+      corrida_id: corridaId,
+      usuario_id: usuarioAtual.id,
+      usuario_nome: usuarioAtual.nome,
+      tipo_usuario: 'passageiro',
+      motivo: `[ID Corrida: ${corridaId}] ${motivo}`
+    }]);
+    alert('Chamado enviado à central de ajuda com sucesso!');
+  }
+</script>

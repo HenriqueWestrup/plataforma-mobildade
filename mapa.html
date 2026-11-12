@@ -2,19 +2,328 @@
   <div id="mapa-passageiro" class="w-full h-full"></div>
 </div>
 
-<div class="mt-auto z-20 p-4 bg-slate-900/90 backdrop-blur rounded-t-3xl border-t border-slate-800 space-y-3">
-  <h3 class="text-sm font-extrabold text-white">Para onde vamos hoje?</h3>
-  <input type="text" id="destino-input" placeholder="Digite o destino..." class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white" />
-  <button onclick="chamarCorrida()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs">Chamar Motorista</button>
+<div id="banner-selecao-mapa" class="hidden z-30 bg-emerald-600 text-white px-4 py-2 text-xs font-bold flex items-center justify-between shadow-lg">
+  <span><i class="fa-solid fa-location-crosshairs mr-1"></i> Toque no mapa para marcar o local</span>
+  <button onclick="cancelarModoMapa()" class="bg-slate-900 px-2.5 py-1 rounded text-[10px]">Concluir</button>
 </div>
 
-<!-- Scripts exclusivos do mapa -->
+<div class="mt-auto z-20 p-4">
+  <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+    
+    <!-- SOLICITAÇÃO -->
+    <div id="box-solicitar" class="space-y-2.5">
+      <div class="flex justify-between items-center">
+        <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Para onde vamos hoje?</h3>
+        <button onclick="usarMinhaLocalizacaoGPS()" class="text-[11px] text-emerald-600 font-bold"><i class="fa-solid fa-location-arrow"></i> Meu GPS</button>
+      </div>
+
+      <div class="relative">
+        <label class="text-[11px] font-bold text-slate-500">Ponto A (Embarque)</label>
+        <input type="text" id="corrida-origem" placeholder="Sua localização..." oninput="buscarSugestoesEndereco(this.value, 'origem')" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
+        <div id="sugestoes-origem" class="hidden absolute left-0 right-0 bg-white dark:bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-40 max-h-32 overflow-y-auto text-xs"></div>
+      </div>
+
+      <div id="wrapper-parada-b" class="hidden relative">
+        <label class="text-[11px] font-bold text-slate-500">Parada B (Opcional)</label>
+        <input type="text" id="corrida-parada-b" placeholder="Endereço da parada" oninput="buscarSugestoesEndereco(this.value, 'parada')" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
+        <div id="sugestoes-parada" class="hidden absolute left-0 right-0 bg-white dark:bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-40 max-h-32 overflow-y-auto text-xs"></div>
+      </div>
+
+      <div>
+        <button id="btn-add-parada" onclick="adicionarParadaB()" class="text-[11px] text-emerald-600 font-bold">+ Adicionar Parada B</button>
+      </div>
+
+      <div class="relative">
+        <label class="text-[11px] font-bold text-slate-500">Destino Final (C)</label>
+        <input type="text" id="corrida-destino" placeholder="Digite o destino..." oninput="buscarSugestoesEndereco(this.value, 'destino')" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
+        <div id="sugestoes-destino" class="hidden absolute left-0 right-0 bg-white dark:bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-40 max-h-32 overflow-y-auto text-xs"></div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <div>
+          <label class="text-[11px] font-bold text-slate-500">Pagamento</label>
+          <select id="corrida-pagamento" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold dark:text-white">
+            <option value="PIX">PIX</option>
+            <option value="Dinheiro">Dinheiro</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-slate-500">Valor <span id="lbl-distancia" class="text-[10px] text-emerald-500"></span></label>
+          <input type="text" id="corrida-valor-display" readonly value="R$ 10,00" class="w-full mt-1 px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-extrabold text-emerald-600" />
+        </div>
+      </div>
+
+      <button onclick="solicitarCarroAgora()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs shadow-lg transition">Chamar Motorista Agora</button>
+    </div>
+
+    <!-- BUSCANDO -->
+    <div id="box-buscando" class="hidden text-center space-y-3 py-4">
+      <div class="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center text-2xl mx-auto animate-pulse">
+        <i class="fa-solid fa-radar"></i>
+      </div>
+      <div>
+        <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Procurando Motorista...</h3>
+        <p class="text-xs text-slate-500">Tempo restante: <span id="cronometro-regressivo" class="font-extrabold text-emerald-600 text-sm">03:00</span></p>
+      </div>
+      <button onclick="cancelarBuscaCorrida()" class="w-full bg-red-50 text-red-600 border border-red-200 font-bold py-2.5 rounded-xl text-xs">Cancelar Solicitação</button>
+    </div>
+
+    <!-- EM ANDAMENTO E CHAT -->
+    <div id="box-andamento" class="hidden space-y-3">
+      <div class="bg-slate-900 text-white p-3.5 rounded-2xl space-y-2 border border-slate-800">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase text-emerald-400" id="status-corrida-label">Motorista a caminho</span>
+          <span class="text-sm font-extrabold" id="valor-corrida-label">R$ 0,00</span>
+        </div>
+        <div class="flex items-center gap-3 pt-2 border-t border-slate-800">
+          <img id="mot-foto" src="" class="w-11 h-11 rounded-full object-cover border-2 border-emerald-500" />
+          <div>
+            <p class="text-xs font-bold" id="mot-nome">Motorista</p>
+            <p class="text-[11px] text-slate-300" id="mot-veiculo">Veículo • Placa</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-slate-200 dark:border-slate-700 rounded-2xl p-3 space-y-2 bg-slate-50 dark:bg-slate-800">
+        <p class="text-[11px] font-bold text-slate-700 dark:text-slate-300"><i class="fa-solid fa-comments mr-1"></i> Chat com Motorista</p>
+        <div id="historico-mensagens" class="h-28 overflow-y-auto space-y-1.5 text-xs pr-1"></div>
+        <div class="flex gap-1.5">
+          <input type="text" id="input-mensagem" placeholder="Digite sua mensagem..." class="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
+          <button onclick="enviarMensagemChat()" class="bg-emerald-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- LEAFLET CSS & JS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  function inicializarMapa() {
-    const map = L.map('mapa-passageiro', { zoomControl: false }).setView([-28.4811, -48.7811], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-    console.log("Módulo do mapa carregado isoladamente com sucesso!");
+  let mapPassageiro = null;
+  let markerOrigem = null;
+  let markerParada = null;
+  let markerDestino = null;
+  let camadaRotaMapa = null;
+  let coordsOrigem = { lat: -28.4811, lng: -48.7811 };
+  let coordsParada = null;
+  let coordsDestino = null;
+  let valorCalculado = 10.00;
+  let corridaAtualId = null;
+  let timerCronometro = null;
+  let segundosRestantes = 180;
+  let chatCanalMapa = null;
+
+  function inicializarModuloMapa() {
+    if (mapPassageiro) {
+      setTimeout(() => mapPassageiro.invalidateSize(), 200);
+      return;
+    }
+    mapPassageiro = L.map('mapa-passageiro', { zoomControl: false }).setView([coordsOrigem.lat, coordsOrigem.lng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapPassageiro);
+    markerOrigem = L.marker([coordsOrigem.lat, coordsOrigem.lng]).addTo(mapPassageiro).bindPopup('Embarque');
+    camadaRotaMapa = L.layerGroup().addTo(mapPassageiro);
+    usarMinhaLocalizacaoGPS();
+  }
+
+  function usarMinhaLocalizacaoGPS() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude, longitude } = pos.coords;
+      coordsOrigem = { lat: latitude, lng: longitude };
+      if (mapPassageiro) mapPassageiro.setView([latitude, longitude], 16);
+      if (markerOrigem) markerOrigem.setLatLng([latitude, longitude]);
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+      const json = await res.json();
+      if (json && json.display_name && document.getElementById('corrida-origem')) {
+        document.getElementById('corrida-origem').value = json.display_name.split(',').slice(0, 3).join(',');
+      }
+      atualizarCalculoETrajetoReal();
+    });
+  }
+
+  function adicionarParadaB() {
+    document.getElementById('wrapper-parada-b').classList.remove('hidden');
+    document.getElementById('btn-add-parada').classList.add('hidden');
+  }
+
+  async function buscarSugestoesEndereco(texto, tipo) {
+    const box = document.getElementById(`sugestoes-${tipo}`);
+    if (!texto || texto.length < 3) { box.classList.add('hidden'); return; }
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=4&q=${encodeURIComponent(texto + ', Laguna SC')}`);
+    const lista = await res.json();
+    if (!lista || lista.length === 0) { box.classList.add('hidden'); return; }
+    box.innerHTML = lista.map(item => `
+      <div onclick="selecionarSugestaoMapa('${tipo}', '${item.display_name.replace(/'/g, '')}', ${item.lat}, ${item.lon})" class="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer border-b border-slate-700 text-slate-800 dark:text-slate-200">
+        ${item.display_name.split(',').slice(0, 3).join(',')}
+      </div>
+    `).join('');
+    box.classList.remove('hidden');
+  }
+
+  function selecionarSugestaoMapa(tipo, nome, lat, lng) {
+    document.getElementById(`sugestoes-${tipo}`).classList.add('hidden');
+    const endCurto = nome.split(',').slice(0, 3).join(',');
+    if (tipo === 'origem') {
+      document.getElementById('corrida-origem').value = endCurto;
+      coordsOrigem = { lat, lng };
+      markerOrigem.setLatLng([lat, lng]);
+    } else if (tipo === 'parada') {
+      document.getElementById('corrida-parada-b').value = endCurto;
+      coordsParada = { lat, lng };
+      if (!markerParada) markerParada = L.marker([lat, lng]).addTo(mapPassageiro);
+      else markerParada.setLatLng([lat, lng]);
+    } else if (tipo === 'destino') {
+      document.getElementById('corrida-destino').value = endCurto;
+      coordsDestino = { lat, lng };
+      if (!markerDestino) markerDestino = L.marker([lat, lng]).addTo(mapPassageiro);
+      else markerDestino.setLatLng([lat, lng]);
+    }
+    mapPassageiro.setView([lat, lng], 15);
+    atualizarCalculoETrajetoReal();
+  }
+
+  async function atualizarCalculoETrajetoReal() {
+    if (!coordsOrigem || !coordsDestino) return;
+    camadaRotaMapa.clearLayers();
+    let coordString = `${coordsOrigem.lng},${coordsOrigem.lat}`;
+    if (coordsParada) coordString += `;${coordsParada.lng},${coordsParada.lat}`;
+    coordString += `;${coordsDestino.lng},${coordsDestino.lat}`;
+
+    try {
+      const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson`);
+      const data = await res.json();
+      if (data.routes && data.routes.length > 0) {
+        const rota = data.routes[0];
+        const distanciaKm = rota.distance / 1000;
+        const coordsGeo = rota.geometry.coordinates.map(c => [c[1], c[0]]);
+        const linha = L.polyline(coordsGeo, { color: '#10b981', weight: 5 }).addTo(camadaRotaMapa);
+        mapPassageiro.fitBounds(linha.getBounds(), { padding: [40, 40] });
+        valorCalculado = Math.max(10.00, 6.00 + (distanciaKm * 3.20));
+        document.getElementById('corrida-valor-display').value = `R$ ${valorCalculado.toFixed(2)}`;
+        document.getElementById('lbl-distancia').innerText = `(~${distanciaKm.toFixed(1)} km)`;
+      }
+    } catch (e) { console.log('Erro ao calcular rota.'); }
+  }
+
+  async function solicitarCarroAgora() {
+    if (!document.getElementById('corrida-destino').value.trim()) { alert('Informe o destino final.'); return; }
+    const origem = document.getElementById('corrida-origem').value.trim();
+    const paradaB = document.getElementById('corrida-parada-b').value.trim();
+    const destino = document.getElementById('corrida-destino').value.trim();
+    const pagamento = document.getElementById('corrida-pagamento').value;
+
+    const { data, error } = await db.from('corridas').insert([{
+      passageiro_id: usuarioAtual.id,
+      passageiro_nome: usuarioAtual.nome,
+      origem, origem_lat: coordsOrigem.lat, origem_lng: coordsOrigem.lng,
+      parada_b: paradaB || null,
+      destino, destino_lat: coordsDestino ? coordsDestino.lat : null, destino_lng: coordsDestino ? coordsDestino.lng : null,
+      valor: valorCalculado.toFixed(2), forma_pagamento: pagamento, status: 'aguardando'
+    }]).select().single();
+
+    if (error) { alert('Erro: ' + error.message); return; }
+    corridaAtualId = data.id;
+
+    document.getElementById('box-solicitar').classList.add('hidden');
+    document.getElementById('box-buscando').classList.remove('hidden');
+    iniciarCronometroRegressivo();
+    escutarStatusCorridaMapa(data.id);
+  }
+
+  function iniciarCronometroRegressivo() {
+    segundosRestantes = 180;
+    document.getElementById('cronometro-regressivo').innerText = '03:00';
+    clearInterval(timerCronometro);
+    timerCronometro = setInterval(async () => {
+      segundosRestantes--;
+      const min = String(Math.floor(segundosRestantes / 60)).padStart(2, '0');
+      const seg = String(segundosRestantes % 60).padStart(2, '0');
+      document.getElementById('cronometro-regressivo').innerText = `${min}:${seg}`;
+      if (segundosRestantes <= 0) {
+        clearInterval(timerCronometro);
+        if (corridaAtualId) await db.from('corridas').update({ status: 'cancelada', cancelado_por: 'timeout' }).eq('id', corridaAtualId);
+        alert('Nenhum motorista disponível no momento.');
+        cancelarBuscaCorrida();
+      }
+    }, 1000);
+  }
+
+  async function cancelarBuscaCorrida() {
+    clearInterval(timerCronometro);
+    if (corridaAtualId) {
+      await db.from('corridas').update({ status: 'cancelada', cancelado_por: 'passageiro' }).eq('id', corridaAtualId);
+      corridaAtualId = null;
+    }
+    document.getElementById('box-buscando').classList.add('hidden');
+    document.getElementById('box-andamento').classList.add('hidden');
+    document.getElementById('box-solicitar').classList.remove('hidden');
+    if (camadaRotaMapa) camadaRotaMapa.clearLayers();
+  }
+
+  function escutarStatusCorridaMapa(corridaId) {
+    db.channel('status-mapa-' + corridaId)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'corridas', filter: `id=eq.${corridaId}` }, async (p) => {
+        const c = p.new;
+        if (c.status === 'aceita' || c.status === 'no_local' || c.status === 'em_viagem') {
+          clearInterval(timerCronometro);
+          document.getElementById('box-buscando').classList.add('hidden');
+          document.getElementById('box-andamento').classList.remove('hidden');
+          document.getElementById('valor-corrida-label').innerText = `R$ ${Number(c.valor).toFixed(2)}`;
+          document.getElementById('status-corrida-label').innerText = c.status === 'no_local' ? 'Motorista no local' : 'Motorista a caminho';
+          
+          if (c.motorista_id) {
+            const { data: mot } = await db.from('usuarios').select('*').eq('id', c.motorista_id).single();
+            if (mot) {
+              document.getElementById('mot-nome').innerText = mot.nome;
+              document.getElementById('mot-veiculo').innerText = `${mot.veiculo_modelo || ''} • ${mot.veiculo_placa || ''}`;
+              document.getElementById('mot-foto').src = mot.foto_url || 'https://ui-avatars.com/api/?name=' + mot.nome;
+            }
+          }
+          iniciarChatMapa(c.id);
+        } else if (c.status === 'finalizada') {
+          document.getElementById('box-andamento').classList.add('hidden');
+          document.getElementById('box-solicitar').classList.remove('hidden');
+          alert('Viagem concluída com sucesso!');
+        }
+      })
+      .subscribe();
+  }
+
+  function iniciarChatMapa(corridaId) {
+    carregarMensagensMapa(corridaId);
+    if (chatCanalMapa) return;
+    chatCanalMapa = db.channel('chat-mapa-' + corridaId)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens_chat', filter: `corrida_id=eq.${corridaId}` }, (p) => {
+        renderizarMsgMapa(p.new);
+      })
+      .subscribe();
+  }
+
+  async function carregarMensagensMapa(corridaId) {
+    const { data } = await db.from('mensagens_chat').select('*').eq('corrida_id', corridaId).order('criado_em', { ascending: true });
+    const div = document.getElementById('historico-mensagens');
+    div.innerHTML = '';
+    if (data) data.forEach(m => renderizarMsgMapa(m));
+  }
+
+  function renderizarMsgMapa(m) {
+    const div = document.getElementById('historico-mensagens');
+    const eu = m.remetente_id === usuarioAtual.id;
+    div.innerHTML += `<div class="p-2 rounded-xl text-[11px] ${eu ? 'bg-emerald-600 text-white ml-6 text-right' : 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white mr-6'}">
+      <span class="block text-[9px] opacity-75 font-bold">${m.remetente_nome}</span>${m.mensagem}
+    </div>`;
+    div.scrollTop = div.scrollHeight;
+  }
+
+  async function enviarMensagemChat() {
+    const input = document.getElementById('input-mensagem');
+    const texto = input.value.trim();
+    if (!texto || !corridaAtualId) return;
+    input.value = '';
+    await db.from('mensagens_chat').insert([{
+      corrida_id: corridaAtualId, remetente_id: usuarioAtual.id, remetente_nome: usuarioAtual.nome, mensagem: texto
+    }]);
   }
 </script>
