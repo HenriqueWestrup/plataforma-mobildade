@@ -18,12 +18,12 @@
 
 <script>
   function carregarModuloPerfil() {
-    if (!usuarioAtual) return;
-    document.getElementById('perfil-foto-pass').src = usuarioAtual.foto_url || '';
-    document.getElementById('perfil-nome-pass').innerText = usuarioAtual.nome || '';
-    document.getElementById('perfil-nota-pass').innerText = Number(usuarioAtual.nota_media || 5.0).toFixed(2);
-    document.getElementById('perfil-tel-pass').innerText = usuarioAtual.telefone || '';
-    document.getElementById('perfil-cpf-pass').innerText = usuarioAtual.cpf || '';
-    document.getElementById('perfil-end-pass').innerText = usuarioAtual.endereco || '';
+    if (!window.usuarioAtual) return;
+    document.getElementById('perfil-foto-pass').src = window.usuarioAtual.foto_url || '';
+    document.getElementById('perfil-nome-pass').innerText = window.usuarioAtual.nome || '';
+    document.getElementById('perfil-nota-pass').innerText = Number(window.usuarioAtual.nota_media || 5.0).toFixed(2);
+    document.getElementById('perfil-tel-pass').innerText = window.usuarioAtual.telefone || '';
+    document.getElementById('perfil-cpf-pass').innerText = window.usuarioAtual.cpf || '';
+    document.getElementById('perfil-end-pass').innerText = window.usuarioAtual.endereco || '';
   }
 </script>

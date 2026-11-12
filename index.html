@@ -96,7 +96,6 @@
       if (resposta.ok) {
         container.innerHTML = await resposta.text();
         
-        // Garante a inicialização correta do mapa assim que o HTML for injetado
         if (nomeAba === 'mapa' && typeof inicializarModuloMapa === 'function') {
           setTimeout(inicializarModuloMapa, 150);
         }

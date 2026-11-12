@@ -8,9 +8,9 @@
 <script>
   async function carregarModuloHistorico() {
     const lista = document.getElementById('lista-cards-historico-pass');
-    if (!usuarioAtual) return;
+    if (!window.usuarioAtual) return;
 
-    const { data } = await db.from('corridas').select('*').eq('passageiro_id', usuarioAtual.id).order('criado_em', { ascending: false });
+    const { data } = await db.from('corridas').select('*').eq('passageiro_id', window.usuarioAtual.id).order('criado_em', { ascending: false });
     if (!data || data.length === 0) {
       lista.innerHTML = '<p class="text-xs text-slate-500 text-center py-8">Nenhuma viagem realizada.</p>';
       return;
@@ -30,16 +30,16 @@
     `).join('');
   }
 
-  async function pedirSuporteHistoricoPass(corridaId) {
+  window.pedirSuporteHistoricoPass = async function(corridaId) {
     const motivo = prompt(`Informe o que está acontecendo (Referente à ID da Corrida: ${corridaId.slice(0, 8)}...):`);
     if (!motivo) return;
     await db.from('chamados_suporte').insert([{
       corrida_id: corridaId,
-      usuario_id: usuarioAtual.id,
-      usuario_nome: usuarioAtual.nome,
+      usuario_id: window.usuarioAtual.id,
+      usuario_nome: window.usuarioAtual.nome,
       tipo_usuario: 'passageiro',
       motivo: `[ID Corrida: ${corridaId}] ${motivo}`
     }]);
     alert('Chamado enviado à central de ajuda com sucesso!');
-  }
+  };
 </script>
