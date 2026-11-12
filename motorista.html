@@ -108,11 +108,29 @@
     </form>
   </section>
 
+  <!-- MODAL OBRIGATÓRIO DE TROCA DE SENHA TEMPORÁRIA -->
+  <div id="modal-troca-senha" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 space-y-4 border-2 border-amber-500 shadow-2xl">
+      <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl mx-auto">
+        <i class="fa-solid fa-key"></i>
+      </div>
+      <div class="text-center space-y-1">
+        <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Criação de Nova Senha</h3>
+        <p class="text-xs text-slate-500">Você acessou com uma senha temporária. Defina sua nova senha pessoal.</p>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Nova Senha</label>
+        <input type="password" id="nova-senha-input" placeholder="Digite sua nova senha" class="w-full mt-1 px-3 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-xl text-xs dark:text-white" />
+      </div>
+      <button onclick="salvarNovaSenhaTemporaria()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow">Salvar Nova Senha e Entrar</button>
+    </div>
+  </div>
+
   <!-- TELA CADASTRO PENDENTE -->
   <section id="tela-pendente" class="hidden p-6 flex-1 flex flex-col justify-center items-center text-center space-y-4 z-30 bg-slate-50 dark:bg-slate-900">
     <div class="w-20 h-20 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-3xl animate-pulse"><i class="fa-solid fa-clock"></i></div>
     <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">Cadastro em Análise</h2>
-    <p class="text-xs text-slate-600 dark:text-slate-300">Sua conta de motorista está aguardando liberação da central administrativa.</p>
+    <p class="text-xs text-slate-600 dark:text-slate-300">Aguardando liberação da central administrativa.</p>
     <button onclick="verificarStatusAtual()" class="bg-slate-900 dark:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow">Atualizar Status</button>
   </section>
 
@@ -122,18 +140,8 @@
       <i class="fa-solid fa-ban"></i>
     </div>
     <h2 class="text-xl font-extrabold text-red-400">Conta com Bloqueio Pendente</h2>
-    <p class="text-xs text-slate-300 max-w-xs leading-relaxed">
-      Seu acesso foi temporariamente bloqueado pela administração. Entre em contato com a central para resolver a situação da sua conta.
-    </p>
-    <div class="space-y-2 w-full max-w-xs pt-2">
-      <button onclick="solicitarRevisaoBloqueio()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg">
-        Solicitar Revisão à Central
-      </button>
-      <button onclick="verificarStatusAtual()" class="w-full bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs">
-        Verificar Novamente
-      </button>
-      <button onclick="sairConta()" class="w-full text-slate-500 text-xs underline pt-2">Sair</button>
-    </div>
+    <p class="text-xs text-slate-300 max-w-xs leading-relaxed">Seu acesso foi temporariamente bloqueado pela administração.</p>
+    <button onclick="sairConta()" class="w-full max-w-xs bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs">Sair</button>
   </section>
 
   <!-- TELA PRINCIPAL DO MOTORISTA -->
@@ -168,14 +176,17 @@
         <p class="text-xs text-slate-500 dark:text-slate-400">Fique online para receber solicitações de passageiros próximos.</p>
       </div>
 
-      <!-- Box Oferta de Corrida (Alerta para Motorista) -->
+      <!-- Box Oferta de Corrida (Popup com 15s e Aviso de Loop) -->
       <div id="box-oferta" class="hidden bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-2xl border-2 border-amber-500 space-y-3">
         <div class="flex justify-between items-center">
           <span class="bg-amber-500 text-slate-950 font-extrabold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider" id="badge-aviso-repetida">Nova Corrida</span>
+          <span class="text-xs font-bold text-slate-500">Expira em: <span id="timer-popup-chamada" class="text-amber-500 font-extrabold">15s</span></span>
+        </div>
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-extrabold text-slate-900 dark:text-white" id="oferta-passageiro">Passageiro</h3>
           <span class="text-base font-extrabold text-emerald-600" id="oferta-valor">R$ 0,00</span>
         </div>
         <div class="space-y-1.5 text-xs text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 p-3 rounded-2xl">
-          <p><strong>Passageiro:</strong> <span id="oferta-passageiro">Nome</span></p>
           <p><strong>Embarque:</strong> <span id="oferta-origem">Endereço</span></p>
           <p id="wrapper-oferta-parada" class="hidden"><strong>Parada B:</strong> <span id="oferta-parada">Endereço</span></p>
           <p><strong>Destino:</strong> <span id="oferta-destino">Endereço</span></p>
@@ -187,7 +198,7 @@
         </div>
       </div>
 
-      <!-- Box Corrida em Andamento -->
+      <!-- Box Corrida em Andamento (Com Cronômetro de 3 Minutos na Chegada) -->
       <div id="box-em-andamento" class="hidden bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-3">
         <div class="flex justify-between items-center">
           <div>
@@ -199,9 +210,13 @@
 
         <div class="bg-slate-100 dark:bg-slate-800 p-3 rounded-2xl text-xs text-slate-700 dark:text-slate-300 space-y-1">
           <p><strong>Embarque:</strong> <span id="andamento-origem"></span></p>
-          <p id="wrapper-andamento-parada" class="hidden"><strong>Parada B:</strong> <span id="andamento-parada"></span></p>
           <p><strong>Destino:</strong> <span id="andamento-destino"></span></p>
-          <p><strong>Forma de Pagamento:</strong> <span id="andamento-pagamento" class="font-bold text-emerald-500"></span> (Receber no destino)</p>
+        </div>
+
+        <!-- Cronômetro de 3 minutos de espera no local -->
+        <div id="box-espera-embarque" class="hidden bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl text-center space-y-1">
+          <p class="text-[11px] font-bold text-amber-500">Aguardando passageiro no local</p>
+          <p class="text-base font-extrabold text-amber-400" id="cronometro-espera">03:00</p>
         </div>
 
         <!-- Chat com Passageiro -->
@@ -214,10 +229,12 @@
           </div>
         </div>
 
-        <!-- Botões de Fluxo da Corrida -->
         <div class="space-y-2">
           <button id="btn-fluxo-acao" onclick="avancarFluxoCorrida()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs shadow-lg">
             Cheguei no Local de Embarque
+          </button>
+          <button id="btn-cancelar-noshow" onclick="cancelarPorNoShow()" class="hidden w-full bg-red-50 text-red-600 border border-red-200 font-bold py-2.5 rounded-xl text-xs">
+            Cancelar por Tempo Excedido (No-show)
           </button>
         </div>
       </div>
@@ -225,7 +242,7 @@
     </div>
   </section>
 
-  <!-- MODAL CONFIGURAÇÕES (PERFIL ESTÁTICO COM BOTÃO DE EDITAR) -->
+  <!-- MODAL CONFIGURAÇÕES (PERFIL NO TOPO + HISTÓRICO SEMANAL) -->
   <div id="modal-config" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800">
       <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -233,25 +250,24 @@
         <button onclick="fecharMenuConfig()" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
 
-      <!-- VISUALIZAÇÃO DO PERFIL (NÃO EDITÁVEL INICIALMENTE) -->
-      <div id="box-perfil-visualizacao" class="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl space-y-3">
-        <div class="flex items-center gap-3">
-          <img id="perfil-foto-exibicao" src="" class="w-14 h-14 rounded-full object-cover border-2 border-emerald-500" />
-          <div>
-            <p class="text-sm font-extrabold text-slate-900 dark:text-white" id="perfil-nome-exibicao">-</p>
-            <p class="text-xs text-slate-500 dark:text-slate-400" id="perfil-tel-exibicao">-</p>
-          </div>
+      <!-- PERFIL ESTÁTICO NO TOPO -->
+      <div id="box-perfil-visualizacao" class="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl space-y-3 text-center">
+        <img id="perfil-foto-exibicao" src="" class="w-20 h-20 rounded-full object-cover border-4 border-emerald-500 mx-auto shadow" />
+        <div>
+          <p class="text-sm font-extrabold text-slate-900 dark:text-white" id="perfil-nome-exibicao">-</p>
+          <p class="text-xs text-amber-500 font-bold mt-0.5"><i class="fa-solid fa-star"></i> <span id="perfil-nota-exibicao">5.0</span></p>
         </div>
-        <div class="text-xs space-y-1 text-slate-700 dark:text-slate-300 pt-1 border-t border-slate-200 dark:border-slate-700">
+        <div class="text-xs space-y-1 text-slate-700 dark:text-slate-300 pt-2 border-t border-slate-200 dark:border-slate-700 text-left">
+          <p><strong>Telefone:</strong> <span id="perfil-tel-exibicao">-</span></p>
           <p><strong>CPF:</strong> <span id="perfil-cpf-exibicao">-</span></p>
           <p><strong>Endereço:</strong> <span id="perfil-end-exibicao">-</span></p>
           <p><strong>Veículo:</strong> <span id="perfil-veiculo-exibicao">-</span></p>
           <p><strong>Placa:</strong> <span id="perfil-placa-exibicao" class="uppercase font-bold">-</span></p>
         </div>
-        <button onclick="ativarEdicaoPerfil()" class="w-full bg-slate-900 dark:bg-slate-700 text-white font-bold py-2 rounded-xl text-xs">Editar Perfil</button>
+        <button onclick="ativarEdicaoPerfil()" class="w-full bg-slate-900 dark:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs">Editar Perfil</button>
       </div>
 
-      <!-- FORMULÁRIO DE EDIÇÃO (ABRE APÓS CLICAR EM EDITAR) -->
+      <!-- FORMULÁRIO DE EDIÇÃO -->
       <div id="box-perfil-edicao" class="hidden p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl space-y-3">
         <p class="text-xs font-extrabold text-slate-800 dark:text-white">Editando Seus Dados</p>
         <div class="flex items-center gap-3">
@@ -285,39 +301,30 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-between p-3.5 bg-slate-100 dark:bg-slate-800 rounded-2xl">
-        <div class="flex items-center gap-2.5">
-          <i class="fa-solid fa-moon text-emerald-500"></i>
-          <span class="text-xs font-bold text-slate-800 dark:text-white">Modo Escuro</span>
-        </div>
-        <button onclick="alternarTema()" class="bg-slate-900 dark:bg-emerald-600 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold">Alternar Tema</button>
-      </div>
-
-      <button onclick="abrirHistorico()" class="w-full p-3.5 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-between text-xs font-bold text-slate-800 dark:text-white">
-        <span><i class="fa-solid fa-clock-rotate-left text-emerald-500 mr-2"></i> Histórico de Corridas & Suporte</span>
+      <button onclick="abrirHistoricoViagens()" class="w-full p-3.5 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-between text-xs font-bold text-slate-800 dark:text-white">
+        <span><i class="fa-solid fa-clock-rotate-left text-emerald-500 mr-2"></i> Histórico de Viagens</span>
         <i class="fa-solid fa-chevron-right text-slate-400"></i>
       </button>
 
-      <div class="pt-2 text-center space-y-3">
+      <div class="pt-2 text-center">
         <button onclick="sairConta()" class="w-full bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs">Sair da Conta</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL DE RESPOSTA DA CENTRAL -->
-  <div id="modal-resposta-central" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 space-y-4 border-2 border-emerald-500 shadow-2xl">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
-          <i class="fa-solid fa-headset"></i>
-        </div>
-        <div>
-          <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Resposta da Central</h3>
-          <p class="text-[10px] text-slate-400">Suporte Administrativo</p>
-        </div>
+  <!-- MODAL HISTÓRICO DE VIAGENS (ACUMULADO SEMANAL + CARDS + SUPORTE) -->
+  <div id="modal-historico" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[85vh] overflow-y-auto border border-slate-800">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Histórico & Faturamento Semanal</h3>
+        <button onclick="fecharHistorico()" class="text-slate-500"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-      <div class="bg-slate-100 dark:bg-slate-800 p-3.5 rounded-2xl text-xs text-slate-800 dark:text-slate-200 leading-relaxed" id="texto-resposta-central"></div>
-      <button onclick="confirmarLeituraRespostaCentral()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs shadow">Ciente / Fechar</button>
+      <!-- Espelho do Faturamento Semanal -->
+      <div class="bg-slate-900 text-white p-4 rounded-2xl space-y-1">
+        <p class="text-[10px] uppercase font-bold text-emerald-400">Faturamento Acumulado da Semana</p>
+        <p class="text-xl font-extrabold" id="faturamento-semanal-total">R$ 0,00</p>
+      </div>
+      <div id="lista-cards-historico-mot" class="space-y-3 pt-2"></div>
     </div>
   </div>
 
@@ -333,22 +340,17 @@
         <i class="fa-solid fa-star cursor-pointer" onclick="selecionarEstrelaMot(4)"></i>
         <i class="fa-solid fa-star cursor-pointer" onclick="selecionarEstrelaMot(5)"></i>
       </div>
-      <div id="box-motivo-av-mot" class="hidden text-left space-y-1">
-        <label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">Justificativa da nota (Opcional)</label>
+      <div id="box-motivo-av-mot" class="hidden text-left space-y-2">
+        <label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">Justificativa (Obrigatório para nota baixa)</label>
+        <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+          <label class="flex items-center gap-1.5"><input type="checkbox" name="tag-av-mot" value="Pontualidade"> Pontualidade</label>
+          <label class="flex items-center gap-1.5"><input type="checkbox" name="tag-av-mot" value="Comportamento"> Comportamento</label>
+          <label class="flex items-center gap-1.5"><input type="checkbox" name="tag-av-mot" value="Pagamento"> Pagamento</label>
+          <label class="flex items-center gap-1.5"><input type="checkbox" name="tag-av-mot" value="Educação"> Educação</label>
+        </div>
         <textarea id="texto-motivo-av-mot" rows="2" placeholder="Descreva o motivo..." class="w-full p-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-xl text-xs dark:text-white"></textarea>
       </div>
       <button onclick="enviarAvaliacaoMotorista()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs">Enviar Avaliação</button>
-    </div>
-  </div>
-
-  <!-- MODAL HISTÓRICO -->
-  <div id="modal-historico" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[85vh] overflow-y-auto border border-slate-800">
-      <div class="flex justify-between items-center">
-        <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Meu Histórico de Corridas</h3>
-        <button onclick="fecharHistorico()" class="text-slate-500"><i class="fa-solid fa-xmark text-lg"></i></button>
-      </div>
-      <div id="lista-historico-viagens" class="space-y-3"></div>
     </div>
   </div>
 
@@ -366,31 +368,20 @@
   let markerMotorista = null;
   let watchIdGPS = null;
   let corridaAtiva = null;
-  let chamadaRespostaAtualId = null;
-  let estrelaMotSelecionada = 5;
   let chatCanal = null;
-
-  let historicoOfertasVisualizadas = []; // Controla se a oferta já foi mostrada anteriormente para este motorista
+  let timerPopupPopup = null;
+  let timerEsperaEmbarque = null;
+  let segundosEsperaRestantes = 180;
+  let estrelaMotSelecionada = 5;
+  let historicoOfertasVisualizadas = [];
 
   window.onload = async () => {
-    carregarTemaSalvo();
     const salvo = localStorage.getItem('motorista_logado');
     if (salvo) {
       usuarioAtual = JSON.parse(salvo);
       await verificarStatusAtual();
     }
   };
-
-  function alternarTema() {
-    const isDark = document.getElementById('html-root').classList.toggle('dark');
-    localStorage.setItem('tema_escuro', isDark ? 'sim' : 'nao');
-  }
-
-  function carregarTemaSalvo() {
-    if (localStorage.getItem('tema_escuro') === 'sim') {
-      document.getElementById('html-root').classList.add('dark');
-    }
-  }
 
   function alternarAbaAuth(aba) {
     document.getElementById('form-cadastro').classList.toggle('hidden', aba !== 'cadastro');
@@ -467,7 +458,31 @@
     if (error || !data) { alert('Telefone ou senha incorretos.'); return; }
     usuarioAtual = data;
     localStorage.setItem('motorista_logado', JSON.stringify(data));
+
+    if (data.senha_temporaria) {
+      document.getElementById('modal-troca-senha').classList.remove('hidden');
+      return;
+    }
     verificarStatusAtual();
+  }
+
+  async function salvarNovaSenhaTemporaria() {
+    const novaSenha = document.getElementById('nova-senha-input').value.trim();
+    if (!novaSenha) { alert('Digite a nova senha.'); return; }
+
+    const { data, error } = await db.from('usuarios').update({
+      senha: novaSenha,
+      senha_temporaria: false
+    }).eq('id', usuarioAtual.id).select().single();
+
+    if (!error && data) {
+      usuarioAtual = data;
+      localStorage.setItem('motorista_logado', JSON.stringify(data));
+      document.getElementById('modal-troca-senha').classList.add('hidden');
+      verificarStatusAtual();
+    } else {
+      alert('Erro ao atualizar senha.');
+    }
   }
 
   async function verificarStatusAtual() {
@@ -476,8 +491,6 @@
     if (data) { usuarioAtual = data; localStorage.setItem('motorista_logado', JSON.stringify(data)); }
 
     document.getElementById('tela-auth').classList.add('hidden');
-    escutarBloqueioERespostasSuporte();
-
     if (usuarioAtual.banido) {
       document.getElementById('tela-app').classList.add('hidden');
       document.getElementById('tela-pendente').classList.add('hidden');
@@ -486,9 +499,7 @@
       return;
     }
 
-    document.getElementById('tela-bloqueio').classList.add('hidden');
     document.getElementById('btn-menu').classList.remove('hidden');
-
     if (usuarioAtual.status_aprovacao === 'aprovado') {
       document.getElementById('tela-pendente').classList.add('hidden');
       document.getElementById('tela-app').classList.remove('hidden');
@@ -500,28 +511,6 @@
       document.getElementById('tela-app').classList.add('hidden');
       document.getElementById('tela-pendente').classList.remove('hidden');
     }
-  }
-
-  function escutarBloqueioERespostasSuporte() {
-    db.channel('mot-status-' + usuarioAtual.id)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'usuarios', filter: `id=eq.${usuarioAtual.id}` }, (p) => {
-        usuarioAtual = p.new;
-        localStorage.setItem('motorista_logado', JSON.stringify(p.new));
-        verificarStatusAtual();
-      })
-      .subscribe();
-  }
-
-  async function solicitarRevisaoBloqueio() {
-    const motivo = prompt('Escreva sua solicitação de revisão:');
-    if (!motivo) return;
-    await db.from('chamados_suporte').insert([{
-      usuario_id: usuarioAtual.id,
-      usuario_nome: usuarioAtual.nome,
-      tipo_usuario: 'motorista',
-      motivo: '[REVISÃO DE BLOQUEIO] ' + motivo
-    }]);
-    alert('Solicitação enviada à central.');
   }
 
   function inicializarMapaMotorista() {
@@ -565,18 +554,16 @@
 
   async function verificarCorridasParaMotorista() {
     if (!usuarioAtual.online) return;
-    if (corridaAtiva) return; // Se já está em corrida, ignora novas ofertas
+    if (corridaAtiva) return;
 
-    // Busca corridas aguardando na praça
     const { data: corridas } = await db.from('corridas').select('*').eq('status', 'aguardando').order('criado_em', { ascending: true }).limit(1);
     
     if (corridas && corridas.length > 0) {
       const c = corridas[0];
-      
-      // Verifica se esta corrida já foi exibida para este motorista antes
       const jaViu = historicoOfertasVisualizadas.includes(c.id);
+      
       if (jaViu) {
-        document.getElementById('badge-aviso-repetida').innerText = 'Nova Oportunidade (Já vista)';
+        document.getElementById('badge-aviso-repetida').innerText = 'Nova Oportunidade (Já visualizada anteriormente)';
       } else {
         document.getElementById('badge-aviso-repetida').innerText = 'Nova Corrida';
         historicoOfertasVisualizadas.push(c.id);
@@ -591,29 +578,40 @@
       document.getElementById('oferta-destino').innerText = c.destino;
       document.getElementById('oferta-pagamento').innerText = c.forma_pagamento;
 
-      const pB = document.getElementById('wrapper-oferta-parada');
-      if (c.parada_b) {
-        pB.classList.remove('hidden');
-        document.getElementById('oferta-parada').innerText = c.parada_b;
-      } else {
-        pB.classList.add('hidden');
-      }
+      iniciarTemporizadorPopup();
     } else {
       document.getElementById('box-oferta').classList.add('hidden');
       if (!corridaAtiva) document.getElementById('box-aguardando').classList.remove('hidden');
     }
   }
 
+  function iniciarTemporizadorPopup() {
+    let segundos = 15;
+    document.getElementById('timer-popup-chamada').innerText = `${segundos}s`;
+    clearInterval(timerPopupPopup);
+
+    timerPopupPopup = setInterval(() => {
+      segundos--;
+      document.getElementById('timer-popup-chamada').innerText = `${segundos}s`;
+      if (segundos <= 0) {
+        clearInterval(timerPopupPopup);
+        recusarOferta(); // Expira e passa para o próximo no loop
+      }
+    }, 1000);
+  }
+
   async function recusarOferta() {
+    clearInterval(timerPopupPopup);
     document.getElementById('box-oferta').classList.add('hidden');
     document.getElementById('box-aguardando').classList.remove('hidden');
+    window.ofertaAtual = null;
   }
 
   async function aceitarOferta() {
+    clearInterval(timerPopupPopup);
     if (!window.ofertaAtual) return;
     const cId = window.ofertaAtual.id;
     
-    // Tenta atualizar assumindo a corrida se ainda estiver 'aguardando'
     const { data, error } = await db.from('corridas').update({
       motorista_id: usuarioAtual.id,
       motorista_nome: usuarioAtual.nome,
@@ -639,15 +637,6 @@
     document.getElementById('andamento-valor').innerText = `R$ ${Number(corridaAtiva.valor).toFixed(2)}`;
     document.getElementById('andamento-origem').innerText = corridaAtiva.origem;
     document.getElementById('andamento-destino').innerText = corridaAtiva.destino;
-    document.getElementById('andamento-pagamento').innerText = corridaAtiva.forma_pagamento;
-
-    const pB = document.getElementById('wrapper-andamento-parada');
-    if (corridaAtiva.parada_b) {
-      pB.classList.remove('hidden');
-      document.getElementById('andamento-parada').innerText = corridaAtiva.parada_b;
-    } else {
-      pB.classList.add('hidden');
-    }
 
     const btn = document.getElementById('btn-fluxo-acao');
     const lbl = document.getElementById('andamento-status-lbl');
@@ -658,29 +647,67 @@
     } else if (corridaAtiva.status === 'no_local') {
       lbl.innerText = 'Aguardando passageiro';
       btn.innerText = 'Iniciar Viagem';
+      document.getElementById('box-espera-embarque').classList.remove('hidden');
+      document.getElementById('btn-cancelar-noshow').classList.remove('hidden');
+      iniciarEsperaEmbarque();
     } else if (corridaAtiva.status === 'em_viagem') {
       lbl.innerText = 'Em viagem para o destino';
       btn.innerText = 'Finalizar Corrida';
+      document.getElementById('box-espera-embarque').classList.add('hidden');
+      document.getElementById('btn-cancelar-noshow').classList.add('hidden');
     }
 
     iniciarChatRealtime(corridaAtiva.id);
   }
 
+  function iniciarEsperaEmbarque() {
+    segundosEsperaRestantes = 180;
+    atualizarDisplayEspera();
+    clearInterval(timerEsperaEmbarque);
+
+    timerEsperaEmbarque = setInterval(() => {
+      segundosEsperaRestantes--;
+      atualizarDisplayEspera();
+      if (segundosEsperaRestantes <= 0) {
+        clearInterval(timerEsperaEmbarque);
+      }
+    }, 1000);
+  }
+
+  function atualizarDisplayEspera() {
+    const min = String(Math.floor(segundosEsperaRestantes / 60)).padStart(2, '0');
+    const seg = String(segundosEsperaRestantes % 60).padStart(2, '0');
+    document.getElementById('cronometro-espera').innerText = `${min}:${seg}`;
+  }
+
   async function avancarFluxoCorrida() {
     if (!corridaAtiva) return;
     let novoStatus = '';
-    if (corridaAtiva.status === 'aceita') novoStatus = 'no_local';
-    else if (corridaAtiva.status === 'no_local') novoStatus = 'em_viagem';
-    else if (corridaAtiva.status === 'em_viagem') novoStatus = 'finalizada';
-
-    await db.from('corridas').update({ status: novoStatus }).eq('id', corridaAtiva.id);
-    
-    if (novoStatus === 'finalizada') {
+    if (corridaAtiva.status === 'aceita') {
+      novoStatus = 'no_local';
+      await db.from('corridas').update({ status: novoStatus, chegada_embarque_em: new Date().toISOString() }).eq('id', corridaAtiva.id);
+    } else if (corridaAtiva.status === 'no_local') {
+      clearInterval(timerEsperaEmbarque);
+      novoStatus = 'em_viagem';
+      await db.from('corridas').update({ status: novoStatus }).eq('id', corridaAtiva.id);
+    } else if (corridaAtiva.status === 'em_viagem') {
+      novoStatus = 'finalizada';
+      await db.from('corridas').update({ status: novoStatus }).eq('id', corridaAtiva.id);
       abrirModalAvaliacaoMot();
-    } else {
-      corridaAtiva.status = novoStatus;
-      atualizarPainelCorridaAtiva();
+      return;
     }
+
+    corridaAtiva.status = novoStatus;
+    atualizarPainelCorridaAtiva();
+  }
+
+  async function cancelarPorNoShow() {
+    if (!confirm('Deseja cancelar por tempo excedido (No-show)?')) return;
+    clearInterval(timerEsperaEmbarque);
+    await db.from('corridas').update({ status: 'cancelada', cancelado_por: 'motorista_noshow' }).eq('id', corridaAtiva.id);
+    document.getElementById('box-em-andamento').classList.add('hidden');
+    document.getElementById('box-aguardando').classList.remove('hidden');
+    corridaAtiva = null;
   }
 
   function iniciarChatRealtime(corridaId) {
@@ -735,9 +762,12 @@
 
   async function enviarAvaliacaoMotorista() {
     const motivo = document.getElementById('texto-motivo-av-mot').value.trim();
+    const tags = Array.from(document.querySelectorAll('input[name="tag-av-mot"]:checked')).map(cb => cb.value).join(', ');
+
     if (corridaAtiva) {
       await db.from('corridas').update({
         avaliacao_passageiro: estrelaMotSelecionada,
+        tags_avaliacao_passageiro: tags || null,
         motivo_avaliacao_passageiro: motivo || null
       }).eq('id', corridaAtiva.id);
     }
@@ -749,16 +779,15 @@
   }
 
   function abrirMenuConfig() {
-    // Preenche perfil estático
     document.getElementById('perfil-foto-exibicao').src = usuarioAtual.foto_url || '';
     document.getElementById('perfil-nome-exibicao').innerText = usuarioAtual.nome || '';
+    document.getElementById('perfil-nota-exibicao').innerText = Number(usuarioAtual.nota_media || 5.0).toFixed(2);
     document.getElementById('perfil-tel-exibicao').innerText = usuarioAtual.telefone || '';
     document.getElementById('perfil-cpf-exibicao').innerText = usuarioAtual.cpf || '';
     document.getElementById('perfil-end-exibicao').innerText = usuarioAtual.endereco || '';
     document.getElementById('perfil-veiculo-exibicao').innerText = usuarioAtual.veiculo_modelo || '-';
     document.getElementById('perfil-placa-exibicao').innerText = usuarioAtual.veiculo_placa || '-';
 
-    // Preenche campos de edição caso queira alterar
     document.getElementById('edit-telefone').value = usuarioAtual.telefone || '';
     document.getElementById('edit-endereco').value = usuarioAtual.endereco || '';
     document.getElementById('edit-veiculo').value = usuarioAtual.veiculo_modelo || '';
@@ -800,24 +829,58 @@
     }
   }
 
-  async function abrirHistorico() {
+  async function abrirHistoricoViagens() {
     fecharMenuConfig();
     document.getElementById('modal-historico').classList.remove('hidden');
     const { data } = await db.from('corridas').select('*').eq('motorista_id', usuarioAtual.id).order('criado_em', { ascending: false });
-    const lista = document.getElementById('lista-historico-viagens');
-    if (!data || data.length === 0) { lista.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">Nenhuma viagem realizada.</p>'; return; }
+    const lista = document.getElementById('lista-cards-historico-mot');
+    
+    if (!data || data.length === 0) {
+      document.getElementById('faturamento-semanal-total').innerText = 'R$ 0,00';
+      lista.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">Nenhuma viagem realizada.</p>';
+      return;
+    }
+
+    let totalSemana = 0;
+    const agora = new Date();
+    data.forEach(c => {
+      const dataCorrida = new Date(c.criado_em);
+      const diffDias = (agora - dataCorrida) / (1000 * 60 * 60 * 24);
+      if (diffDias <= 7 && c.status === 'finalizada') {
+        totalSemana += Number(c.valor || 0);
+      }
+    });
+
+    document.getElementById('faturamento-semanal-total').innerText = `R$ ${totalSemana.toFixed(2)}`;
+
     lista.innerHTML = data.map(c => `
-      <div class="bg-slate-100 dark:bg-slate-800 p-3 rounded-2xl space-y-1 border border-slate-700 text-xs">
-        <div class="flex justify-between font-bold text-white">
-          <span>R$ ${Number(c.valor).toFixed(2)} (${c.status})</span>
-          <span class="text-[10px] text-slate-400">${new Date(c.criado_em).toLocaleDateString()}</span>
+      <div class="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl space-y-2 border border-slate-700 shadow-sm text-xs">
+        <div class="flex justify-between items-center font-bold text-slate-900 dark:text-white">
+          <span class="text-emerald-600">R$ ${Number(c.valor).toFixed(2)} (${c.status})</span>
+          <span class="text-[10px] text-slate-400">${new Date(c.criado_em).toLocaleString()}</span>
         </div>
-        <p class="text-slate-300"><strong>Passageiro:</strong> ${c.passageiro_nome}</p>
-        <p class="text-slate-300"><strong>Rota:</strong> ${c.origem} ➔ ${c.destino}</p>
+        <p class="text-[10px] text-slate-400 font-mono">ID: ${c.id}</p>
+        <p class="text-slate-600 dark:text-slate-300"><strong>Passageiro:</strong> ${c.passageiro_nome}</p>
+        <p class="text-slate-600 dark:text-slate-300"><strong>Rota:</strong> ${c.origem} ➔ ${c.destino}</p>
+        <button onclick="pedirSuporteCorridaMot('${c.id}')" class="w-full bg-slate-900 text-white font-bold py-2 rounded-xl text-[11px]">Ajuda / Suporte desta Corrida</button>
       </div>
     `).join('');
   }
+
   function fecharHistorico() { document.getElementById('modal-historico').classList.add('hidden'); }
+
+  async function pedirSuporteCorridaMot(corridaId) {
+    const motivo = prompt(`Informe o que está acontecendo (Referente à ID da Corrida: ${corridaId.slice(0, 8)}...):`);
+    if (!motivo) return;
+    await db.from('chamados_suporte').insert([{
+      corrida_id: corridaId,
+      usuario_id: usuarioAtual.id,
+      usuario_nome: usuarioAtual.nome,
+      tipo_usuario: 'motorista',
+      motivo: `[ID Corrida: ${corridaId}] ${motivo}`
+    }]);
+    alert('Chamado enviado à central de ajuda com sucesso!');
+  }
 
   function sairConta() { localStorage.removeItem('motorista_logado'); location.reload(); }
 </script>
