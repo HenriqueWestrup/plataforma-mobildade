@@ -1,4 +1,4 @@
-<div class="relative w-full h-[260px] z-0">
+<div class="relative w-full h-[260px] z-0 bg-slate-800">
   <div id="mapa-passageiro" class="w-full h-full"></div>
 </div>
 
@@ -7,7 +7,7 @@
   <button onclick="cancelarModoMapa()" class="bg-slate-900 px-2.5 py-1 rounded text-[10px]">Concluir</button>
 </div>
 
-<div class="z-20 p-4 -mt-6">
+<div class="z-20 p-4 -mt-4">
   <div class="bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-2.5">
     
     <!-- SOLICITAÇÃO -->
@@ -56,7 +56,7 @@
         </div>
       </div>
 
-      <button onclick="solicitarCarroAgora()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition">Chamar Motorista Agora</button>
+      <button type="button" onclick="window.solicitarCarroAgora()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition">Chamar Motorista Agora</button>
     </div>
 
     <!-- BUSCANDO -->
@@ -100,41 +100,48 @@
   </div>
 </div>
 
-<!-- LEAFLET CSS & JS -->
+<!-- LEAFLET CSS se já não estiver no index -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  let mapPassageiro = null;
-  let markerOrigem = null;
-  let markerParada = null;
-  let markerDestino = null;
-  let camadaRotaMapa = null;
-  let coordsOrigem = { lat: -28.4811, lng: -48.7811 };
-  let coordsParada = null;
-  let coordsDestino = null;
-  let valorCalculado = 10.00;
-  let corridaAtualId = null;
-  let timerCronometro = null;
-  let segundosRestantes = 180;
-  let chatCanalMapa = null;
-  let timerBuscaEndereco = null;
+  // Garantimos variáveis locais seguras
+  if (typeof mapPassageiro === 'undefined') {
+    var mapPassageiro = null;
+    var markerOrigem = null;
+    var markerParada = null;
+    var markerDestino = null;
+    var camadaRotaMapa = null;
+  }
+  
+  var coordsOrigem = { lat: -28.4811, lng: -48.7811 };
+  var coordsParada = null;
+  var coordsDestino = null;
+  var valorCalculado = 10.00;
+  var corridaAtualId = null;
+  var timerCronometro = null;
+  var segundosRestantes = 180;
+  var chatCanalMapa = null;
+  var timerBuscaEndereco = null;
 
-  // Inicializa o mapa assim que o arquivo é injetado
+  // Inicialização forçada garantindo que o DOM foi pintado
   setTimeout(() => {
     inicializarModuloMapa();
-  }, 100);
+  }, 250);
 
   function inicializarModuloMapa() {
+    const containerMapa = document.getElementById('mapa-passageiro');
+    if (!containerMapa) return;
+
     if (mapPassageiro) {
-      mapPassageiro.invalidateSize();
-      return;
+      mapPassageiro.remove();
+      mapPassageiro = null;
     }
+
     mapPassageiro = L.map('mapa-passageiro', { zoomControl: false }).setView([coordsOrigem.lat, coordsOrigem.lng], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapPassageiro);
     markerOrigem = L.marker([coordsOrigem.lat, coordsOrigem.lng]).addTo(mapPassageiro).bindPopup('Embarque');
     camadaRotaMapa = L.layerGroup().addTo(mapPassageiro);
     
-    // Puxa o GPS do aparelho ao abrir
     usarMinhaLocalizacaoGPS();
   }
 
@@ -146,14 +153,16 @@
       if (mapPassageiro) mapPassageiro.setView([latitude, longitude], 16);
       if (markerOrigem) markerOrigem.setLatLng([latitude, longitude]);
       
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-      const json = await res.json();
-      if (json && json.display_name && document.getElementById('corrida-origem')) {
-        document.getElementById('corrida-origem').value = json.display_name.split(',').slice(0, 3).join(',');
-      }
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+        const json = await res.json();
+        if (json && json.display_name && document.getElementById('corrida-origem')) {
+          document.getElementById('corrida-origem').value = json.display_name.split(',').slice(0, 3).join(',');
+        }
+      } catch(e) {}
       atualizarCalculoETrajetoReal();
     }, () => {
-      console.log('GPS não autorizado ou indisponível, usando padrão de Laguna.');
+      console.log('GPS indisponível.');
     });
   }
 
@@ -168,46 +177,48 @@
     if (!texto || texto.length < 3) { box.classList.add('hidden'); return; }
 
     timerBuscaEndereco = setTimeout(async () => {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=4&q=${encodeURIComponent(texto + ', Laguna SC')}`);
-      const lista = await res.json();
-      if (!lista || lista.length === 0) { box.classList.add('hidden'); return; }
-      
-      box.innerHTML = lista.map(item => `
-        <div onclick="selecionarSugestaoMapa('${tipo}', '${item.display_name.replace(/'/g, '')}', ${item.lat}, ${item.lon})" class="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer border-b border-slate-700 text-slate-800 dark:text-slate-200">
-          ${item.display_name.split(',').slice(0, 3).join(',')}
-        </div>
-      `).join('');
-      box.classList.remove('hidden');
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=4&q=${encodeURIComponent(texto + ', Laguna SC')}`);
+        const lista = await res.json();
+        if (!lista || lista.length === 0) { box.classList.add('hidden'); return; }
+        
+        box.innerHTML = lista.map(item => `
+          <div onclick="selecionarSugestaoMapa('${tipo}', '${item.display_name.replace(/'/g, '')}', ${item.lat}, ${item.lon})" class="p-2.5 hover:bg-slate-700 cursor-pointer border-b border-slate-700 text-slate-200 text-xs">
+            ${item.display_name.split(',').slice(0, 3).join(',')}
+          </div>
+        `).join('');
+        box.classList.remove('hidden');
+      } catch(e) {}
     }, 400);
   }
 
-  function selecionarSugestaoMapa(tipo, nome, lat, lng) {
+  window.selecionarSugestaoMapa = function(tipo, nome, lat, lng) {
     document.getElementById(`sugestoes-${tipo}`).classList.add('hidden');
     const endCurto = nome.split(',').slice(0, 3).join(',');
     
     if (tipo === 'origem') {
       document.getElementById('corrida-origem').value = endCurto;
-      coordsOrigem = { lat, lng };
+      coordsOrigem = { lat: parseFloat(lat), lng: parseFloat(lng) };
       if (markerOrigem) markerOrigem.setLatLng([lat, lng]);
     } else if (tipo === 'parada') {
       document.getElementById('corrida-parada-b').value = endCurto;
-      coordsParada = { lat, lng };
+      coordsParada = { lat: parseFloat(lat), lng: parseFloat(lng) };
       if (!markerParada) markerParada = L.marker([lat, lng]).addTo(mapPassageiro);
       else markerParada.setLatLng([lat, lng]);
     } else if (tipo === 'destino') {
       document.getElementById('corrida-destino').value = endCurto;
-      coordsDestino = { lat, lng };
+      coordsDestino = { lat: parseFloat(lat), lng: parseFloat(lng) };
       if (!markerDestino) markerDestino = L.marker([lat, lng]).addTo(mapPassageiro);
       else markerDestino.setLatLng([lat, lng]);
     }
     
     if (mapPassageiro) mapPassageiro.setView([lat, lng], 15);
     atualizarCalculoETrajetoReal();
-  }
+  };
 
   async function atualizarCalculoETrajetoReal() {
     if (!coordsOrigem || !coordsDestino) return;
-    camadaRotaMapa.clearLayers();
+    if (camadaRotaMapa) camadaRotaMapa.clearLayers();
     
     let coordString = `${coordsOrigem.lng},${coordsOrigem.lat}`;
     if (coordsParada) coordString += `;${coordsParada.lng},${coordsParada.lat}`;
@@ -224,7 +235,6 @@
         
         if (mapPassageiro) mapPassageiro.fitBounds(linha.getBounds(), { padding: [40, 40] });
         
-        // Cálculo do valor na tela antes de pedir
         valorCalculado = Math.max(10.00, 6.00 + (distanciaKm * 3.20));
         document.getElementById('corrida-valor-display').value = `R$ ${valorCalculado.toFixed(2)}`;
         document.getElementById('lbl-distancia').innerText = `(~${distanciaKm.toFixed(1)} km)`;
@@ -232,41 +242,64 @@
     } catch (e) { console.log('Erro ao calcular rota.'); }
   }
 
-  async function solicitarCarroAgora() {
-    if (!document.getElementById('corrida-destino').value.trim()) { alert('Informe o destino final.'); return; }
+  // Tornada global para evitar erros de escopo nos módulos
+  window.solicitarCarroAgora = async function() {
+    const destinoInput = document.getElementById('corrida-destino');
+    if (!destinoInput || !destinoInput.value.trim()) { 
+      alert('Informe o endereço de destino final.'); 
+      return; 
+    }
     
+    if (!usuarioAtual || !usuarioAtual.id) {
+      alert('Sessão expirada. Faça login novamente.');
+      return;
+    }
+
     const origem = document.getElementById('corrida-origem').value.trim();
-    const paradaB = document.getElementById('corrida-parada-b').value.trim();
-    const destino = document.getElementById('corrida-destino').value.trim();
+    const paradaB = document.getElementById('corrida-parada-b') ? document.getElementById('corrida-parada-b').value.trim() : '';
+    const destino = destinoInput.value.trim();
     const pagamento = document.getElementById('corrida-pagamento').value;
 
     const { data, error } = await db.from('corridas').insert([{
       passageiro_id: usuarioAtual.id,
       passageiro_nome: usuarioAtual.nome,
-      origem, origem_lat: coordsOrigem.lat, origem_lng: coordsOrigem.lng,
+      origem, 
+      origem_lat: coordsOrigem.lat, 
+      origem_lng: coordsOrigem.lng,
       parada_b: paradaB || null,
-      destino, destino_lat: coordsDestino ? coordsDestino.lat : null, destino_lng: coordsDestino ? coordsDestino.lng : null,
-      valor: valorCalculado.toFixed(2), forma_pagamento: pagamento, status: 'aguardando'
+      destino, 
+      destino_lat: coordsDestino ? coordsDestino.lat : null, 
+      destino_lng: coordsDestino ? coordsDestino.lng : null,
+      valor: valorCalculado.toFixed(2), 
+      forma_pagamento: pagamento, 
+      status: 'aguardando'
     }]).select().single();
 
-    if (error) { alert('Erro: ' + error.message); return; }
+    if (error) { 
+      alert('Erro ao solicitar: ' + error.message); 
+      return; 
+    }
+    
     corridaAtualId = data.id;
 
     document.getElementById('box-solicitar').classList.add('hidden');
     document.getElementById('box-buscando').classList.remove('hidden');
     iniciarCronometroRegressivo();
     escutarStatusCorridaMapa(data.id);
-  }
+  };
 
   function iniciarCronometroRegressivo() {
     segundosRestantes = 180;
-    document.getElementById('cronometro-regressivo').innerText = '03:00';
+    const cronoEl = document.getElementById('cronometro-regressivo');
+    if (cronoEl) cronoEl.innerText = '03:00';
     clearInterval(timerCronometro);
+    
     timerCronometro = setInterval(async () => {
       segundosRestantes--;
       const min = String(Math.floor(segundosRestantes / 60)).padStart(2, '0');
       const seg = String(segundosRestantes % 60).padStart(2, '0');
-      document.getElementById('cronometro-regressivo').innerText = `${min}:${seg}`;
+      if (cronoEl) cronoEl.innerText = `${min}:${seg}`;
+      
       if (segundosRestantes <= 0) {
         clearInterval(timerCronometro);
         if (corridaAtualId) await db.from('corridas').update({ status: 'cancelada', cancelado_por: 'timeout' }).eq('id', corridaAtualId);
@@ -276,7 +309,7 @@
     }, 1000);
   }
 
-  async function cancelarBuscaCorrida() {
+  window.cancelarBuscaCorrida = async function() {
     clearInterval(timerCronometro);
     if (corridaAtualId) {
       await db.from('corridas').update({ status: 'cancelada', cancelado_por: 'passageiro' }).eq('id', corridaAtualId);
@@ -286,7 +319,7 @@
     document.getElementById('box-andamento').classList.add('hidden');
     document.getElementById('box-solicitar').classList.remove('hidden');
     if (camadaRotaMapa) camadaRotaMapa.clearLayers();
-  }
+  };
 
   function escutarStatusCorridaMapa(corridaId) {
     db.channel('status-mapa-' + corridaId)
@@ -340,13 +373,13 @@
     const div = document.getElementById('historico-mensagens');
     if (!div) return;
     const eu = m.remetente_id === usuarioAtual.id;
-    div.innerHTML += `<div class="p-1.5 rounded-xl text-[11px] ${eu ? 'bg-emerald-600 text-white ml-6 text-right' : 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white mr-6'}">
+    div.innerHTML += `<div class="p-1.5 rounded-xl text-[11px] ${eu ? 'bg-emerald-600 text-white ml-6 text-right' : 'bg-slate-700 text-white mr-6'}">
       <span class="block text-[9px] opacity-75 font-bold">${m.remetente_nome}</span>${m.mensagem}
     </div>`;
     div.scrollTop = div.scrollHeight;
   }
 
-  async function enviarMensagemChat() {
+  window.enviarMensagemChat = async function() {
     const input = document.getElementById('input-mensagem');
     const texto = input.value.trim();
     if (!texto || !corridaAtualId) return;
@@ -354,5 +387,5 @@
     await db.from('mensagens_chat').insert([{
       corrida_id: corridaAtualId, remetente_id: usuarioAtual.id, remetente_nome: usuarioAtual.nome, mensagem: texto
     }]);
-  }
+  };
 </script>
