@@ -14,91 +14,91 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
-  <!-- TOPO -->
   <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-red-600/20 text-red-500 flex items-center justify-center font-bold text-lg border border-red-500/30">
+      <div class="w-10 h-10 rounded-xl bg-red-600/20 text-red-500 flex items-center justify-center font-bold text-lg border border-red-500/30 relative">
         <i class="fa-solid fa-shield-halved"></i>
+        <span id="badge-notif" class="hidden absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
       </div>
       <div>
         <h1 class="text-base font-bold text-white">Central Administrativa</h1>
-        <p class="text-xs text-slate-400">Aprovação de Cadastros & Monitoramento ao Vivo</p>
+        <p class="text-xs text-slate-400">Aprovações, Monitoramento & Chamados de Suporte</p>
       </div>
     </div>
     <button onclick="carregarTudo()" class="bg-slate-800 hover:bg-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700">
-      <i class="fa-solid fa-rotate mr-1"></i> Atualizar Dados
+      <i class="fa-solid fa-rotate mr-1"></i> Atualizar
     </button>
   </header>
 
   <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 space-y-6">
 
-    <!-- NAVEGAÇÃO ENTRE ABAS SEPARADAS -->
+    <!-- Abas -->
     <div class="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
-      <button id="btn-aba-motoristas" onclick="mudarAbaAdmin('motoristas')" class="bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
-        <i class="fa-solid fa-car"></i> Cadastros de Motoristas (<span id="count-mot">0</span>)
+      <button id="btn-aba-cadastros" onclick="mudarAba('cadastros')" class="bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
+        <i class="fa-solid fa-user-clock"></i> Pendentes (<span id="count-cad">0</span>)
       </button>
-      <button id="btn-aba-passageiros" onclick="mudarAbaAdmin('passageiros')" class="bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
-        <i class="fa-solid fa-users"></i> Cadastros de Passageiros (<span id="count-pas">0</span>)
+      <button id="btn-aba-suporte" onclick="mudarAba('suporte')" class="bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
+        <i class="fa-solid fa-headset"></i> Chamados de Ajuda (<span id="count-sup">0</span>)
       </button>
-      <button id="btn-aba-corridas" onclick="mudarAbaAdmin('corridas')" class="bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
+      <button id="btn-aba-corridas" onclick="mudarAba('corridas')" class="bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
         <i class="fa-solid fa-route"></i> Corridas ao Vivo (<span id="count-cor">0</span>)
       </button>
     </div>
 
-    <!-- ABA 1: GESTÃO DE MOTORISTAS -->
-    <section id="sec-motoristas" class="space-y-4">
+    <!-- Seção Cadastros Pendentes -->
+    <section id="sec-cadastros" class="space-y-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-        <h2 class="text-sm font-bold text-white mb-4">Fila de Análise e Gestão de Motoristas</h2>
+        <h2 class="text-sm font-bold text-white mb-4">Cadastros Pendentes (Motoristas e Passageiros)</h2>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
               <tr>
-                <th class="p-3">Motorista</th>
-                <th class="p-3">Telefone / CPF</th>
-                <th class="p-3">Veículo / Placa</th>
-                <th class="p-3">Status</th>
-                <th class="p-3 text-right">Decisão Central</th>
+                <th class="p-3">Perfil</th>
+                <th class="p-3">Nome / Tipo</th>
+                <th class="p-3">Contato</th>
+                <th class="p-3">Detalhes / Veículo</th>
+                <th class="p-3 text-right">Aprovação</th>
               </tr>
             </thead>
-            <tbody id="lista-motoristas" class="divide-y divide-slate-800"></tbody>
+            <tbody id="lista-cadastros" class="divide-y divide-slate-800"></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <!-- ABA 2: GESTÃO DE PASSAGEIROS (COM FOTO OBRIGATÓRIA) -->
-    <section id="sec-passageiros" class="hidden space-y-4">
+    <!-- Seção Chamados de Suporte -->
+    <section id="sec-suporte" class="hidden space-y-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-        <h2 class="text-sm font-bold text-white mb-4">Fila de Análise e Gestão de Passageiros</h2>
+        <h2 class="text-sm font-bold text-white mb-4">Auditoria de Chamados de Ajuda</h2>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
               <tr>
-                <th class="p-3">Foto</th>
-                <th class="p-3">Passageiro</th>
-                <th class="p-3">Telefone / CPF</th>
-                <th class="p-3">Status</th>
-                <th class="p-3 text-right">Decisão Central</th>
+                <th class="p-3">Usuário</th>
+                <th class="p-3">Tipo</th>
+                <th class="p-3">Motivo Relatado</th>
+                <th class="p-3">Data</th>
+                <th class="p-3 text-right">Ação</th>
               </tr>
             </thead>
-            <tbody id="lista-passageiros" class="divide-y divide-slate-800"></tbody>
+            <tbody id="lista-suporte" class="divide-y divide-slate-800"></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <!-- ABA 3: CORRIDAS AO VIVO -->
+    <!-- Seção Corridas -->
     <section id="sec-corridas" class="hidden space-y-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-        <h2 class="text-sm font-bold text-white mb-4">Monitoramento de Corridas em Tempo Real</h2>
+        <h2 class="text-sm font-bold text-white mb-4">Corridas Ativas na Rua</h2>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
               <tr>
                 <th class="p-3">Passageiro</th>
                 <th class="p-3">Motorista</th>
-                <th class="p-3">Trajeto</th>
-                <th class="p-3">Valor / Pagamento</th>
+                <th class="p-3">Rota</th>
+                <th class="p-3">Valor</th>
                 <th class="p-3">Status</th>
               </tr>
             </thead>
@@ -117,35 +117,37 @@
 
   window.onload = () => {
     carregarTudo();
-    // Escuta novos cadastros e corridas em tempo real
-    db.channel('admin-realtime')
+    db.channel('admin-geral')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'usuarios' }, () => carregarTudo())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chamados_suporte' }, () => carregarTudo())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'corridas' }, () => carregarTudo())
       .subscribe();
   };
 
-  function mudarAbaAdmin(aba) {
-    ['motoristas', 'passageiros', 'corridas'].forEach(nome => {
+  function mudarAba(aba) {
+    ['cadastros', 'suporte', 'corridas'].forEach(nome => {
       document.getElementById(`sec-${nome}`).classList.toggle('hidden', nome !== aba);
       document.getElementById(`btn-aba-${nome}`).className = nome === aba
         ? 'bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2'
-        : 'bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2';
+        : 'bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2';
     });
   }
 
   async function carregarTudo() {
     const { data: usuarios } = await db.from('usuarios').select('*').order('criado_em', { ascending: false });
+    const { data: suporte } = await db.from('chamados_suporte').select('*').order('criado_em', { ascending: false });
     const { data: corridas } = await db.from('corridas').select('*').order('criado_em', { ascending: false }).limit(20);
 
     if (usuarios) {
-      const motoristas = usuarios.filter(u => u.tipo === 'motorista');
-      const passageiros = usuarios.filter(u => u.tipo === 'passageiro');
+      const pendentes = usuarios.filter(u => u.status_aprovacao === 'pendente');
+      document.getElementById('count-cad').innerText = pendentes.length;
+      document.getElementById('badge-notif').classList.toggle('hidden', pendentes.length === 0);
+      renderizarCadastros(pendentes);
+    }
 
-      document.getElementById('count-mot').innerText = motoristas.length;
-      document.getElementById('count-pas').innerText = passageiros.length;
-
-      renderizarMotoristas(motoristas);
-      renderizarPassageiros(passageiros);
+    if (suporte) {
+      document.getElementById('count-sup').innerText = suporte.length;
+      renderizarSuporte(suporte);
     }
 
     if (corridas) {
@@ -154,49 +156,42 @@
     }
   }
 
-  function badgeStatus(status) {
-    if (status === 'aprovado') return '<span class="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded font-bold">Aprovado</span>';
-    if (status === 'rejeitado') return '<span class="bg-red-500/20 text-red-400 px-2.5 py-1 rounded font-bold">Recusado</span>';
-    return '<span class="bg-amber-500/20 text-amber-300 px-2.5 py-1 rounded font-bold animate-pulse">Pendente Análise</span>';
-  }
-
-  function renderizarMotoristas(lista) {
-    const tbody = document.getElementById('lista-motoristas');
+  function renderizarCadastros(lista) {
+    const tbody = document.getElementById('lista-cadastros');
     if (lista.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum motorista cadastrado ainda.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum cadastro pendente no momento.</td></tr>';
       return;
     }
-    tbody.innerHTML = lista.map(m => `
+    tbody.innerHTML = lista.map(u => `
       <tr>
-        <td class="p-3 font-bold text-white">${m.nome}</td>
-        <td class="p-3 text-slate-300">${m.telefone}<br><span class="text-[10px] text-slate-500">CPF: ${m.cpf}</span></td>
-        <td class="p-3 text-slate-300">${m.veiculo_modelo || '-'}<br><span class="font-bold text-amber-400">${m.veiculo_placa || '-'}</span></td>
-        <td class="p-3">${badgeStatus(m.status_aprovacao)}</td>
-        <td class="p-3 text-right space-x-1.5">
-          <button onclick="decidirCadastro('${m.id}', 'aprovado')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg">Aprovar (Sim)</button>
-          <button onclick="decidirCadastro('${m.id}', 'rejeitado')" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white font-bold px-3 py-1.5 rounded-lg border border-red-500/30">Recusar (Não)</button>
+        <td class="p-3">
+          <img src="${u.foto_url || 'https://ui-avatars.com/api/?name=' + u.nome}" class="w-10 h-10 rounded-full object-cover border border-slate-700" />
+        </td>
+        <td class="p-3 font-bold text-white">${u.nome}<br><span class="text-[10px] uppercase text-emerald-400 font-bold">${u.tipo}</span></td>
+        <td class="p-3 text-slate-300">${u.telefone}<br><span class="text-[10px] text-slate-500">CPF: ${u.cpf}</span></td>
+        <td class="p-3 text-slate-300">${u.tipo === 'motorista' ? (u.veiculo_modelo + ' - ' + u.veiculo_placa) : 'Passageiro'}</td>
+        <td class="p-3 text-right space-x-1">
+          <button onclick="decidirUsuario('${u.id}', 'aprovado')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg">Aprovar</button>
+          <button onclick="decidirUsuario('${u.id}', 'rejeitado')" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white font-bold px-3 py-1.5 rounded-lg border border-red-500/30">Recusar</button>
         </td>
       </tr>
     `).join('');
   }
 
-  function renderizarPassageiros(lista) {
-    const tbody = document.getElementById('lista-passageiros');
+  function renderizarSuporte(lista) {
+    const tbody = document.getElementById('lista-suporte');
     if (lista.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum passageiro cadastrado ainda.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum chamado de ajuda registrado.</td></tr>';
       return;
     }
-    tbody.innerHTML = lista.map(p => `
+    tbody.innerHTML = lista.map(s => `
       <tr>
-        <td class="p-3">
-          <img src="${p.foto_url || 'https://ui-avatars.com/api/?name=' + p.nome}" class="w-12 h-12 rounded-full object-cover border-2 border-slate-700" />
-        </td>
-        <td class="p-3 font-bold text-white">${p.nome}</td>
-        <td class="p-3 text-slate-300">${p.telefone}<br><span class="text-[10px] text-slate-500">CPF: ${p.cpf}</span></td>
-        <td class="p-3">${badgeStatus(p.status_aprovacao)}</td>
-        <td class="p-3 text-right space-x-1.5">
-          <button onclick="decidirCadastro('${p.id}', 'aprovado')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg">Aprovar (Sim)</button>
-          <button onclick="decidirCadastro('${p.id}', 'rejeitado')" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white font-bold px-3 py-1.5 rounded-lg border border-red-500/30">Recusar (Não)</button>
+        <td class="p-3 font-bold text-white">${s.usuario_nome}</td>
+        <td class="p-3 uppercase text-[10px] text-amber-400 font-bold">${s.tipo_usuario}</td>
+        <td class="p-3 text-slate-300">${s.motivo}</td>
+        <td class="p-3 text-slate-400 text-[10px]">${new Date(s.criado_em).toLocaleString()}</td>
+        <td class="p-3 text-right">
+          <button onclick="resolverChamado('${s.id}')" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold px-3 py-1.5 rounded-lg border border-slate-700">Resolver</button>
         </td>
       </tr>
     `).join('');
@@ -205,26 +200,27 @@
   function renderizarCorridas(lista) {
     const tbody = document.getElementById('lista-corridas');
     if (lista.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhuma corrida registrada.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhuma corrida ativa.</td></tr>';
       return;
     }
     tbody.innerHTML = lista.map(c => `
       <tr>
-        <td class="p-3 font-bold text-white">${c.passageiro_nome || '-'}</td>
-        <td class="p-3 text-slate-300">${c.motorista_nome || '<span class="text-slate-500 italic">Aguardando...</span>'}</td>
+        <td class="p-3 font-bold text-white">${c.passageiro_nome}</td>
+        <td class="p-3 text-slate-300">${c.motorista_nome || 'Aguardando'}</td>
         <td class="p-3 text-slate-300">${c.origem} ➔ ${c.destino}</td>
-        <td class="p-3 font-bold text-emerald-400">R$ ${Number(c.valor).toFixed(2)} (${c.forma_pagamento})</td>
-        <td class="p-3 uppercase font-bold text-[11px] text-amber-300">${c.status}</td>
+        <td class="p-3 font-bold text-emerald-400">R$ ${Number(c.valor).toFixed(2)}</td>
+        <td class="p-3 uppercase font-bold text-[10px] text-amber-300">${c.status}</td>
       </tr>
     `).join('');
   }
 
-  async function decidirCadastro(userId, decisao) {
-    const { error } = await db.from('usuarios').update({ status_aprovacao: decisao }).eq('id', userId);
-    if (error) {
-      alert('Erro ao atualizar cadastro: ' + error.message);
-      return;
-    }
+  async function decidirUsuario(id, status) {
+    await db.from('usuarios').update({ status_aprovacao: status }).eq('id', id);
+    carregarTudo();
+  }
+
+  async function resolverChamado(id) {
+    await db.from('chamados_suporte').delete().eq('id', id);
     carregarTudo();
   }
 </script>

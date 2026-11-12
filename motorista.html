@@ -1,88 +1,96 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" id="html-root">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>App Motorista - Mobilidade Urbana</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-    body { font-family: 'Inter', sans-serif; background-color: #0f172a; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
-    .app-container { width: 100%; max-width: 440px; background-color: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow-x: hidden; }
-    .map-bg { background-color: #e2e8f0; background-image: linear-gradient(to right, rgba(148, 163, 184, 0.25) 1px, transparent 1px), linear-gradient(to bottom, rgba(148, 163, 184, 0.25) 1px, transparent 1px); background-size: 28px 28px; }
+    body { font-family: 'Inter', sans-serif; }
+    .map-container { width: 100%; height: 100%; z-index: 10; }
   </style>
+  <script>
+    tailwind.config = { darkMode: 'class' }
+  </script>
 </head>
-<body>
+<body class="bg-slate-950 flex justify-center min-h-screen">
 
-<div class="app-container">
+<div class="app-container w-full max-w-[440px] bg-slate-50 dark:bg-slate-900 min-h-screen flex flex-col shadow-2xl overflow-x-hidden relative transition-colors duration-200">
 
   <!-- TOPO -->
-  <header class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md z-20">
+  <header class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md z-30">
     <div class="flex items-center gap-2">
       <div class="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-bold">
         <i class="fa-solid fa-steering-wheel"></i>
       </div>
       <div>
         <h1 class="text-sm font-bold leading-tight">Parceiro Motorista</h1>
-        <p class="text-[10px] text-slate-400" id="header-sub">Acesso Restrito</p>
+        <p class="text-[10px] text-slate-400" id="header-sub">Painel do Condutor</p>
       </div>
     </div>
-    <button id="btn-sair" onclick="sairConta()" class="hidden text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-medium">
-      Sair
-    </button>
+    <div class="flex items-center gap-2">
+      <button onclick="alternarTema()" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center text-xs"><i class="fa-solid fa-moon" id="icone-tema"></i></button>
+      <button id="btn-menu" onclick="abrirMenuConfig()" class="hidden w-8 h-8 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center text-xs"><i class="fa-solid fa-gear"></i></button>
+    </div>
   </header>
 
-  <!-- TELA 1: CADASTRO E ACESSO DO MOTORISTA -->
-  <section id="tela-auth" class="p-5 flex-1 flex flex-col justify-center space-y-5">
+  <!-- TELA 1: CADASTRO / LOGIN -->
+  <section id="tela-auth" class="p-5 flex-1 flex flex-col justify-center space-y-4 z-30">
     <div class="text-center space-y-1">
-      <h2 class="text-xl font-extrabold text-slate-900">Portal do Motorista</h2>
-      <p class="text-xs text-slate-500">Cadastre seus dados e veículo para aprovação da central.</p>
+      <h2 class="text-xl font-extrabold text-slate-900 dark:text-white">Portal do Motorista</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400">Cadastre seu veículo ou entre na sua conta.</p>
     </div>
 
-    <div class="grid grid-cols-2 bg-slate-200 p-1 rounded-xl text-xs font-bold">
-      <button id="tab-cadastro" onclick="alternarAbaAuth('cadastro')" class="bg-white text-slate-900 py-2 rounded-lg shadow-sm transition">Cadastrar Veículo</button>
-      <button id="tab-login" onclick="alternarAbaAuth('login')" class="text-slate-600 py-2 rounded-lg transition">Já sou cadastrado</button>
+    <div class="grid grid-cols-2 bg-slate-200 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold">
+      <button id="tab-cadastro" onclick="alternarAbaAuth('cadastro')" class="bg-white dark:bg-slate-700 text-slate-900 dark:text-white py-2 rounded-lg shadow-sm transition">Cadastrar</button>
+      <button id="tab-login" onclick="alternarAbaAuth('login')" class="text-slate-600 dark:text-slate-400 py-2 rounded-lg transition">Entrar</button>
     </div>
 
-    <form id="form-cadastro" onsubmit="cadastrarMotorista(event)" class="space-y-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+    <!-- Cadastro Motorista -->
+    <form id="form-cadastro" onsubmit="cadastrarMotorista(event)" class="space-y-3 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
       <div>
-        <label class="text-xs font-bold text-slate-700">Nome Completo</label>
-        <input type="text" id="cad-nome" required placeholder="Ex: Carlos Eduardo" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs" />
+        <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Nome Completo</label>
+        <input type="text" id="cad-nome" required placeholder="Seu nome" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
       </div>
-
       <div class="grid grid-cols-2 gap-2">
         <div>
-          <label class="text-xs font-bold text-slate-700">Telefone (WhatsApp)</label>
-          <input type="tel" id="cad-telefone" required placeholder="48999997777" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs" />
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Telefone</label>
+          <input type="tel" id="cad-telefone" required placeholder="48999997777" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
         </div>
         <div>
-          <label class="text-xs font-bold text-slate-700">CPF</label>
-          <input type="text" id="cad-cpf" required placeholder="000.000.000-00" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs" />
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Senha</label>
+          <input type="password" id="cad-senha" required placeholder="Senha" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
         </div>
       </div>
-
       <div class="grid grid-cols-2 gap-2">
         <div>
-          <label class="text-xs font-bold text-slate-700">Modelo / Cor do Carro</label>
-          <input type="text" id="cad-modelo" required placeholder="Ex: Logan Branco" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs" />
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Veículo / Cor</label>
+          <input type="text" id="cad-modelo" required placeholder="Logan Branco" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
         </div>
         <div>
-          <label class="text-xs font-bold text-slate-700">Placa do Veículo</label>
-          <input type="text" id="cad-placa" required placeholder="ABC-1D23" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs uppercase" />
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Placa</label>
+          <input type="text" id="cad-placa" required placeholder="ABC-1D23" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs uppercase dark:text-white" />
         </div>
       </div>
-
-      <button type="submit" id="btn-submit-cad" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition mt-2">
-        Enviar Cadastro para Aprovação
+      <button type="submit" id="btn-submit-cad" class="w-full bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition">
+        Enviar para Aprovação da Central
       </button>
     </form>
 
-    <form id="form-login" onsubmit="entrarMotorista(event)" class="hidden space-y-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+    <!-- Login Motorista -->
+    <form id="form-login" onsubmit="entrarMotorista(event)" class="hidden space-y-3 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
       <div>
-        <label class="text-xs font-bold text-slate-700">Digite seu Telefone Cadastrado</label>
-        <input type="tel" id="login-telefone" required placeholder="Ex: 48999997777" class="w-full mt-1 px-3 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs" />
+        <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Telefone</label>
+        <input type="tel" id="login-telefone" required placeholder="48999997777" class="w-full mt-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Senha</label>
+        <input type="password" id="login-senha" required placeholder="Senha" class="w-full mt-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
       </div>
       <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow transition">
         Entrar e Ficar Online
@@ -90,98 +98,158 @@
     </form>
   </section>
 
-  <!-- TELA 2: AGUARDANDO APROVAÇÃO DO ADMINISTRADOR -->
-  <section id="tela-pendente" class="hidden p-6 flex-1 flex flex-col justify-center items-center text-center space-y-4">
+  <!-- TELA 2: AGUARDANDO APROVAÇÃO -->
+  <section id="tela-pendente" class="hidden p-6 flex-1 flex flex-col justify-center items-center text-center space-y-4 z-30 bg-slate-50 dark:bg-slate-900">
     <div class="w-20 h-20 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-3xl animate-pulse">
       <i class="fa-solid fa-id-card"></i>
     </div>
-    <h2 class="text-lg font-extrabold text-slate-900" id="titulo-status-conta">Cadastro em Análise pela Central</h2>
-    <p class="text-xs text-slate-600 leading-relaxed" id="desc-status-conta">
-      Seus dados e os dados do seu veículo estão sendo verificados pelo administrador. Assim que aprovado, você poderá receber corridas na rua!
+    <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">Cadastro em Análise</h2>
+    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+      Aguardando liberação do administrador.
     </p>
-    <button onclick="verificarStatusAtual()" class="bg-slate-900 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow">
-      Verificar Aprovação
+    <button onclick="verificarStatusAtual()" class="bg-slate-900 dark:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow">
+      Verificar Status
     </button>
   </section>
 
-  <!-- TELA 3: OPERAÇÃO NA RUA -->
-  <section id="tela-app" class="hidden flex-1 flex flex-col">
-    <div class="relative flex-1 map-bg min-h-[240px] flex flex-col justify-between p-4">
-      <div class="self-center">
-        <div class="bg-slate-900/90 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg inline-flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-          <span id="driver-status-text">Online • Escutando chamadas ao vivo</span>
-        </div>
-      </div>
+  <!-- TELA 3: APP MOTORISTA COM RADAR E EXTRATO SEMANAL/MENSAL -->
+  <section id="tela-app" class="hidden flex-1 flex flex-col relative">
+    <div class="absolute inset-0 z-0">
+      <div id="mapa-motorista" class="map-container"></div>
+    </div>
 
-      <div class="self-end">
-        <a href="tel:190" class="bg-red-600 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg flex items-center gap-1.5">
-          <i class="fa-solid fa-shield-halved"></i> Emergência 190
-        </a>
+    <div class="p-4 z-20 flex justify-between items-center pointer-events-none">
+      <div class="bg-slate-900/90 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg pointer-events-auto flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+        <span>Online na Rua</span>
+      </div>
+      <div class="flex gap-2 pointer-events-auto">
+        <button onclick="abrirExtratoGanhos()" class="bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg">
+          <i class="fa-solid fa-wallet mr-1"></i> Extrato
+        </button>
+        <a href="tel:190" class="bg-red-600 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg">190</a>
       </div>
     </div>
 
-    <main class="bg-white rounded-t-3xl -mt-5 z-20 p-5 shadow-[0_-10px_25px_rgba(0,0,0,0.08)] space-y-4">
-      <!-- Estado 1: Aguardando Chamadas -->
-      <div id="driver-waiting" class="text-center py-6 space-y-3">
-        <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl">
-          <i class="fa-solid fa-satellite-dish"></i>
+    <div class="mt-auto z-20 p-4">
+      <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+        
+        <!-- Esperando -->
+        <div id="driver-waiting" class="text-center py-4 space-y-2">
+          <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-lg">
+            <i class="fa-solid fa-satellite-dish"></i>
+          </div>
+          <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Aguardando Chamadas na Região</h3>
+          <button onclick="buscarCorridasAbertas()" class="text-xs text-emerald-600 dark:text-emerald-400 font-bold underline">Atualizar Radar</button>
         </div>
-        <h3 class="text-sm font-extrabold text-slate-900">Você está disponível na rua</h3>
-        <p class="text-xs text-slate-500">Assim que um passageiro solicitar uma corrida, ela aparecerá automaticamente aqui.</p>
-        <button onclick="buscarCorridasAbertas()" class="text-xs text-emerald-700 font-bold underline">Atualizar radar agora</button>
-      </div>
 
-      <!-- Estado 2: Nova Corrida Recebida -->
-      <div id="driver-incoming" class="hidden space-y-4">
-        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-3">
+        <!-- Nova Chamada (Com Foto do Passageiro e Paradas) -->
+        <div id="driver-incoming" class="hidden space-y-3">
+          <div class="bg-emerald-50 dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 rounded-2xl p-3.5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold text-emerald-800 dark:text-emerald-400 uppercase">Nova Corrida Disponível!</span>
+              <span class="text-sm font-extrabold text-slate-900 dark:text-white" id="inc-valor">R$ 0,00</span>
+            </div>
+            <div class="flex items-center gap-3 pt-1">
+              <img id="inc-foto-passageiro" src="" class="w-12 h-12 rounded-full object-cover border-2 border-emerald-500" />
+              <div class="text-xs space-y-0.5 text-slate-700 dark:text-slate-300">
+                <p><strong>Passageiro:</strong> <span id="inc-passageiro">-</span></p>
+                <p><strong>Embarque:</strong> <span id="inc-origem">-</span></p>
+                <p><strong>Destino:</strong> <span id="inc-destino">-</span></p>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="ignorarChamada()" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold py-3 rounded-xl text-xs">Ignorar</button>
+            <button onclick="aceitarCorridaReal()" class="bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs shadow-lg">Aceitar Corrida</button>
+          </div>
+        </div>
+
+        <!-- Corrida em Andamento / Chat -->
+        <div id="driver-active" class="hidden space-y-3">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-extrabold text-emerald-800 uppercase">Nova Chamada Recebida!</span>
-            <span class="text-base font-extrabold text-slate-900" id="inc-valor">R$ 0,00</span>
+            <span id="badge-etapa" class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-lg">Indo buscar</span>
+            <span class="text-sm font-extrabold text-slate-900 dark:text-white" id="act-valor">R$ 0,00</span>
           </div>
-          <div class="text-xs space-y-1.5 text-slate-700">
-            <p><strong>Passageiro:</strong> <span id="inc-passageiro">-</span></p>
-            <p><strong>Embarque:</strong> <span id="inc-origem">-</span></p>
-            <p><strong>Destino:</strong> <span id="inc-destino">-</span></p>
-            <p><strong>Pagamento:</strong> <span class="bg-slate-900 text-white px-2 py-0.5 rounded font-bold" id="inc-pagamento">-</span></p>
+
+          <div class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 flex items-center gap-3">
+            <img id="act-foto-passageiro" src="" class="w-12 h-12 rounded-full object-cover border-2 border-emerald-500" />
+            <div>
+              <h4 class="text-xs font-extrabold text-slate-900 dark:text-white" id="act-nome-passageiro">Passageiro</h4>
+              <p class="text-[11px] text-slate-600 dark:text-slate-400" id="act-endereco">Trajeto ativo</p>
+            </div>
+          </div>
+
+          <!-- Chat do Motorista -->
+          <div id="box-chat-mot" class="border border-slate-200 dark:border-slate-800 rounded-2xl p-3 space-y-2 bg-slate-50 dark:bg-slate-800">
+            <p class="text-[11px] font-bold text-slate-700 dark:text-slate-300"><i class="fa-solid fa-comments mr-1"></i> Chat com Passageiro</p>
+            <div id="historico-mensagens-mot" class="h-24 overflow-y-auto space-y-1.5 text-xs pr-1"></div>
+            <div class="flex gap-1.5">
+              <input type="text" id="input-mensagem-mot" placeholder="Mensagem..." class="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
+              <button onclick="enviarMensagemChatMot()" class="bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <button id="btn-cheguei" onclick="atualizarEtapaCorrida('no_local')" class="w-full bg-amber-500 text-slate-950 font-bold py-3 rounded-xl text-xs shadow">Cheguei no Local</button>
+            <button id="btn-iniciar" onclick="atualizarEtapaCorrida('em_viagem')" class="hidden w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-xs">Iniciar Viagem</button>
+            <button id="btn-finalizar" onclick="finalizarCorridaReal()" class="hidden w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs shadow">Finalizar Corrida</button>
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          <button onclick="ignorarChamada()" class="bg-slate-100 text-slate-700 font-bold py-3 rounded-xl text-xs">Ignorar</button>
-          <button onclick="aceitarCorridaReal()" class="bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs shadow-lg">Aceitar Corrida</button>
-        </div>
+
       </div>
-
-      <!-- Estado 3: Corrida em Andamento -->
-      <div id="driver-active" class="hidden space-y-4">
-        <div class="flex items-center justify-between">
-          <span id="badge-etapa" class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-lg">Indo buscar passageiro</span>
-          <span class="text-sm font-extrabold text-slate-900" id="act-valor">R$ 0,00</span>
-        </div>
-
-        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center gap-3">
-          <img id="act-foto-passageiro" src="" class="w-14 h-14 rounded-full object-cover border-2 border-emerald-500" />
-          <div>
-            <h4 class="text-sm font-extrabold text-slate-900" id="act-nome-passageiro">Passageiro</h4>
-            <p class="text-xs text-slate-600 mt-0.5" id="act-endereco">Embarque -> Destino</p>
-            <p class="text-[11px] font-bold text-emerald-700 mt-1" id="act-pagamento">Pagamento: PIX</p>
-          </div>
-        </div>
-
-        <div class="space-y-2">
-          <button id="btn-cheguei" onclick="atualizarEtapaCorrida('no_local')" class="w-full bg-amber-500 text-slate-950 font-bold py-3 rounded-xl text-xs shadow">
-            Cheguei no Local de Embarque
-          </button>
-          <button id="btn-iniciar" onclick="atualizarEtapaCorrida('em_viagem')" class="hidden w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-xs">
-            Iniciar Viagem
-          </button>
-          <button id="btn-finalizar" onclick="finalizarCorridaReal()" class="hidden w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs shadow">
-            Finalizar Viagem e Confirmar Pagamento
-          </button>
-        </div>
-      </div>
-    </main>
+    </div>
   </section>
+
+  <!-- MODAL DE EXTRATO E GANHOS DO MOTORISTA -->
+  <div id="modal-extrato" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[85vh] overflow-y-auto border border-slate-800">
+      <div class="flex justify-between items-center">
+        <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Extrato & Ganhos</h3>
+        <button onclick="fecharExtrato()" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <!-- Resumo Semana no Topo -->
+      <div class="bg-slate-900 text-white p-4 rounded-2xl text-center space-y-1">
+        <span class="text-[10px] uppercase font-bold text-emerald-400">Total da Semana</span>
+        <h2 class="text-2xl font-extrabold" id="lbl-total-semana">R$ 0,00</h2>
+      </div>
+
+      <!-- Seletor Mês -->
+      <div>
+        <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Selecionar Mês</label>
+        <select id="filtro-mes" onchange="carregarExtratoGanhos()" class="w-full mt-1 px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold dark:text-white">
+          <option value="todos">Todos os Meses</option>
+          <option value="2026-06">Junho / 2026</option>
+          <option value="2026-05">Maio / 2026</option>
+        </select>
+      </div>
+
+      <div class="space-y-2" id="lista-extrato-viagens">
+        <p class="text-xs text-slate-500 text-center py-4">Carregando extrato...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CONFIGURAÇÕES / EXCLUSÃO DE DADOS -->
+  <div id="modal-config" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 space-y-4 border border-slate-800">
+      <div class="flex justify-between items-center">
+        <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Configurações do Motorista</h3>
+        <button onclick="fecharMenuConfig()" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="space-y-3">
+        <div class="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Modo Escuro</span>
+          <button onclick="alternarTema()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">Alternar</button>
+        </div>
+        <button onclick="excluirMinhaConta()" class="w-full bg-red-600/20 text-red-500 border border-red-500/30 font-bold py-3 rounded-xl text-xs">
+          <i class="fa-solid fa-triangle-exclamation mr-1"></i> Excluir Meus Dados Permanentemente
+        </button>
+        <button onclick="sairConta()" class="w-full bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs">Sair</button>
+      </div>
+    </div>
+  </div>
 
 </div>
 
@@ -192,8 +260,12 @@
 
   let motoristaAtual = null;
   let corridaEmTela = null;
+  let mapMotorista = null;
+  let markerMotorista = null;
+  let chatCanalMot = null;
 
   window.onload = async () => {
+    carregarTemaSalvo();
     const salvo = localStorage.getItem('motorista_logado');
     if (salvo) {
       motoristaAtual = JSON.parse(salvo);
@@ -201,38 +273,44 @@
     }
   };
 
+  function alternarTema() {
+    const root = document.getElementById('html-root');
+    const isDark = root.classList.toggle('dark');
+    localStorage.setItem('tema_escuro', isDark ? 'sim' : 'nao');
+    document.getElementById('icone-tema').className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+  }
+
+  function carregarTemaSalvo() {
+    if (localStorage.getItem('tema_escuro') === 'sim') {
+      document.getElementById('html-root').classList.add('dark');
+      document.getElementById('icone-tema').className = 'fa-solid fa-sun';
+    }
+  }
+
   function alternarAbaAuth(aba) {
     document.getElementById('form-cadastro').classList.toggle('hidden', aba !== 'cadastro');
     document.getElementById('form-login').classList.toggle('hidden', aba !== 'login');
-    document.getElementById('tab-cadastro').className = aba === 'cadastro' ? 'bg-white text-slate-900 py-2 rounded-lg shadow-sm transition' : 'text-slate-600 py-2 rounded-lg transition';
-    document.getElementById('tab-login').className = aba === 'login' ? 'bg-white text-slate-900 py-2 rounded-lg shadow-sm transition' : 'text-slate-600 py-2 rounded-lg transition';
+    document.getElementById('tab-cadastro').className = aba === 'cadastro' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white py-2 rounded-lg shadow-sm transition' : 'text-slate-600 dark:text-slate-400 py-2 rounded-lg transition';
+    document.getElementById('tab-login').className = aba === 'login' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white py-2 rounded-lg shadow-sm transition' : 'text-slate-600 dark:text-slate-400 py-2 rounded-lg transition';
   }
 
   async function cadastrarMotorista(e) {
     e.preventDefault();
-    const btn = document.getElementById('btn-submit-cad');
-    btn.disabled = true;
-    btn.innerText = 'Enviando...';
-
-    const novoMotorista = {
+    const novo = {
       tipo: 'motorista',
       nome: document.getElementById('cad-nome').value.trim(),
       telefone: document.getElementById('cad-telefone').value.trim(),
-      cpf: document.getElementById('cad-cpf').value.trim(),
+      senha: document.getElementById('cad-senha').value.trim(),
+      cpf: '000.000.000-00',
       veiculo_modelo: document.getElementById('cad-modelo').value.trim(),
       veiculo_placa: document.getElementById('cad-placa').value.trim().toUpperCase(),
       status_aprovacao: 'pendente'
     };
-
-    const { data, error } = await db.from('usuarios').insert([novoMotorista]).select().single();
-    btn.disabled = false;
-    btn.innerText = 'Enviar Cadastro para Aprovação';
-
+    const { data, error } = await db.from('usuarios').insert([novo]).select().single();
     if (error) {
-      alert('Erro ao cadastrar motorista: ' + error.message);
+      alert('Erro: ' + error.message);
       return;
     }
-
     motoristaAtual = data;
     localStorage.setItem('motorista_logado', JSON.stringify(data));
     verificarStatusAtual();
@@ -241,9 +319,10 @@
   async function entrarMotorista(e) {
     e.preventDefault();
     const tel = document.getElementById('login-telefone').value.trim();
-    const { data, error } = await db.from('usuarios').select('*').eq('telefone', tel).eq('tipo', 'motorista').single();
+    const senha = document.getElementById('login-senha').value.trim();
+    const { data, error } = await db.from('usuarios').select('*').eq('telefone', tel).eq('senha', senha).eq('tipo', 'motorista').single();
     if (error || !data) {
-      alert('Telefone não encontrado no cadastro de motoristas.');
+      alert('Credenciais inválidas.');
       return;
     }
     motoristaAtual = data;
@@ -259,40 +338,47 @@
       localStorage.setItem('motorista_logado', JSON.stringify(data));
     }
 
-    document.getElementById('btn-sair').classList.remove('hidden');
+    document.getElementById('btn-menu').classList.remove('hidden');
     document.getElementById('tela-auth').classList.add('hidden');
 
     if (motoristaAtual.status_aprovacao === 'aprovado' && !motoristaAtual.banido) {
       document.getElementById('tela-pendente').classList.add('hidden');
       document.getElementById('tela-app').classList.remove('hidden');
       document.getElementById('header-sub').innerText = `${motoristaAtual.nome} • ${motoristaAtual.veiculo_placa}`;
+      
+      inicializarMapaMotorista();
       iniciarRadarAoVivo();
       buscarCorridasAbertas();
-    } else if (motoristaAtual.status_aprovacao === 'rejeitado' || motoristaAtual.banido) {
-      document.getElementById('tela-app').classList.add('hidden');
-      document.getElementById('tela-pendente').classList.remove('hidden');
-      document.getElementById('titulo-status-conta').innerText = 'Cadastro Recusado / Bloqueado';
-      document.getElementById('desc-status-conta').innerText = 'Seu perfil de motorista não foi aprovado pela central.';
     } else {
       document.getElementById('tela-app').classList.add('hidden');
       document.getElementById('tela-pendente').classList.remove('hidden');
-      db.channel('aprovacao-motorista')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'usuarios', filter: `id=eq.${motoristaAtual.id}` }, (payload) => {
-          motoristaAtual = payload.new;
-          verificarStatusAtual();
-        })
-        .subscribe();
+    }
+  }
+
+  function inicializarMapaMotorista() {
+    if (mapMotorista) return;
+    let lat = -28.4811, lng = -48.7811;
+    mapMotorista = L.map('mapa-motorista', { zoomControl: false }).setView([lat, lng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapMotorista);
+    markerMotorista = L.marker([lat, lng]).addTo(mapMotorista);
+    if (navigator.geolocation) {
+      navigator.geolocation.watchPosition((pos) => {
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+        mapMotorista.setView([lat, lng], 16);
+        markerMotorista.setLatLng([lat, lng]);
+      });
     }
   }
 
   function iniciarRadarAoVivo() {
-    db.channel('radar-motorista')
+    db.channel('radar-mot')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'corridas' }, (payload) => {
         const c = payload.new;
         if (c.status === 'aguardando' && !corridaEmTela) {
           exibirChamadaRecebida(c);
         } else if (corridaEmTela && c.id === corridaEmTela.id && c.status === 'cancelada') {
-          alert('O passageiro cancelou a chamada.');
+          alert('O passageiro cancelou a corrida.');
           resetarParaEspera();
         }
       })
@@ -306,7 +392,7 @@
     }
   }
 
-  function exibirChamadaRecebida(corrida) {
+  async function exibirChamadaRecebida(corrida) {
     corridaEmTela = corrida;
     document.getElementById('driver-waiting').classList.add('hidden');
     document.getElementById('driver-incoming').classList.remove('hidden');
@@ -314,50 +400,82 @@
     document.getElementById('inc-passageiro').innerText = corrida.passageiro_nome || 'Passageiro';
     document.getElementById('inc-origem').innerText = corrida.origem;
     document.getElementById('inc-destino').innerText = corrida.destino;
-    document.getElementById('inc-pagamento').innerText = corrida.forma_pagamento;
+
+    const { data: pass } = await db.from('usuarios').select('foto_url').eq('id', corrida.passageiro_id).single();
+    document.getElementById('inc-foto-passageiro').src = (pass && pass.foto_url) ? pass.foto_url : 'https://ui-avatars.com/api/?name=' + corrida.passageiro_nome;
   }
 
-  function ignorarChamada() {
-    resetarParaEspera();
-  }
+  function ignorarChamada() { resetarParaEspera(); }
 
   async function aceitarCorridaReal() {
     if (!corridaEmTela) return;
     const { data, error } = await db.from('corridas')
-      .update({
-        status: 'aceita',
-        motorista_id: motoristaAtual.id,
-        motorista_nome: motoristaAtual.nome
-      })
+      .update({ status: 'aceita', motorista_id: motoristaAtual.id, motorista_nome: motoristaAtual.nome })
       .eq('id', corridaEmTela.id)
       .select()
       .single();
 
-    if (error) {
-      alert('Erro ao aceitar corrida: ' + error.message);
-      return;
-    }
+    if (error) { alert('Erro: ' + error.message); return; }
 
-    // Busca a foto do passageiro para exibir ao motorista por segurança
-    const { data: passData } = await db.from('usuarios').select('foto_url').eq('id', data.passageiro_id).single();
+    const { data: pass } = await db.from('usuarios').select('foto_url').eq('id', data.passageiro_id).single();
 
     document.getElementById('driver-incoming').classList.add('hidden');
     document.getElementById('driver-active').classList.remove('hidden');
     document.getElementById('act-valor').innerText = `R$ ${Number(data.valor).toFixed(2)}`;
     document.getElementById('act-nome-passageiro').innerText = data.passageiro_nome;
     document.getElementById('act-endereco').innerText = `${data.origem} ➔ ${data.destino}`;
-    document.getElementById('act-pagamento').innerText = `Receber: ${data.forma_pagamento}`;
-    document.getElementById('act-foto-passageiro').src = (passData && passData.foto_url) ? passData.foto_url : 'https://ui-avatars.com/api/?name=' + data.passageiro_nome;
+    document.getElementById('act-foto-passageiro').src = (pass && pass.foto_url) ? pass.foto_url : 'https://ui-avatars.com/api/?name=' + data.passageiro_nome;
+    conectarChatMot(data.id);
   }
 
-  async function atualizarEtapaCorrida(novaEtapa) {
-    await db.from('corridas').update({ status: novaEtapa }).eq('id', corridaEmTela.id);
-    if (novaEtapa === 'no_local') {
-      document.getElementById('badge-etapa').innerText = 'No local de embarque';
+  function conectarChatMot(corridaId) {
+    if (chatCanalMot) return;
+    carregarMensagensChatMot(corridaId);
+    chatCanalMot = db.channel('chat-mot-' + corridaId)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens_chat', filter: `corrida_id=eq.${corridaId}` }, (p) => {
+        adicionarMensagemTelaMot(p.new);
+      })
+      .subscribe();
+  }
+
+  async function carregarMensagensChatMot(corridaId) {
+    const { data } = await db.from('mensagens_chat').select('*').eq('corrida_id', corridaId).order('criado_em', { ascending: true });
+    const div = document.getElementById('historico-mensagens-mot');
+    div.innerHTML = '';
+    if (data) data.forEach(m => adicionarMensagemTelaMot(m));
+  }
+
+  function adicionarMensagemTelaMot(m) {
+    const div = document.getElementById('historico-mensagens-mot');
+    const eu = m.remetente_id === motoristaAtual.id;
+    div.innerHTML += `<div class="p-1.5 rounded-xl text-[11px] ${eu ? 'bg-emerald-600 text-white ml-6 text-right' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 mr-6'}">
+      <strong class="block text-[9px] opacity-75">${m.remetente_nome}</strong>
+      ${m.mensagem}
+    </div>`;
+    div.scrollTop = div.scrollHeight;
+  }
+
+  async function enviarMensagemChatMot() {
+    const input = document.getElementById('input-mensagem-mot');
+    const texto = input.value.trim();
+    if (!texto || !corridaEmTela) return;
+    await db.from('mensagens_chat').insert([{
+      corrida_id: corridaEmTela.id,
+      remetente_id: motoristaAtual.id,
+      remetente_nome: motoristaAtual.nome,
+      mensagem: texto
+    }]);
+    input.value = '';
+  }
+
+  async function atualizarEtapaCorrida(etapa) {
+    await db.from('corridas').update({ status: etapa }).eq('id', corridaEmTela.id);
+    if (etapa === 'no_local') {
+      document.getElementById('badge-etapa').innerText = 'No local';
       document.getElementById('btn-cheguei').classList.add('hidden');
       document.getElementById('btn-iniciar').classList.remove('hidden');
-    } else if (novaEtapa === 'em_viagem') {
-      document.getElementById('badge-etapa').innerText = 'Viagem em andamento';
+    } else if (etapa === 'em_viagem') {
+      document.getElementById('badge-etapa').innerText = 'Em viagem';
       document.getElementById('btn-iniciar').classList.add('hidden');
       document.getElementById('btn-finalizar').classList.remove('hidden');
     }
@@ -365,7 +483,7 @@
 
   async function finalizarCorridaReal() {
     await db.from('corridas').update({ status: 'finalizada', pagamento_confirmado: true }).eq('id', corridaEmTela.id);
-    alert('Corrida finalizada e pagamento confirmado!');
+    alert('Corrida finalizada!');
     resetarParaEspera();
   }
 
@@ -377,6 +495,58 @@
     document.getElementById('btn-cheguei').classList.remove('hidden');
     document.getElementById('btn-iniciar').classList.add('hidden');
     document.getElementById('btn-finalizar').classList.add('hidden');
+  }
+
+  async function abrirExtratoGanhos() {
+    document.getElementById('modal-extrato').classList.remove('hidden');
+    const { data } = await db.from('corridas').select('*').eq('motorista_id', motoristaAtual.id).order('criado_em', { ascending: false });
+    const lista = document.getElementById('lista-extrato-viagens');
+    if (!data || data.length === 0) {
+      lista.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">Nenhuma viagem efetuada ainda.</p>';
+      document.getElementById('lbl-total-semana').innerText = 'R$ 0,00';
+      return;
+    }
+    let totalSemana = 0;
+    lista.innerHTML = data.map(c => {
+      totalSemana += Number(c.valor);
+      return `
+        <div class="bg-slate-100 dark:bg-slate-800 p-3 rounded-2xl space-y-1 border border-slate-700">
+          <div class="flex justify-between items-center text-xs font-bold text-slate-900 dark:text-white">
+            <span>R$ ${Number(c.valor).toFixed(2)} (${c.forma_pagamento})</span>
+            <span class="text-[10px] text-slate-400">${new Date(c.criado_em).toLocaleDateString()}</span>
+          </div>
+          <p class="text-[11px] text-slate-600 dark:text-slate-300"><strong>Passageiro:</strong> ${c.passageiro_nome}</p>
+          <p class="text-[11px] text-slate-600 dark:text-slate-300"><strong>Rota:</strong> ${c.origem} ➔ ${c.destino}</p>
+          <button onclick="abrirSuporteMot('${c.id}')" class="w-full mt-1 bg-red-600/20 text-red-400 font-bold py-1 rounded text-[10px]">Suporte Corrida</button>
+        </div>
+      `;
+    }).join('');
+    document.getElementById('lbl-total-semana').innerText = `R$ ${totalSemana.toFixed(2)}`;
+  }
+
+  async function abrirSuporteMot(corridaId) {
+    const motivo = prompt('Motivo do chamado para a central:');
+    if (!motivo) return;
+    await db.from('chamados_suporte').insert([{
+      corrida_id: corridaId,
+      usuario_id: motoristaAtual.id,
+      usuario_nome: motoristaAtual.nome,
+      tipo_usuario: 'motorista',
+      motivo: motivo
+    }]);
+    alert('Chamado enviado!');
+  }
+
+  function fecharExtrato() { document.getElementById('modal-extrato').classList.add('hidden'); }
+  function abrirMenuConfig() { document.getElementById('modal-config').classList.remove('hidden'); }
+  function fecharMenuConfig() { document.getElementById('modal-config').classList.add('hidden'); }
+
+  async function excluirMinhaConta() {
+    if (!confirm('Deseja excluir sua conta e todos os seus dados permanentemente?')) return;
+    await db.from('usuarios').delete().eq('id', motoristaAtual.id);
+    localStorage.removeItem('motorista_logado');
+    alert('Conta excluída.');
+    location.reload();
   }
 
   function sairConta() {
