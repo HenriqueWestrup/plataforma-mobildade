@@ -1,10 +1,6 @@
-<div class="relative w-full h-[260px] z-0 bg-slate-800">
-  <div id="mapa-passageiro" class="w-full h-full"></div>
-</div>
-
-<div id="banner-selecao-mapa" class="hidden z-30 bg-emerald-600 text-white px-4 py-2 text-xs font-bold flex items-center justify-between shadow-lg">
-  <span><i class="fa-solid fa-location-crosshairs mr-1"></i> Toque no mapa para marcar o local</span>
-  <button onclick="cancelarModoMapa()" class="bg-slate-900 px-2.5 py-1 rounded text-[10px]">Concluir</button>
+<!-- Área do Mapa com Altura Fixa Garantida -->
+<div class="relative w-full h-[280px] bg-slate-800 rounded-2xl overflow-hidden shadow-inner">
+  <div id="mapa-passageiro" class="w-full h-full z-10"></div>
 </div>
 
 <div class="z-20 p-4 -mt-4">
@@ -56,7 +52,7 @@
         </div>
       </div>
 
-      <button type="button" onclick="window.solicitarCarroAgora()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition">Chamar Motorista Agora</button>
+      <button type="button" onclick="executarSolicitacaoCorrida()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition cursor-pointer">Chamar Motorista Agora</button>
     </div>
 
     <!-- BUSCANDO -->
@@ -100,19 +96,12 @@
   </div>
 </div>
 
-<!-- LEAFLET CSS se já não estiver no index -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  // Garantimos variáveis locais seguras
-  if (typeof mapPassageiro === 'undefined') {
-    var mapPassageiro = null;
-    var markerOrigem = null;
-    var markerParada = null;
-    var markerDestino = null;
-    var camadaRotaMapa = null;
-  }
-  
+  var mapPassageiro = null;
+  var markerOrigem = null;
+  var markerParada = null;
+  var markerDestino = null;
+  var camadaRotaMapa = null;
   var coordsOrigem = { lat: -28.4811, lng: -48.7811 };
   var coordsParada = null;
   var coordsDestino = null;
@@ -123,14 +112,9 @@
   var chatCanalMapa = null;
   var timerBuscaEndereco = null;
 
-  // Inicialização forçada garantindo que o DOM foi pintado
-  setTimeout(() => {
-    inicializarModuloMapa();
-  }, 250);
-
   function inicializarModuloMapa() {
-    const containerMapa = document.getElementById('mapa-passageiro');
-    if (!containerMapa) return;
+    const el = document.getElementById('mapa-passageiro');
+    if (!el) return;
 
     if (mapPassageiro) {
       mapPassageiro.remove();
@@ -141,7 +125,7 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapPassageiro);
     markerOrigem = L.marker([coordsOrigem.lat, coordsOrigem.lng]).addTo(mapPassageiro).bindPopup('Embarque');
     camadaRotaMapa = L.layerGroup().addTo(mapPassageiro);
-    
+
     usarMinhaLocalizacaoGPS();
   }
 
@@ -161,9 +145,7 @@
         }
       } catch(e) {}
       atualizarCalculoETrajetoReal();
-    }, () => {
-      console.log('GPS indisponível.');
-    });
+    }, () => {});
   }
 
   function adicionarParadaB() {
@@ -239,18 +221,17 @@
         document.getElementById('corrida-valor-display').value = `R$ ${valorCalculado.toFixed(2)}`;
         document.getElementById('lbl-distancia').innerText = `(~${distanciaKm.toFixed(1)} km)`;
       }
-    } catch (e) { console.log('Erro ao calcular rota.'); }
+    } catch (e) {}
   }
 
-  // Tornada global para evitar erros de escopo nos módulos
-  window.solicitarCarroAgora = async function() {
+  window.executarSolicitacaoCorrida = async function() {
     const destinoInput = document.getElementById('corrida-destino');
     if (!destinoInput || !destinoInput.value.trim()) { 
       alert('Informe o endereço de destino final.'); 
       return; 
     }
     
-    if (!usuarioAtual || !usuarioAtual.id) {
+    if (!window.usuarioAtual || !window.usuarioAtual.id) {
       alert('Sessão expirada. Faça login novamente.');
       return;
     }
@@ -261,8 +242,8 @@
     const pagamento = document.getElementById('corrida-pagamento').value;
 
     const { data, error } = await db.from('corridas').insert([{
-      passageiro_id: usuarioAtual.id,
-      passageiro_nome: usuarioAtual.nome,
+      passageiro_id: window.usuarioAtual.id,
+      passageiro_nome: window.usuarioAtual.nome,
       origem, 
       origem_lat: coordsOrigem.lat, 
       origem_lng: coordsOrigem.lng,
@@ -372,7 +353,7 @@
   function renderizarMsgMapa(m) {
     const div = document.getElementById('historico-mensagens');
     if (!div) return;
-    const eu = m.remetente_id === usuarioAtual.id;
+    const eu = m.remetente_id === window.usuarioAtual.id;
     div.innerHTML += `<div class="p-1.5 rounded-xl text-[11px] ${eu ? 'bg-emerald-600 text-white ml-6 text-right' : 'bg-slate-700 text-white mr-6'}">
       <span class="block text-[9px] opacity-75 font-bold">${m.remetente_nome}</span>${m.mensagem}
     </div>`;
@@ -385,7 +366,7 @@
     if (!texto || !corridaAtualId) return;
     input.value = '';
     await db.from('mensagens_chat').insert([{
-      corrida_id: corridaAtualId, remetente_id: usuarioAtual.id, remetente_nome: usuarioAtual.nome, mensagem: texto
+      corrida_id: corridaAtualId, remetente_id: window.usuarioAtual.id, remetente_nome: window.usuarioAtual.nome, mensagem: texto
     }]);
   };
 </script>

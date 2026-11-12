@@ -7,6 +7,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  
+  <!-- LEAFLET CSS & JS NO CABEÇALHO PARA GARANTIR CARREGAMENTO GLOBAL -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     body { font-family: 'Inter', sans-serif; }
@@ -33,12 +38,12 @@
     <div id="header-acoes"></div>
   </header>
 
-  <!-- CONTAINER DINÂMICO (INJEÇÃO DAS ABAS / MÓDULOS) -->
+  <!-- CONTAINER DINÂMICO (INJEÇÃO DAS ABAS) -->
   <main id="conteudo-principal" class="flex-1 flex flex-col relative overflow-hidden">
     <!-- O conteúdo da aba ativa é injetado aqui -->
   </main>
 
-  <!-- MENU INFERIOR DE NAVEGAÇÃO (EXIBIDO APÓS LOGIN) -->
+  <!-- MENU INFERIOR DE NAVEGAÇÃO -->
   <nav id="menu-inferior" class="hidden bg-slate-900 border-t border-slate-800 p-2 flex justify-around z-30 text-xs text-slate-400">
     <button onclick="carregarAba('mapa')" id="btn-aba-mapa" class="flex flex-col items-center gap-1 text-emerald-400">
       <i class="fa-solid fa-map text-base"></i>
@@ -77,7 +82,6 @@
   async function carregarAba(nomeAba) {
     const container = document.getElementById('conteudo-principal');
     
-    // Atualiza estados visuais dos botões do menu inferior se existirem
     ['mapa', 'historico', 'perfil'].forEach(aba => {
       const btn = document.getElementById(`btn-aba-${aba}`);
       if (btn) {
@@ -91,8 +95,11 @@
       const resposta = await fetch(`${nomeAba}.html`);
       if (resposta.ok) {
         container.innerHTML = await resposta.text();
-        // Executa funções de inicialização específicas do módulo carregado
-        if (nomeAba === 'mapa' && typeof inicializarModuloMapa === 'function') inicializarModuloMapa();
+        
+        // Garante a inicialização correta do mapa assim que o HTML for injetado
+        if (nomeAba === 'mapa' && typeof inicializarModuloMapa === 'function') {
+          setTimeout(inicializarModuloMapa, 150);
+        }
         if (nomeAba === 'historico' && typeof carregarModuloHistorico === 'function') carregarModuloHistorico();
         if (nomeAba === 'perfil' && typeof carregarModuloPerfil === 'function') carregarModuloPerfil();
         if (nomeAba === 'auth' && typeof inicializarModuloAuth === 'function') inicializarModuloAuth();
