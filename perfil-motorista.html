@@ -1,0 +1,33 @@
+<div class="p-5 flex-1 overflow-y-auto space-y-4 bg-slate-50 dark:bg-slate-900 text-xs">
+  <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl space-y-4 border border-slate-200 dark:border-slate-700 text-center shadow-sm">
+    <img id="perfil-foto-mot" src="" class="w-24 h-24 rounded-full object-cover border-4 border-emerald-500 mx-auto shadow" />
+    <div>
+      <h3 class="text-base font-extrabold text-slate-900 dark:text-white" id="perfil-nome-mot">-</h3>
+      <p class="text-xs text-amber-500 font-bold mt-0.5"><i class="fa-solid fa-star"></i> <span id="perfil-nota-mot">5.0</span></p>
+    </div>
+
+    <div class="space-y-1.5 text-slate-700 dark:text-slate-300 text-left bg-slate-50 dark:bg-slate-900 p-3 rounded-2xl">
+      <p><strong>Telefone:</strong> <span id="perfil-tel-mot">-</span></p>
+      <p><strong>CPF:</strong> <span id="perfil-cpf-mot">-</span></p>
+      <p><strong>Veículo:</strong> <span id="perfil-veiculo-mot">-</span></p>
+      <p><strong>Placa:</strong> <span id="perfil-placa-mot" class="uppercase font-bold text-emerald-500">-</span></p>
+      <p><strong>Endereço:</strong> <span id="perfil-end-mot">-</span></p>
+    </div>
+
+    <button onclick="sairContaMotorista()" class="w-full bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 font-bold py-2.5 rounded-xl border border-red-200 dark:border-red-800">Sair da Conta</button>
+  </div>
+</div>
+
+<script>
+  function carregarPerfilMotorista() {
+    if (!motoristaAtual) return;
+    document.getElementById('perfil-foto-mot').src = motoristaAtual.foto_url || '';
+    document.getElementById('perfil-nome-mot').innerText = motoristaAtual.nome || '';
+    document.getElementById('perfil-nota-mot').innerText = Number(motoristaAtual.nota_media || 5.0).toFixed(2);
+    document.getElementById('perfil-tel-mot').innerText = motoristaAtual.telefone || '';
+    document.getElementById('perfil-cpf-mot').innerText = motoristaAtual.cpf || '';
+    document.getElementById('perfil-veiculo-mot').innerText = motoristaAtual.veiculo_modelo || '-';
+    document.getElementById('perfil-placa-mot').innerText = motoristaAtual.veiculo_placa || '-';
+    document.getElementById('perfil-end-mot').innerText = motoristaAtual.endereco || '';
+  }
+</script>
