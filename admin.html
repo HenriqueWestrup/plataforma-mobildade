@@ -6,6 +6,8 @@
   <title>Painel Admin - Mobilidade Urbana</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -22,7 +24,7 @@
       </div>
       <div>
         <h1 class="text-base font-bold text-white">Central Administrativa</h1>
-        <p class="text-xs text-slate-400">Aprovações, Monitoramento & Chamados de Suporte</p>
+        <p class="text-xs text-slate-400">Aprovações, Gestão de Perfis, Mini Mapas & Auditoria</p>
       </div>
     </div>
     <button onclick="carregarTudo()" class="bg-slate-800 hover:bg-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700">
@@ -32,32 +34,35 @@
 
   <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 space-y-6">
 
-    <!-- Abas -->
+    <!-- Abas de Navegação -->
     <div class="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
       <button id="btn-aba-cadastros" onclick="mudarAba('cadastros')" class="bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
-        <i class="fa-solid fa-user-clock"></i> Pendentes (<span id="count-cad">0</span>)
+        <i class="fa-solid fa-user-clock"></i> Cadastros / Aprovações (<span id="count-cad">0</span>)
+      </button>
+      <button id="btn-aba-motoristas" onclick="mudarAba('motoristas')" class="bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
+        <i class="fa-solid fa-car"></i> Motoristas (<span id="count-mot">0</span>)
+      </button>
+      <button id="btn-aba-passageiros" onclick="mudarAba('passageiros')" class="bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
+        <i class="fa-solid fa-users"></i> Passageiros (<span id="count-pas">0</span>)
       </button>
       <button id="btn-aba-suporte" onclick="mudarAba('suporte')" class="bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
-        <i class="fa-solid fa-headset"></i> Chamados de Ajuda (<span id="count-sup">0</span>)
-      </button>
-      <button id="btn-aba-corridas" onclick="mudarAba('corridas')" class="bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
-        <i class="fa-solid fa-route"></i> Corridas ao Vivo (<span id="count-cor">0</span>)
+        <i class="fa-solid fa-headset"></i> Suporte & Auditoria (<span id="count-sup">0</span>)
       </button>
     </div>
 
-    <!-- Seção Cadastros Pendentes -->
+    <!-- 1. SEÇÃO CADASTROS PENDENTES (3 OPÇÕES: APROVAR, RECUSAR, DEIXAR PENDENTE) -->
     <section id="sec-cadastros" class="space-y-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-        <h2 class="text-sm font-bold text-white mb-4">Cadastros Pendentes (Motoristas e Passageiros)</h2>
+        <h2 class="text-sm font-bold text-white mb-4">Controle de Aprovação de Usuários</h2>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
               <tr>
                 <th class="p-3">Perfil</th>
-                <th class="p-3">Nome / Tipo</th>
-                <th class="p-3">Contato</th>
-                <th class="p-3">Detalhes / Veículo</th>
-                <th class="p-3 text-right">Aprovação</th>
+                <th class="p-3">ID / Nome</th>
+                <th class="p-3">Tipo / Status</th>
+                <th class="p-3">Dados / Veículo</th>
+                <th class="p-3 text-right">Decisão</th>
               </tr>
             </thead>
             <tbody id="lista-cadastros" class="divide-y divide-slate-800"></tbody>
@@ -66,18 +71,60 @@
       </div>
     </section>
 
-    <!-- Seção Chamados de Suporte -->
-    <section id="sec-suporte" class="hidden space-y-4">
+    <!-- 2. SEÇÃO GESTÃO DE MOTORISTAS -->
+    <section id="sec-motoristas" class="hidden space-y-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-        <h2 class="text-sm font-bold text-white mb-4">Auditoria de Chamados de Ajuda</h2>
+        <h2 class="text-sm font-bold text-white mb-4">Gerenciamento de Motoristas Parceiros</h2>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
               <tr>
-                <th class="p-3">Usuário</th>
+                <th class="p-3">Condutor</th>
+                <th class="p-3">ID</th>
+                <th class="p-3">Veículo / Placa</th>
+                <th class="p-3">Status</th>
+                <th class="p-3 text-right">Gerenciar</th>
+              </tr>
+            </thead>
+            <tbody id="lista-motoristas" class="divide-y divide-slate-800"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. SEÇÃO GESTÃO DE PASSAGEIROS -->
+    <section id="sec-passageiros" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+        <h2 class="text-sm font-bold text-white mb-4">Gerenciamento de Passageiros</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+              <tr>
+                <th class="p-3">Passageiro</th>
+                <th class="p-3">ID</th>
+                <th class="p-3">Telefone / Endereço</th>
+                <th class="p-3">Status</th>
+                <th class="p-3 text-right">Gerenciar</th>
+              </tr>
+            </thead>
+            <tbody id="lista-passageiros" class="divide-y divide-slate-800"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. SEÇÃO SUPORTE & AUDITORIA DE AVALIAÇÕES -->
+    <section id="sec-suporte" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+        <h2 class="text-sm font-bold text-white mb-4">Chamados de Suporte com Identificação</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+              <tr>
+                <th class="p-3">Solicitante (Clique p/ Perfil)</th>
                 <th class="p-3">Tipo</th>
                 <th class="p-3">Motivo Relatado</th>
-                <th class="p-3">Data</th>
+                <th class="p-3">Data / Hora</th>
                 <th class="p-3 text-right">Ação</th>
               </tr>
             </thead>
@@ -85,39 +132,94 @@
           </table>
         </div>
       </div>
-    </section>
 
-    <!-- Seção Corridas -->
-    <section id="sec-corridas" class="hidden space-y-4">
+      <!-- Auditoria de Avaliações abaixo de 5 estrelas -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-        <h2 class="text-sm font-bold text-white mb-4">Corridas Ativas na Rua</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
-              <tr>
-                <th class="p-3">Passageiro</th>
-                <th class="p-3">Motorista</th>
-                <th class="p-3">Rota</th>
-                <th class="p-3">Valor</th>
-                <th class="p-3">Status</th>
-              </tr>
-            </thead>
-            <tbody id="lista-corridas" class="divide-y divide-slate-800"></tbody>
-          </table>
-        </div>
+        <h2 class="text-sm font-bold text-white mb-4">Auditoria de Avaliações Abaixo de 5 Estrelas</h2>
+        <div id="lista-auditoria-avaliacoes" class="space-y-2 text-xs"></div>
       </div>
     </section>
 
   </main>
+
+  <!-- MODAL FICHA INDIVIDUAL DO USUÁRIO (MOTORISTA OU PASSAGEIRO) + MINI MAPA DE ROTEIRO -->
+  <div id="modal-ficha-usuario" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-3xl w-full p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-base font-extrabold text-white" id="ficha-titulo">Ficha do Usuário</h3>
+          <p class="text-[11px] text-slate-400">ID: <span id="ficha-id" class="font-mono text-emerald-400"></span></p>
+        </div>
+        <button onclick="fecharFichaUsuario()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Coluna 1: Edição de Perfil -->
+        <div class="space-y-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+          <h4 class="text-xs font-bold text-emerald-400 uppercase">Editar Dados Cadastrais</h4>
+          <div class="flex items-center gap-3">
+            <img id="ficha-foto" src="" class="w-16 h-16 rounded-full object-cover border-2 border-emerald-500" />
+            <div>
+              <p class="text-xs font-bold text-white" id="ficha-tipo-lbl">Tipo</p>
+              <button id="btn-banir-usuario" onclick="alternarBanimentoUsuario()" class="mt-1 bg-red-600/20 text-red-400 border border-red-500/30 px-3 py-1 rounded-lg text-[11px] font-bold">Bloquear / Banir</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[10px] text-slate-400">Nome Completo</label>
+            <input type="text" id="ficha-nome" class="w-full mt-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white" />
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400">Telefone</label>
+              <input type="text" id="ficha-telefone" class="w-full mt-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white" />
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400">CPF</label>
+              <input type="text" id="ficha-cpf" class="w-full mt-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white" />
+            </div>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400">Endereço</label>
+            <input type="text" id="ficha-endereco" class="w-full mt-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white" />
+          </div>
+          <div id="ficha-campos-veiculo" class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400">Veículo</label>
+              <input type="text" id="ficha-veiculo" class="w-full mt-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white" />
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400">Placa</label>
+              <input type="text" id="ficha-placa" class="w-full mt-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white uppercase" />
+            </div>
+          </div>
+          <button onclick="salvarFichaAdmin()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs">Salvar Alterações no Perfil</button>
+        </div>
+
+        <!-- Coluna 2: Mini Mapa de Roteiro & Histórico -->
+        <div class="space-y-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col">
+          <h4 class="text-xs font-bold text-amber-400 uppercase">Mini Mapa de Roteiro & Histórico</h4>
+          <div id="mini-mapa-admin" class="w-full h-44 rounded-xl bg-slate-900 border border-slate-800 z-10"></div>
+          <p class="text-[10px] text-slate-400">Clique em uma corrida abaixo para visualizar o roteiro no mini mapa:</p>
+          <div id="ficha-lista-corridas" class="flex-1 max-h-48 overflow-y-auto space-y-2 pr-1"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
 <script>
   const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_XZVaqjSNHsQSgZwxsfIZsQ__crRqWTo';
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+  let todosUsuarios = [];
+  let usuarioEmEdicao = null;
+  let miniMapa = null;
+  let camadaRotaMiniMapa = null;
+
   window.onload = () => {
     carregarTudo();
-    db.channel('admin-geral')
+    db.channel('admin-realtime-completo')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'usuarios' }, () => carregarTudo())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chamados_suporte' }, () => carregarTudo())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'corridas' }, () => carregarTudo())
@@ -125,7 +227,7 @@
   };
 
   function mudarAba(aba) {
-    ['cadastros', 'suporte', 'corridas'].forEach(nome => {
+    ['cadastros', 'motoristas', 'passageiros', 'suporte'].forEach(nome => {
       document.getElementById(`sec-${nome}`).classList.toggle('hidden', nome !== aba);
       document.getElementById(`btn-aba-${nome}`).className = nome === aba
         ? 'bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2'
@@ -136,13 +238,22 @@
   async function carregarTudo() {
     const { data: usuarios } = await db.from('usuarios').select('*').order('criado_em', { ascending: false });
     const { data: suporte } = await db.from('chamados_suporte').select('*').order('criado_em', { ascending: false });
-    const { data: corridas } = await db.from('corridas').select('*').order('criado_em', { ascending: false }).limit(20);
+    const { data: corridas } = await db.from('corridas').select('*').order('criado_em', { ascending: false }).limit(50);
 
     if (usuarios) {
+      todosUsuarios = usuarios;
       const pendentes = usuarios.filter(u => u.status_aprovacao === 'pendente');
+      const motoristas = usuarios.filter(u => u.tipo === 'motorista');
+      const passageiros = usuarios.filter(u => u.tipo === 'passageiro');
+
       document.getElementById('count-cad').innerText = pendentes.length;
+      document.getElementById('count-mot').innerText = motoristas.length;
+      document.getElementById('count-pas').innerText = passageiros.length;
       document.getElementById('badge-notif').classList.toggle('hidden', pendentes.length === 0);
-      renderizarCadastros(pendentes);
+
+      renderizarCadastros(usuarios);
+      renderizarMotoristas(motoristas);
+      renderizarPassageiros(passageiros);
     }
 
     if (suporte) {
@@ -151,28 +262,61 @@
     }
 
     if (corridas) {
-      document.getElementById('count-cor').innerText = corridas.length;
-      renderizarCorridas(corridas);
+      renderizarAuditoriaAvaliacoes(corridas);
     }
   }
 
   function renderizarCadastros(lista) {
     const tbody = document.getElementById('lista-cadastros');
-    if (lista.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum cadastro pendente no momento.</td></tr>';
-      return;
-    }
     tbody.innerHTML = lista.map(u => `
       <tr>
-        <td class="p-3">
-          <img src="${u.foto_url || 'https://ui-avatars.com/api/?name=' + u.nome}" class="w-10 h-10 rounded-full object-cover border border-slate-700" />
+        <td class="p-3"><img src="${u.foto_url || 'https://ui-avatars.com/api/?name=' + u.nome}" class="w-10 h-10 rounded-full object-cover border border-slate-700" /></td>
+        <td class="p-3 font-bold text-white">${u.nome}<br><span class="text-[10px] font-mono text-slate-400">ID: ${u.id.slice(0, 8)}</span></td>
+        <td class="p-3 uppercase text-[10px] font-bold">
+          <span class="text-emerald-400">${u.tipo}</span><br>
+          <span class="text-amber-300">Status: ${u.status_aprovacao}</span>
         </td>
-        <td class="p-3 font-bold text-white">${u.nome}<br><span class="text-[10px] uppercase text-emerald-400 font-bold">${u.tipo}</span></td>
-        <td class="p-3 text-slate-300">${u.telefone}<br><span class="text-[10px] text-slate-500">CPF: ${u.cpf}</span></td>
-        <td class="p-3 text-slate-300">${u.tipo === 'motorista' ? (u.veiculo_modelo + ' - ' + u.veiculo_placa) : 'Passageiro'}</td>
+        <td class="p-3 text-slate-300">${u.telefone}<br><span class="text-[10px] text-slate-500">${u.veiculo_modelo || u.endereco || ''}</span></td>
         <td class="p-3 text-right space-x-1">
-          <button onclick="decidirUsuario('${u.id}', 'aprovado')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg">Aprovar</button>
-          <button onclick="decidirUsuario('${u.id}', 'rejeitado')" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white font-bold px-3 py-1.5 rounded-lg border border-red-500/30">Recusar</button>
+          <button onclick="decidirUsuario('${u.id}', 'aprovado')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-2.5 py-1.5 rounded-lg">Aprovar</button>
+          <button onclick="decidirUsuario('${u.id}', 'pendente')" class="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white font-bold px-2.5 py-1.5 rounded-lg border border-amber-500/30">Pendente</button>
+          <button onclick="decidirUsuario('${u.id}', 'rejeitado')" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white font-bold px-2.5 py-1.5 rounded-lg border border-red-500/30">Recusar</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function renderizarMotoristas(lista) {
+    const tbody = document.getElementById('lista-motoristas');
+    tbody.innerHTML = lista.map(m => `
+      <tr>
+        <td class="p-3 flex items-center gap-2.5 font-bold text-white">
+          <img src="${m.foto_url || 'https://ui-avatars.com/api/?name=' + m.nome}" class="w-9 h-9 rounded-full object-cover" />
+          ${m.nome}
+        </td>
+        <td class="p-3 font-mono text-[11px] text-slate-400">${m.id.slice(0, 8)}</td>
+        <td class="p-3 text-slate-300">${m.veiculo_modelo || '-'} • <strong>${m.veiculo_placa || '-'}</strong></td>
+        <td class="p-3 text-xs">${m.banido ? '<span class="text-red-500 font-bold">BANIDO</span>' : (m.online ? '<span class="text-emerald-400 font-bold">Online</span>' : '<span class="text-slate-400">Offline</span>')}</td>
+        <td class="p-3 text-right">
+          <button onclick="abrirFichaUsuario('${m.id}')" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold px-3 py-1.5 rounded-lg border border-slate-700">Gerenciar & Mapa</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function renderizarPassageiros(lista) {
+    const tbody = document.getElementById('lista-passageiros');
+    tbody.innerHTML = lista.map(p => `
+      <tr>
+        <td class="p-3 flex items-center gap-2.5 font-bold text-white">
+          <img src="${p.foto_url || 'https://ui-avatars.com/api/?name=' + p.nome}" class="w-9 h-9 rounded-full object-cover" />
+          ${p.nome}
+        </td>
+        <td class="p-3 font-mono text-[11px] text-slate-400">${p.id.slice(0, 8)}</td>
+        <td class="p-3 text-slate-300">${p.telefone}<br><span class="text-[10px] text-slate-500">${p.endereco || '-'}</span></td>
+        <td class="p-3 text-xs">${p.banido ? '<span class="text-red-500 font-bold">BANIDO</span>' : '<span class="text-emerald-400 font-bold">' + p.status_aprovacao + '</span>'}</td>
+        <td class="p-3 text-right">
+          <button onclick="abrirFichaUsuario('${p.id}')" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold px-3 py-1.5 rounded-lg border border-slate-700">Editar Perfil</button>
         </td>
       </tr>
     `).join('');
@@ -181,36 +325,39 @@
   function renderizarSuporte(lista) {
     const tbody = document.getElementById('lista-suporte');
     if (lista.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum chamado de ajuda registrado.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum chamado aberto.</td></tr>';
       return;
     }
     tbody.innerHTML = lista.map(s => `
       <tr>
-        <td class="p-3 font-bold text-white">${s.usuario_nome}</td>
+        <td class="p-3">
+          <button onclick="abrirFichaUsuario('${s.usuario_id}')" class="font-bold text-emerald-400 underline text-left">
+            ${s.usuario_nome} (ID: ${s.usuario_id ? s.usuario_id.slice(0, 8) : '-'})
+          </button>
+        </td>
         <td class="p-3 uppercase text-[10px] text-amber-400 font-bold">${s.tipo_usuario}</td>
-        <td class="p-3 text-slate-300">${s.motivo}</td>
+        <td class="p-3 text-slate-200">${s.motivo}</td>
         <td class="p-3 text-slate-400 text-[10px]">${new Date(s.criado_em).toLocaleString()}</td>
         <td class="p-3 text-right">
-          <button onclick="resolverChamado('${s.id}')" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold px-3 py-1.5 rounded-lg border border-slate-700">Resolver</button>
+          <button onclick="resolverChamado('${s.id}')" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold px-3 py-1.5 rounded-lg border border-slate-700">Concluir</button>
         </td>
       </tr>
     `).join('');
   }
 
-  function renderizarCorridas(lista) {
-    const tbody = document.getElementById('lista-corridas');
-    if (lista.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhuma corrida ativa.</td></tr>';
+  function renderizarAuditoriaAvaliacoes(corridas) {
+    const div = document.getElementById('lista-auditoria-avaliacoes');
+    const filtradas = corridas.filter(c => (c.avaliacao_motorista && c.avaliacao_motorista < 5) || (c.avaliacao_passageiro && c.avaliacao_passageiro < 5));
+    if (filtradas.length === 0) {
+      div.innerHTML = '<p class="text-slate-500">Nenhuma avaliação abaixo de 5 estrelas registrada.</p>';
       return;
     }
-    tbody.innerHTML = lista.map(c => `
-      <tr>
-        <td class="p-3 font-bold text-white">${c.passageiro_nome}</td>
-        <td class="p-3 text-slate-300">${c.motorista_nome || 'Aguardando'}</td>
-        <td class="p-3 text-slate-300">${c.origem} ➔ ${c.destino}</td>
-        <td class="p-3 font-bold text-emerald-400">R$ ${Number(c.valor).toFixed(2)}</td>
-        <td class="p-3 uppercase font-bold text-[10px] text-amber-300">${c.status}</td>
-      </tr>
+    div.innerHTML = filtradas.map(c => `
+      <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+        <p class="font-bold text-white">Corrida #${c.id.slice(0, 8)} • ${c.passageiro_nome} & ${c.motorista_nome || '-'}</p>
+        ${c.avaliacao_motorista && c.avaliacao_motorista < 5 ? `<p class="text-amber-400">Nota ao Motorista: <strong>${c.avaliacao_motorista}★</strong> — Motivo: ${c.motivo_avaliacao_motorista || 'Sem justificativa (Motorista não penalizado)'}</p>` : ''}
+        ${c.avaliacao_passageiro && c.avaliacao_passageiro < 5 ? `<p class="text-red-400">Nota ao Passageiro: <strong>${c.avaliacao_passageiro}★</strong> — Motivo: ${c.motivo_avaliacao_passageiro || 'Sem justificativa'}</p>` : ''}
+      </div>
     `).join('');
   }
 
@@ -222,6 +369,111 @@
   async function resolverChamado(id) {
     await db.from('chamados_suporte').delete().eq('id', id);
     carregarTudo();
+  }
+
+  // Ficha Individual com Mini Mapa de Roteiro
+  async function abrirFichaUsuario(userId) {
+    const user = todosUsuarios.find(u => u.id === userId);
+    if (!user) return;
+    usuarioEmEdicao = user;
+
+    document.getElementById('ficha-titulo').innerText = `Gerenciar ${user.tipo === 'motorista' ? 'Motorista' : 'Passageiro'}`;
+    document.getElementById('ficha-id').innerText = user.id;
+    document.getElementById('ficha-foto').src = user.foto_url || 'https://ui-avatars.com/api/?name=' + user.nome;
+    document.getElementById('ficha-tipo-lbl').innerText = user.tipo.toUpperCase();
+    document.getElementById('ficha-nome').value = user.nome || '';
+    document.getElementById('ficha-telefone').value = user.telefone || '';
+    document.getElementById('ficha-cpf').value = user.cpf || '';
+    document.getElementById('ficha-endereco').value = user.endereco || '';
+
+    const isMot = user.tipo === 'motorista';
+    document.getElementById('ficha-campos-veiculo').classList.toggle('hidden', !isMot);
+    if (isMot) {
+      document.getElementById('ficha-veiculo').value = user.veiculo_modelo || '';
+      document.getElementById('ficha-placa').value = user.veiculo_placa || '';
+    }
+
+    document.getElementById('btn-banir-usuario').innerText = user.banido ? 'Desbloquear Conta' : 'Bloquear / Banir';
+    document.getElementById('modal-ficha-usuario').classList.remove('hidden');
+
+    setTimeout(() => {
+      if (!miniMapa) {
+        miniMapa = L.map('mini-mapa-admin').setView([-28.4811, -48.7811], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapa);
+        camadaRotaMiniMapa = L.layerGroup().addTo(miniMapa);
+      }
+      miniMapa.invalidateSize();
+    }, 200);
+
+    const campoFiltro = isMot ? 'motorista_id' : 'passageiro_id';
+    const { data: historico } = await db.from('corridas').select('*').eq(campoFiltro, user.id).order('criado_em', { ascending: false });
+    const listaDiv = document.getElementById('ficha-lista-corridas');
+    if (!historico || historico.length === 0) {
+      listaDiv.innerHTML = '<p class="text-xs text-slate-500">Sem viagens registradas.</p>';
+      return;
+    }
+    listaDiv.innerHTML = historico.map(c => `
+      <div onclick='desenharRotaMiniMapa(${JSON.stringify(c)})' class="p-2.5 bg-slate-900 hover:bg-slate-800 cursor-pointer rounded-xl border border-slate-800 text-[11px] space-y-1">
+        <div class="flex justify-between font-bold text-white">
+          <span>R$ ${Number(c.valor).toFixed(2)} (${c.status})</span>
+          <span class="text-slate-400">${new Date(c.criado_em).toLocaleDateString()}</span>
+        </div>
+        <p class="text-slate-300 truncate">${c.origem} ➔ ${c.destino}</p>
+      </div>
+    `).join('');
+  }
+
+  function desenharRotaMiniMapa(corrida) {
+    if (!miniMapa || !camadaRotaMiniMapa) return;
+    camadaRotaMiniMapa.clearLayers();
+    const pontos = [];
+    if (corrida.origem_lat && corrida.origem_lng) {
+      pontos.push([corrida.origem_lat, corrida.origem_lng]);
+      L.marker([corrida.origem_lat, corrida.origem_lng]).addTo(camadaRotaMiniMapa).bindPopup('Embarque: ' + corrida.origem);
+    }
+    if (corrida.parada_lat && corrida.parada_lng) {
+      pontos.push([corrida.parada_lat, corrida.parada_lng]);
+      L.marker([corrida.parada_lat, corrida.parada_lng]).addTo(camadaRotaMiniMapa).bindPopup('Parada B: ' + corrida.parada_b);
+    }
+    if (corrida.destino_lat && corrida.destino_lng) {
+      pontos.push([corrida.destino_lat, corrida.destino_lng]);
+      L.marker([corrida.destino_lat, corrida.destino_lng]).addTo(camadaRotaMiniMapa).bindPopup('Destino: ' + corrida.destino);
+    }
+    if (pontos.length > 1) {
+      const linha = L.polyline(pontos, { color: '#10b981', weight: 4 }).addTo(camadaRotaMiniMapa);
+      miniMapa.fitBounds(linha.getBounds(), { padding: [20, 20] });
+    } else if (pontos.length === 1) {
+      miniMapa.setView(pontos[0], 15);
+    }
+  }
+
+  function fecharFichaUsuario() { document.getElementById('modal-ficha-usuario').classList.add('hidden'); }
+
+  async function salvarFichaAdmin() {
+    if (!usuarioEmEdicao) return;
+    const updates = {
+      nome: document.getElementById('ficha-nome').value.trim(),
+      telefone: document.getElementById('ficha-telefone').value.trim(),
+      cpf: document.getElementById('ficha-cpf').value.trim(),
+      endereco: document.getElementById('ficha-endereco').value.trim()
+    };
+    if (usuarioEmEdicao.tipo === 'motorista') {
+      updates.veiculo_modelo = document.getElementById('ficha-veiculo').value.trim();
+      updates.veiculo_placa = document.getElementById('ficha-placa').value.trim().toUpperCase();
+    }
+    await db.from('usuarios').update(updates).eq('id', usuarioEmEdicao.id);
+    alert('Perfil atualizado com sucesso!');
+    carregarTudo();
+    fecharFichaUsuario();
+  }
+
+  async function alternarBanimentoUsuario() {
+    if (!usuarioEmEdicao) return;
+    const novoBan = !usuarioEmEdicao.banido;
+    await db.from('usuarios').update({ banido: novoBan }).eq('id', usuarioEmEdicao.id);
+    alert(novoBan ? 'Usuário banido da plataforma.' : 'Usuário desbloqueado.');
+    carregarTudo();
+    fecharFichaUsuario();
   }
 </script>
 </body>

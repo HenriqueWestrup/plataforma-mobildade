@@ -34,8 +34,9 @@
       </div>
     </div>
     <div class="flex items-center gap-2">
-      <button onclick="alternarTema()" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center text-xs"><i class="fa-solid fa-moon" id="icone-tema"></i></button>
-      <button id="btn-menu" onclick="abrirMenuConfig()" class="hidden w-8 h-8 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center text-xs"><i class="fa-solid fa-gear"></i></button>
+      <button id="btn-menu" onclick="abrirMenuConfig()" class="hidden px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 flex items-center gap-1.5 text-xs font-bold border border-slate-700">
+        <i class="fa-solid fa-gear"></i> Configurações
+      </button>
     </div>
   </header>
 
@@ -43,7 +44,7 @@
   <section id="tela-auth" class="p-5 flex-1 flex flex-col justify-center space-y-4 z-30">
     <div class="text-center space-y-1">
       <h2 class="text-xl font-extrabold text-slate-900 dark:text-white">Acesso do Passageiro</h2>
-      <p class="text-xs text-slate-500 dark:text-slate-400">Motoristas cadastrados também podem acessar com suas credenciais.</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400">Motoristas cadastrados também podem entrar com suas credenciais.</p>
     </div>
 
     <div class="grid grid-cols-2 bg-slate-200 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold">
@@ -57,12 +58,12 @@
           <img id="preview-foto" src="https://ui-avatars.com/api/?name=Foto+Perfil&background=e2e8f0&color=475569&size=150" class="w-20 h-20 rounded-full object-cover border-4 border-emerald-500 shadow" />
           <span class="absolute bottom-0 right-0 bg-slate-900 text-white w-7 h-7 rounded-full flex items-center justify-center text-[10px]"><i class="fa-solid fa-camera"></i></span>
         </label>
-        <input type="file" id="input-foto" accept="image/*" capture="user" required onchange="processarFoto(event)" class="hidden" />
+        <input type="file" id="input-foto" accept="image/*" capture="user" required onchange="processarFoto(event, 'preview-foto')" class="hidden" />
         <span class="text-[10px] font-bold text-red-600">* Foto de rosto obrigatória</span>
       </div>
       <div>
         <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Nome Completo</label>
-        <input type="text" id="cad-nome" required placeholder="Seu nome" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
+        <input type="text" id="cad-nome" required placeholder="Seu nome completo" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
       </div>
       <div class="grid grid-cols-2 gap-2">
         <div>
@@ -78,7 +79,11 @@
         <label class="text-xs font-bold text-slate-700 dark:text-slate-300">CPF</label>
         <input type="text" id="cad-cpf" required placeholder="000.000.000-00" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
       </div>
-      <button type="submit" id="btn-submit-cad" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition">Enviar Cadastro</button>
+      <div>
+        <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Endereço Residencial</label>
+        <input type="text" id="cad-endereco" required placeholder="Rua, Bairro, Cidade" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
+      </div>
+      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition">Enviar Cadastro</button>
     </form>
 
     <form id="form-login" onsubmit="entrarPassageiro(event)" class="hidden space-y-3 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
@@ -98,14 +103,20 @@
   <section id="tela-pendente" class="hidden p-6 flex-1 flex flex-col justify-center items-center text-center space-y-4 z-30 bg-slate-50 dark:bg-slate-900">
     <div class="w-20 h-20 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-3xl animate-pulse"><i class="fa-solid fa-clock"></i></div>
     <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">Cadastro em Análise</h2>
-    <p class="text-xs text-slate-600 dark:text-slate-300">Aguardando aprovação da central.</p>
+    <p class="text-xs text-slate-600 dark:text-slate-300">Aguardando liberação da central administrativa.</p>
     <button onclick="verificarStatusAtual()" class="bg-slate-900 dark:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow">Atualizar Status</button>
   </section>
 
-  <!-- TELA 3: APLICATIVO PRINCIPAL COM BUSCA NO MAPA E PARADAS -->
+  <!-- TELA 3: APLICATIVO PRINCIPAL -->
   <section id="tela-app" class="hidden flex-1 flex flex-col relative">
     <div class="absolute inset-0 z-0">
       <div id="mapa-passageiro" class="map-container"></div>
+    </div>
+
+    <!-- Banner de Modo Seleção no Mapa -->
+    <div id="banner-selecao-mapa" class="hidden z-30 bg-emerald-600 text-white px-4 py-2 text-xs font-bold flex items-center justify-between shadow-lg">
+      <span><i class="fa-solid fa-location-crosshairs mr-1"></i> Toque no mapa para marcar o local</span>
+      <button onclick="cancelarModoMapa()" class="bg-slate-900 px-2.5 py-1 rounded text-[10px]">Concluir</button>
     </div>
 
     <div class="p-4 z-20 flex justify-between items-center pointer-events-none">
@@ -122,27 +133,47 @@
     <div class="mt-auto z-20 p-4">
       <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-3">
         
-        <div id="box-solicitar" class="space-y-3">
+        <div id="box-solicitar" class="space-y-2.5">
           <div class="flex justify-between items-center">
             <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Para onde vamos hoje?</h3>
-            <button onclick="alternarSecaoHistorico()" class="text-xs text-emerald-600 dark:text-emerald-400 font-bold underline">Histórico & Suporte</button>
+            <button onclick="usarMinhaLocalizacaoGPS()" class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold"><i class="fa-solid fa-location-arrow"></i> Meu GPS</button>
           </div>
-          <div>
-            <label class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Ponto A (Embarque)</label>
-            <input type="text" id="corrida-origem" value="Centro, Laguna - SC" onblur="buscarEnderecoNoMapa(this.value, 'origem')" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white font-medium" />
+
+          <!-- Ponto A -->
+          <div class="relative">
+            <div class="flex justify-between items-center">
+              <label class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Ponto A (Embarque)</label>
+              <button onclick="ativarSelecaoMapa('origem')" class="text-[10px] text-blue-500 font-bold underline">Marcar no Mapa</button>
+            </div>
+            <input type="text" id="corrida-origem" placeholder="Buscando sua localização..." oninput="buscarSugestoesEndereco(this.value, 'origem')" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white font-medium" />
+            <div id="sugestoes-origem" class="hidden absolute left-0 right-0 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl shadow-xl z-40 max-h-32 overflow-y-auto text-xs"></div>
           </div>
-          <div id="wrapper-parada-b" class="hidden">
-            <label class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Parada B (Opcional)</label>
-            <input type="text" id="corrida-parada-b" placeholder="Endereço da parada" onblur="buscarEnderecoNoMapa(this.value, 'parada')" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white font-medium" />
+
+          <!-- Parada B -->
+          <div id="wrapper-parada-b" class="hidden relative">
+            <div class="flex justify-between items-center">
+              <label class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Parada B (Opcional)</label>
+              <button onclick="ativarSelecaoMapa('parada')" class="text-[10px] text-blue-500 font-bold underline">Marcar no Mapa</button>
+            </div>
+            <input type="text" id="corrida-parada-b" placeholder="Endereço da parada" oninput="buscarSugestoesEndereco(this.value, 'parada')" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white font-medium" />
+            <div id="sugestoes-parada" class="hidden absolute left-0 right-0 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl shadow-xl z-40 max-h-32 overflow-y-auto text-xs"></div>
           </div>
+
           <div>
             <button id="btn-add-parada" onclick="adicionarParadaB()" class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">+ Adicionar Parada B</button>
           </div>
-          <div>
-            <label class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Destino Final (C)</label>
-            <input type="text" id="corrida-destino" placeholder="Ex: Praia do Mar Grosso, Laguna" onblur="buscarEnderecoNoMapa(this.value, 'destino')" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white font-medium" />
+
+          <!-- Destino C -->
+          <div class="relative">
+            <div class="flex justify-between items-center">
+              <label class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Destino Final (C)</label>
+              <button onclick="ativarSelecaoMapa('destino')" class="text-[10px] text-blue-500 font-bold underline">Marcar no Mapa</button>
+            </div>
+            <input type="text" id="corrida-destino" placeholder="Digite o destino ou marque no mapa" oninput="buscarSugestoesEndereco(this.value, 'destino')" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white font-medium" />
+            <div id="sugestoes-destino" class="hidden absolute left-0 right-0 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl shadow-xl z-40 max-h-32 overflow-y-auto text-xs"></div>
           </div>
-          <div class="grid grid-cols-2 gap-2">
+
+          <div class="grid grid-cols-2 gap-2 pt-1">
             <div>
               <label class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Pagamento</label>
               <select id="corrida-pagamento" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold dark:text-white">
@@ -151,34 +182,37 @@
               </select>
             </div>
             <div>
-              <label class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Valor (R$)</label>
-              <input type="number" id="corrida-valor" value="20.00" step="0.50" class="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-extrabold text-emerald-600" />
+              <label class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Valor Calculado <span id="lbl-distancia" class="text-[10px] text-emerald-500"></span></label>
+              <input type="text" id="corrida-valor-display" readonly value="R$ 10,00" class="w-full mt-1 px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-extrabold text-emerald-600" />
             </div>
           </div>
-          <button onclick="solicitarCorridaReal()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs shadow-lg transition">Chamar Motorista Agora</button>
+
+          <button onclick="abrirModalTermosPagamento()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs shadow-lg transition">Chamar Motorista Agora</button>
         </div>
 
+        <!-- EM ANDAMENTO -->
         <div id="box-andamento" class="hidden space-y-3">
-          <div class="bg-slate-900 text-white p-3.5 rounded-2xl space-y-2">
+          <div class="bg-slate-900 text-white p-3.5 rounded-2xl space-y-2 border border-slate-800">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-bold uppercase text-emerald-400" id="status-corrida-label">Procurando...</span>
-              <span class="text-sm font-extrabold" id="valor-corrida-label">R$ 20,00</span>
+              <span class="text-xs font-bold uppercase text-emerald-400" id="status-corrida-label">Procurando motorista próximo...</span>
+              <span class="text-sm font-extrabold" id="valor-corrida-label">R$ 0,00</span>
             </div>
             <div id="info-motorista-viagem" class="hidden flex items-center gap-3 pt-2 border-t border-slate-800">
-              <img id="mot-foto" src="" class="w-10 h-10 rounded-full object-cover border border-emerald-500" />
+              <img id="mot-foto" src="" class="w-11 h-11 rounded-full object-cover border-2 border-emerald-500" />
               <div>
                 <p class="text-xs font-bold" id="mot-nome">Motorista</p>
-                <p class="text-[10px] text-slate-400" id="mot-veiculo">Carro • Placa</p>
+                <p class="text-[11px] text-slate-300" id="mot-veiculo">Veículo • Placa</p>
               </div>
             </div>
           </div>
 
-          <div id="box-chat" class="hidden border border-slate-700 rounded-2xl p-3 space-y-2 bg-slate-800">
-            <p class="text-[11px] font-bold text-slate-300"><i class="fa-solid fa-comments mr-1"></i> Chat com Motorista</p>
-            <div id="historico-mensagens" class="h-24 overflow-y-auto space-y-1.5 text-xs pr-1"></div>
+          <!-- Chat Interno em Tempo Real -->
+          <div id="box-chat" class="hidden border border-slate-200 dark:border-slate-700 rounded-2xl p-3 space-y-2 bg-slate-50 dark:bg-slate-800">
+            <p class="text-[11px] font-bold text-slate-700 dark:text-slate-300"><i class="fa-solid fa-comments mr-1"></i> Chat com Motorista</p>
+            <div id="historico-mensagens" class="h-28 overflow-y-auto space-y-1.5 text-xs pr-1"></div>
             <div class="flex gap-1.5">
-              <input type="text" id="input-mensagem" placeholder="Digite..." class="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white" />
-              <button onclick="enviarMensagemChat()" class="bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-paper-plane"></i></button>
+              <input type="text" id="input-mensagem" placeholder="Digite sua mensagem..." class="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
+              <button onclick="enviarMensagemChat()" class="bg-emerald-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
           </div>
 
@@ -189,32 +223,130 @@
     </div>
   </section>
 
-  <!-- MODAL HISTÓRICO -->
-  <div id="modal-historico" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[85vh] overflow-y-auto border border-slate-800">
-      <div class="flex justify-between items-center">
-        <h3 class="text-sm font-extrabold text-white">Histórico & Suporte</h3>
-        <button onclick="fecharHistorico()" class="text-slate-400 font-bold"><i class="fa-solid fa-xmark text-lg"></i></button>
+  <!-- MODAL CONFIRMAÇÃO DE TERMOS DE PAGAMENTO -->
+  <div id="modal-termos-pagamento" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800 shadow-2xl">
+      <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl">
+        <i class="fa-solid fa-handshake"></i>
       </div>
-      <div id="lista-historico-viagens" class="space-y-3"></div>
+      <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Confirmação de Pagamento</h3>
+      <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+        Você está ciente e aceita a <strong>Política de Pagamento</strong> do aplicativo? O acerto integral do valor da viagem deve ser realizado diretamente ao motorista no encerramento da corrida (via Dinheiro ou PIX), <strong>não sendo permitidos pagamentos posteriores ou pendentes</strong>.
+      </p>
+      <button onclick="abrirTermosUsoModal()" class="text-xs font-bold text-emerald-600 dark:text-emerald-400 underline flex items-center gap-1.5">
+        <i class="fa-solid fa-file-contract"></i> Ler Termos de Política de Pagamento
+      </button>
+      <div class="space-y-2 pt-2">
+        <button onclick="confirmarESolicitarCorrida()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs shadow-lg">
+          Aceitar Termos e Chamar Motorista
+        </button>
+        <button onclick="fecharModalTermosPagamento()" class="w-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold py-3 rounded-xl text-xs">
+          Voltar
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- MODAL CONFIG -->
-  <div id="modal-config" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 space-y-4 border border-slate-800">
-      <div class="flex justify-between items-center">
-        <h3 class="text-sm font-extrabold text-white">Configurações</h3>
-        <button onclick="fecharMenuConfig()" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button>
+  <!-- MODAL DE AVALIAÇÃO PÓS-CORRIDA (PASSAGEIRO) -->
+  <div id="modal-avaliacao" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 space-y-4 text-center border border-slate-800">
+      <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Viagem Finalizada!</h3>
+      <p class="text-xs text-slate-500 dark:text-slate-400">Avalie sua experiência com o motorista</p>
+      <div class="flex justify-center gap-2 text-2xl text-slate-300" id="estrelas-container">
+        <i class="fa-solid fa-star cursor-pointer" onclick="selecionarEstrela(1)"></i>
+        <i class="fa-solid fa-star cursor-pointer" onclick="selecionarEstrela(2)"></i>
+        <i class="fa-solid fa-star cursor-pointer" onclick="selecionarEstrela(3)"></i>
+        <i class="fa-solid fa-star cursor-pointer" onclick="selecionarEstrela(4)"></i>
+        <i class="fa-solid fa-star cursor-pointer" onclick="selecionarEstrela(5)"></i>
       </div>
-      <div class="space-y-3">
-        <div class="flex items-center justify-between p-3 bg-slate-800 rounded-xl">
-          <span class="text-xs font-bold text-slate-300">Modo Escuro</span>
-          <button onclick="alternarTema()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">Alternar</button>
+      <div id="box-motivo-avaliacao" class="hidden text-left space-y-1">
+        <label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">Por que não foram 5 estrelas? (Opcional)</label>
+        <textarea id="texto-motivo-avaliacao" rows="2" placeholder="Descreva o motivo..." class="w-full p-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-700 rounded-xl text-xs dark:text-white"></textarea>
+      </div>
+      <button onclick="enviarAvaliacaoPassageiro()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs">Enviar Avaliação</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIGURAÇÕES COMPLETO -->
+  <div id="modal-config" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800">
+      <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
+        <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Configurações & Perfil</h3>
+        <button onclick="fecharMenuConfig()" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <!-- Modo Escuro Visível -->
+      <div class="flex items-center justify-between p-3.5 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-moon text-emerald-500"></i>
+          <span class="text-xs font-bold text-slate-800 dark:text-white">Modo Escuro</span>
         </div>
-        <button onclick="excluirMinhaConta()" class="w-full bg-red-600/20 text-red-500 border border-red-500/30 font-bold py-3 rounded-xl text-xs">Excluir Meus Dados</button>
-        <button onclick="sairConta()" class="w-full bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs">Sair</button>
+        <button onclick="alternarTema()" class="bg-slate-900 dark:bg-emerald-600 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold">Alternar Tema</button>
       </div>
+
+      <!-- Editar Perfil (Telefone, Endereço, Foto) -->
+      <div class="p-3.5 bg-slate-100 dark:bg-slate-800 rounded-2xl space-y-3">
+        <p class="text-xs font-extrabold text-slate-800 dark:text-white">Atualizar Meus Dados</p>
+        <div class="flex items-center gap-3">
+          <img id="edit-preview-foto" src="" class="w-14 h-14 rounded-full object-cover border-2 border-emerald-500" />
+          <label class="bg-slate-700 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer">
+            Alterar Foto
+            <input type="file" accept="image/*" capture="user" onchange="processarFotoEdicao(event)" class="hidden" />
+          </label>
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-slate-500">Telefone</label>
+          <input type="tel" id="edit-telefone" class="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-slate-500">Endereço</label>
+          <input type="text" id="edit-endereco" class="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
+        </div>
+        <button onclick="salvarEdicaoPerfil()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs">Salvar Alterações</button>
+      </div>
+
+      <!-- Acesso ao Histórico e Suporte -->
+      <button onclick="abrirHistorico()" class="w-full p-3.5 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-between text-xs font-bold text-slate-800 dark:text-white">
+        <span><i class="fa-solid fa-clock-rotate-left text-emerald-500 mr-2"></i> Histórico de Corridas & Suporte</span>
+        <i class="fa-solid fa-chevron-right text-slate-400"></i>
+      </button>
+
+      <!-- Link Discreto para Termos de Uso -->
+      <div class="pt-2 text-center space-y-3">
+        <button onclick="abrirTermosUsoModal()" class="text-[11px] text-slate-500 underline">Termos de Uso e Política de Privacidade</button>
+        <button onclick="sairConta()" class="w-full bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs">Sair da Conta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TERMOS DE USO (COM EXCLUSÃO DE DADOS DISCRETA NO FINAL) -->
+  <div id="modal-termos-uso" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[85vh] overflow-y-auto border border-slate-800">
+      <div class="flex justify-between items-center">
+        <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Termos de Uso & Privacidade</h3>
+        <button onclick="fecharTermosUsoModal()" class="text-slate-500"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="text-xs text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed">
+        <p><strong>1. Pagamentos:</strong> Todas as viagens solicitadas devem ser pagas integralmente ao motorista no destino final via PIX ou Dinheiro.</p>
+        <p><strong>2. Segurança:</strong> As informações cadastrais e trajetos são registrados para proteção de motoristas e passageiros.</p>
+        <p><strong>3. Cancelamentos:</strong> O motorista aguardará até 3 minutos no local de embarque. Após esse prazo, a corrida poderá ser encerrada por ausência.</p>
+        <hr class="border-slate-700 my-4" />
+        <div class="pt-2 text-[11px] text-slate-500">
+          <p>Caso deseje encerrar seu vínculo com a plataforma e remover todos os seus registros conforme a LGPD:</p>
+          <button onclick="excluirMinhaConta()" class="mt-2 text-slate-400 underline hover:text-red-400">Solicitar exclusão definitiva dos meus dados</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL HISTÓRICO -->
+  <div id="modal-historico" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[85vh] overflow-y-auto border border-slate-800">
+      <div class="flex justify-between items-center">
+        <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Meu Histórico & Suporte</h3>
+        <button onclick="fecharHistorico()" class="text-slate-500"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div id="lista-historico-viagens" class="space-y-3"></div>
     </div>
   </div>
 
@@ -227,11 +359,23 @@
 
   let usuarioAtual = null;
   let fotoBase64 = '';
+  let fotoEditBase64 = '';
   let corridaAtualId = null;
+  let ultimaCorridaFinalizadaId = null;
+  let estrelaSelecionada = 5;
+
   let mapPassageiro = null;
-  let markerPassageiro = null;
+  let markerOrigem = null;
+  let markerParada = null;
   let markerDestino = null;
+  let modoSelecaoMapa = null;
+  let timerBusca = null;
   let chatCanal = null;
+
+  let coordsOrigem = { lat: -28.4811, lng: -48.7811 };
+  let coordsParada = null;
+  let coordsDestino = null;
+  let valorCalculado = 10.00;
 
   window.onload = async () => {
     carregarTemaSalvo();
@@ -243,16 +387,13 @@
   };
 
   function alternarTema() {
-    const root = document.getElementById('html-root');
-    const isDark = root.classList.toggle('dark');
+    const isDark = document.getElementById('html-root').classList.toggle('dark');
     localStorage.setItem('tema_escuro', isDark ? 'sim' : 'nao');
-    document.getElementById('icone-tema').className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
   }
 
   function carregarTemaSalvo() {
     if (localStorage.getItem('tema_escuro') === 'sim') {
       document.getElementById('html-root').classList.add('dark');
-      document.getElementById('icone-tema').className = 'fa-solid fa-sun';
     }
   }
 
@@ -261,7 +402,7 @@
     document.getElementById('form-login').classList.toggle('hidden', aba !== 'login');
   }
 
-  function processarFoto(event) {
+  function processarFoto(event, imgId) {
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
@@ -269,14 +410,32 @@
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const max = 220;
-        const scale = max / Math.max(img.width, img.height);
+        const scale = 220 / Math.max(img.width, img.height);
         canvas.width = img.width * scale;
         canvas.height = img.height * scale;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
         fotoBase64 = canvas.toDataURL('image/jpeg', 0.75);
-        document.getElementById('preview-foto').src = fotoBase64;
+        document.getElementById(imgId).src = fotoBase64;
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function processarFotoEdicao(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const scale = 220 / Math.max(img.width, img.height);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        fotoEditBase64 = canvas.toDataURL('image/jpeg', 0.75);
+        document.getElementById('edit-preview-foto').src = fotoEditBase64;
       };
       img.src = e.target.result;
     };
@@ -285,13 +444,14 @@
 
   async function cadastrarPassageiro(e) {
     e.preventDefault();
-    if (!fotoBase64) { alert('Foto obrigatória.'); return; }
+    if (!fotoBase64) { alert('Foto de rosto obrigatória.'); return; }
     const novo = {
       tipo: 'passageiro',
       nome: document.getElementById('cad-nome').value.trim(),
       telefone: document.getElementById('cad-telefone').value.trim(),
       senha: document.getElementById('cad-senha').value.trim(),
       cpf: document.getElementById('cad-cpf').value.trim(),
+      endereco: document.getElementById('cad-endereco').value.trim(),
       foto_url: fotoBase64,
       status_aprovacao: 'pendente'
     };
@@ -336,48 +496,119 @@
 
   function inicializarMapaPassageiro() {
     if (mapPassageiro) return;
-    let lat = -28.4811, lng = -48.7811;
-    mapPassageiro = L.map('mapa-passageiro', { zoomControl: false }).setView([lat, lng], 15);
+    mapPassageiro = L.map('mapa-passageiro', { zoomControl: false }).setView([coordsOrigem.lat, coordsOrigem.lng], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapPassageiro);
-    markerPassageiro = L.marker([lat, lng]).addTo(mapPassageiro).bindPopup('Embarque');
+    markerOrigem = L.marker([coordsOrigem.lat, coordsOrigem.lng]).addTo(mapPassageiro).bindPopup('Embarque');
 
-    if (navigator.geolocation) {
-      navigator.geolocation.watchPosition((pos) => {
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-        mapPassageiro.setView([lat, lng], 16);
-        markerPassageiro.setLatLng([lat, lng]);
-      });
-    }
+    mapPassageiro.on('click', async (e) => {
+      if (!modoSelecaoMapa) return;
+      const { lat, lng } = e.latlng;
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const json = await res.json();
+      const nomeEndereco = json.display_name ? json.display_name.split(',').slice(0, 3).join(',') : `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      aplicarLocalNoCampo(modoSelecaoMapa, nomeEndereco, lat, lng);
+      cancelarModoMapa();
+    });
+
+    usarMinhaLocalizacaoGPS();
   }
 
-  // Função para buscar e mostrar o endereço instantaneamente no mapa ao digitar
-  async function buscarEnderecoNoMapa(endereco, tipo) {
-    if (!endereco || endereco.length < 3) return;
-    try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}`);
-      const resultados = await response.json();
-      if (resultados && resultados.length > 0) {
-        const lat = parseFloat(resultados[0].lat);
-        const lon = parseFloat(resultados[0].lon);
-        mapPassageiro.setView([lat, lon], 16);
-
-        if (tipo === 'destino' || tipo === 'parada') {
-          if (!markerDestino) {
-            markerDestino = L.marker([lat, lon], {
-              icon: L.divIcon({ className: 'custom-icon', html: '<div style="background:#10b981;width:16px;height:16px;border-radius:50%;border:2px solid white;"></div>' })
-            }).addTo(mapPassageiro);
-          } else {
-            markerDestino.setLatLng([lat, lon]);
-          }
-          markerDestino.bindPopup(tipo === 'destino' ? 'Destino Final' : 'Parada B').openPopup();
-        } else {
-          markerPassageiro.setLatLng([lat, lon]).bindPopup('Embarque').openPopup();
-        }
+  function usarMinhaLocalizacaoGPS() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude, longitude } = pos.coords;
+      coordsOrigem = { lat: latitude, lng: longitude };
+      mapPassageiro.setView([latitude, longitude], 16);
+      markerOrigem.setLatLng([latitude, longitude]);
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+      const json = await res.json();
+      if (json && json.display_name) {
+        document.getElementById('corrida-origem').value = json.display_name.split(',').slice(0, 3).join(',');
       }
-    } catch (e) {
-      console.log('Erro ao buscar endereço', e);
+      calcularValorPorDistancia();
+    });
+  }
+
+  function ativarSelecaoMapa(tipo) {
+    modoSelecaoMapa = tipo;
+    document.getElementById('banner-selecao-mapa').classList.remove('hidden');
+  }
+
+  function cancelarModoMapa() {
+    modoSelecaoMapa = null;
+    document.getElementById('banner-selecao-mapa').classList.add('hidden');
+  }
+
+  function buscarSugestoesEndereco(texto, tipo) {
+    clearTimeout(timerBusca);
+    const box = document.getElementById(`sugestoes-${tipo}`);
+    if (!texto || texto.length < 3) { box.classList.add('hidden'); return; }
+
+    timerBusca = setTimeout(async () => {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=4&q=${encodeURIComponent(texto + ', Laguna SC')}`);
+      const lista = await res.json();
+      if (!lista || lista.length === 0) { box.classList.add('hidden'); return; }
+
+      box.innerHTML = lista.map(item => `
+        <div onclick="selecionarSugestao('${tipo}', '${item.display_name.replace(/'/g, '')}', ${item.lat}, ${item.lon})" class="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer border-b border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200">
+          ${item.display_name.split(',').slice(0, 3).join(',')}
+        </div>
+      `).join('');
+      box.classList.remove('hidden');
+    }, 450);
+  }
+
+  function selecionarSugestao(tipo, nome, lat, lng) {
+    document.getElementById(`sugestoes-${tipo}`).classList.add('hidden');
+    aplicarLocalNoCampo(tipo, nome.split(',').slice(0, 3).join(','), parseFloat(lat), parseFloat(lng));
+  }
+
+  function aplicarLocalNoCampo(tipo, endereco, lat, lng) {
+    mapPassageiro.setView([lat, lng], 15);
+    if (tipo === 'origem') {
+      document.getElementById('corrida-origem').value = endereco;
+      coordsOrigem = { lat, lng };
+      markerOrigem.setLatLng([lat, lng]).bindPopup('Embarque').openPopup();
+    } else if (tipo === 'parada') {
+      document.getElementById('corrida-parada-b').value = endereco;
+      coordsParada = { lat, lng };
+      if (!markerParada) markerParada = L.marker([lat, lng]).addTo(mapPassageiro);
+      else markerParada.setLatLng([lat, lng]);
+      markerParada.bindPopup('Parada B').openPopup();
+    } else if (tipo === 'destino') {
+      document.getElementById('corrida-destino').value = endereco;
+      coordsDestino = { lat, lng };
+      if (!markerDestino) markerDestino = L.marker([lat, lng]).addTo(mapPassageiro);
+      else markerDestino.setLatLng([lat, lng]);
+      markerDestino.bindPopup('Destino Final').openPopup();
     }
+    calcularValorPorDistancia();
+  }
+
+  function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 1.25;
+  }
+
+  function calcularValorPorDistancia() {
+    if (!coordsOrigem || !coordsDestino) return;
+    let kmTotal = 0;
+    if (coordsParada) {
+      kmTotal += calcularDistanciaKm(coordsOrigem.lat, coordsOrigem.lng, coordsParada.lat, coordsParada.lng);
+      kmTotal += calcularDistanciaKm(coordsParada.lat, coordsParada.lng, coordsDestino.lat, coordsDestino.lng);
+    } else {
+      kmTotal += calcularDistanciaKm(coordsOrigem.lat, coordsOrigem.lng, coordsDestino.lat, coordsDestino.lng);
+    }
+    const tarifaBase = 6.00;
+    const precoPorKm = 3.20;
+    valorCalculado = Math.max(10.00, tarifaBase + (kmTotal * precoPorKm));
+    document.getElementById('corrida-valor-display').value = `R$ ${valorCalculado.toFixed(2)}`;
+    document.getElementById('lbl-distancia').innerText = `(~${kmTotal.toFixed(1)} km)`;
   }
 
   function adicionarParadaB() {
@@ -385,22 +616,38 @@
     document.getElementById('btn-add-parada').classList.add('hidden');
   }
 
-  async function solicitarCorridaReal() {
+  function abrirModalTermosPagamento() {
+    if (!document.getElementById('corrida-destino').value.trim()) {
+      alert('Por favor, informe o destino final.');
+      return;
+    }
+    document.getElementById('modal-termos-pagamento').classList.remove('hidden');
+  }
+
+  function fecharModalTermosPagamento() {
+    document.getElementById('modal-termos-pagamento').classList.add('hidden');
+  }
+
+  async function confirmarESolicitarCorrida() {
+    fecharModalTermosPagamento();
     const origem = document.getElementById('corrida-origem').value.trim();
     const paradaB = document.getElementById('corrida-parada-b').value.trim();
     const destino = document.getElementById('corrida-destino').value.trim();
     const pagamento = document.getElementById('corrida-pagamento').value;
-    const valor = parseFloat(document.getElementById('corrida-valor').value);
-
-    if (!destino) { alert('Informe o destino final.'); return; }
 
     const { data, error } = await db.from('corridas').insert([{
       passageiro_id: usuarioAtual.id,
       passageiro_nome: usuarioAtual.nome,
-      origem: origem,
+      origem,
+      origem_lat: coordsOrigem.lat,
+      origem_lng: coordsOrigem.lng,
       parada_b: paradaB || null,
-      destino: destino,
-      valor: valor,
+      parada_lat: coordsParada ? coordsParada.lat : null,
+      parada_lng: coordsParada ? coordsParada.lng : null,
+      destino,
+      destino_lat: coordsDestino ? coordsDestino.lat : null,
+      destino_lng: coordsDestino ? coordsDestino.lng : null,
+      valor: valorCalculado.toFixed(2),
       forma_pagamento: pagamento,
       status: 'aguardando'
     }]).select().single();
@@ -411,7 +658,7 @@
   }
 
   function escutarCorridas() {
-    db.channel('corrida-pass-real')
+    db.channel('corrida-pass-canal')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'corridas', filter: `passageiro_id=eq.${usuarioAtual.id}` }, (p) => {
         atualizarTelaCorrida(p.new);
       })
@@ -419,12 +666,22 @@
   }
 
   async function atualizarTelaCorrida(corrida) {
-    if (!corrida || corrida.status === 'finalizada' || corrida.status === 'cancelada') {
+    if (!corrida) return;
+    if (corrida.status === 'cancelada') {
       document.getElementById('box-solicitar').classList.remove('hidden');
       document.getElementById('box-andamento').classList.add('hidden');
-      if (corrida && corrida.status === 'finalizada') alert('Viagem finalizada!');
+      corridaAtualId = null;
       return;
     }
+    if (corrida.status === 'finalizada') {
+      document.getElementById('box-solicitar').classList.remove('hidden');
+      document.getElementById('box-andamento').classList.add('hidden');
+      ultimaCorridaFinalizadaId = corrida.id;
+      corridaAtualId = null;
+      abrirModalAvaliacao();
+      return;
+    }
+
     corridaAtualId = corrida.id;
     document.getElementById('box-solicitar').classList.add('hidden');
     document.getElementById('box-andamento').classList.remove('hidden');
@@ -432,9 +689,11 @@
 
     const statusLbl = document.getElementById('status-corrida-label');
     if (corrida.status === 'aguardando') {
-      statusLbl.innerText = 'Procurando Motorista...';
+      statusLbl.innerText = 'Buscando motorista mais próximo...';
+      document.getElementById('info-motorista-viagem').classList.add('hidden');
+      document.getElementById('box-chat').classList.add('hidden');
     } else {
-      statusLbl.innerText = corrida.status === 'aceita' ? 'Motorista a Caminho' : (corrida.status === 'no_local' ? 'Motorista Chegou' : 'Em Viagem');
+      statusLbl.innerText = corrida.status === 'aceita' ? 'Motorista a caminho' : (corrida.status === 'no_local' ? 'Motorista no local de embarque' : 'Em viagem');
       if (corrida.motorista_id) {
         document.getElementById('info-motorista-viagem').classList.remove('hidden');
         document.getElementById('box-chat').classList.remove('hidden');
@@ -444,46 +703,151 @@
           document.getElementById('mot-veiculo').innerText = `${mot.veiculo_modelo || ''} • ${mot.veiculo_placa || ''}`;
           document.getElementById('mot-foto').src = mot.foto_url || 'https://ui-avatars.com/api/?name=' + mot.nome;
         }
+        iniciarChatRealtime(corrida.id);
       }
     }
+  }
+
+  function iniciarChatRealtime(corridaId) {
+    if (chatCanal) return;
+    carregarMensagensChat(corridaId);
+    chatCanal = db.channel('chat-corrida-' + corridaId)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens_chat', filter: `corrida_id=eq.${corridaId}` }, (p) => {
+        renderizarMensagem(p.new);
+      })
+      .subscribe();
+  }
+
+  async function carregarMensagensChat(corridaId) {
+    const { data } = await db.from('mensagens_chat').select('*').eq('corrida_id', corridaId).order('criado_em', { ascending: true });
+    const div = document.getElementById('historico-mensagens');
+    div.innerHTML = '';
+    if (data) data.forEach(m => renderizarMensagem(m));
+  }
+
+  function renderizarMensagem(m) {
+    const div = document.getElementById('historico-mensagens');
+    const eu = m.remetente_id === usuarioAtual.id;
+    div.innerHTML += `<div class="p-2 rounded-xl text-[11px] ${eu ? 'bg-emerald-600 text-white ml-6 text-right' : 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white mr-6'}">
+      <span class="block text-[9px] opacity-75 font-bold">${m.remetente_nome}</span>
+      ${m.mensagem}
+    </div>`;
+    div.scrollTop = div.scrollHeight;
+  }
+
+  async function enviarMensagemChat() {
+    const input = document.getElementById('input-mensagem');
+    const texto = input.value.trim();
+    if (!texto || !corridaAtualId) return;
+    input.value = '';
+    await db.from('mensagens_chat').insert([{
+      corrida_id: corridaAtualId,
+      remetente_id: usuarioAtual.id,
+      remetente_nome: usuarioAtual.nome,
+      mensagem: texto
+    }]);
   }
 
   async function cancelarCorridaAtual() {
     if (!corridaAtualId) return;
     await db.from('corridas').update({ status: 'cancelada' }).eq('id', corridaAtualId);
-    document.getElementById('box-solicitar').classList.remove('hidden');
-    document.getElementById('box-andamento').classList.add('hidden');
   }
 
-  async function alternarSecaoHistorico() {
+  // Avaliação Bilateral
+  function abrirModalAvaliacao() {
+    estrelaSelecionada = 5;
+    atualizarEstrelasUI();
+    document.getElementById('modal-avaliacao').classList.remove('hidden');
+  }
+
+  function selecionarEstrela(n) {
+    estrelaSelecionada = n;
+    atualizarEstrelasUI();
+    document.getElementById('box-motivo-avaliacao').classList.toggle('hidden', n === 5);
+  }
+
+  function atualizarEstrelasUI() {
+    const estrelas = document.getElementById('estrelas-container').children;
+    for (let i = 0; i < estrelas.length; i++) {
+      estrelas[i].className = i < estrelaSelecionada ? 'fa-solid fa-star cursor-pointer text-amber-400' : 'fa-solid fa-star cursor-pointer text-slate-400';
+    }
+  }
+
+  async function enviarAvaliacaoPassageiro() {
+    const motivo = document.getElementById('texto-motivo-avaliacao').value.trim();
+    if (ultimaCorridaFinalizadaId) {
+      await db.from('corridas').update({
+        avaliacao_motorista: estrelaSelecionada,
+        motivo_avaliacao_motorista: motivo || null
+      }).eq('id', ultimaCorridaFinalizadaId);
+    }
+    document.getElementById('modal-avaliacao').classList.add('hidden');
+    document.getElementById('texto-motivo-avaliacao').value = '';
+  }
+
+  // Configurações & Perfil
+  function abrirMenuConfig() {
+    document.getElementById('edit-telefone').value = usuarioAtual.telefone || '';
+    document.getElementById('edit-endereco').value = usuarioAtual.endereco || '';
+    document.getElementById('edit-preview-foto').src = usuarioAtual.foto_url || '';
+    document.getElementById('modal-config').classList.remove('hidden');
+  }
+  function fecharMenuConfig() { document.getElementById('modal-config').classList.add('hidden'); }
+
+  async function salvarEdicaoPerfil() {
+    const updates = {
+      telefone: document.getElementById('edit-telefone').value.trim(),
+      endereco: document.getElementById('edit-endereco').value.trim()
+    };
+    if (fotoEditBase64) updates.foto_url = fotoEditBase64;
+    const { data, error } = await db.from('usuarios').update(updates).eq('id', usuarioAtual.id).select().single();
+    if (!error && data) {
+      usuarioAtual = data;
+      localStorage.setItem('passageiro_logado', JSON.stringify(data));
+      document.getElementById('user-avatar').src = data.foto_url;
+      alert('Dados atualizados com sucesso!');
+      fecharMenuConfig();
+    }
+  }
+
+  async function abrirHistorico() {
+    fecharMenuConfig();
     document.getElementById('modal-historico').classList.remove('hidden');
     const { data } = await db.from('corridas').select('*').eq('passageiro_id', usuarioAtual.id).order('criado_em', { ascending: false });
     const lista = document.getElementById('lista-historico-viagens');
-    if (!data || data.length === 0) { lista.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">Nenhuma viagem.</p>'; return; }
+    if (!data || data.length === 0) { lista.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">Nenhuma viagem realizada.</p>'; return; }
     lista.innerHTML = data.map(c => `
-      <div class="bg-slate-800 p-3 rounded-2xl space-y-2 border border-slate-700">
-        <div class="flex justify-between items-center text-xs font-bold text-white">
+      <div class="bg-slate-100 dark:bg-slate-800 p-3 rounded-2xl space-y-1.5 border border-slate-700">
+        <div class="flex justify-between text-xs font-bold text-slate-900 dark:text-white">
           <span>R$ ${Number(c.valor).toFixed(2)} (${c.status})</span>
+          <span class="text-[10px] text-slate-400">${new Date(c.criado_em).toLocaleDateString()}</span>
         </div>
-        <p class="text-[11px] text-slate-300"><strong>Rota:</strong> ${c.origem} ➔ ${c.destino}</p>
-        <button onclick="abrirSuporte('${c.id}')" class="w-full bg-red-600/20 text-red-400 font-bold py-1.5 rounded-lg text-[11px]">Suporte</button>
+        <p class="text-[11px] text-slate-600 dark:text-slate-300"><strong>Rota:</strong> ${c.origem} ➔ ${c.destino}</p>
+        <p class="text-[11px] text-slate-600 dark:text-slate-300"><strong>Motorista:</strong> ${c.motorista_nome || '-'}</p>
+        <button onclick="abrirSuporte('${c.id}')" class="w-full bg-red-600/20 text-red-400 font-bold py-1.5 rounded-lg text-[11px]">Suporte desta Viagem</button>
       </div>
     `).join('');
   }
-
   function fecharHistorico() { document.getElementById('modal-historico').classList.add('hidden'); }
-  function abrirMenuConfig() { document.getElementById('modal-config').classList.remove('hidden'); }
-  function fecharMenuConfig() { document.getElementById('modal-config').classList.add('hidden'); }
 
   async function abrirSuporte(corridaId) {
-    const motivo = prompt('Motivo do chamado para a central:');
+    const motivo = prompt('Descreva sua solicitação de suporte:');
     if (!motivo) return;
-    await db.from('chamados_suporte').insert([{ corrida_id: corridaId, usuario_id: usuarioAtual.id, usuario_nome: usuarioAtual.nome, tipo_usuario: 'passageiro', motivo }]);
-    alert('Chamado enviado!');
+    await db.from('chamados_suporte').insert([{
+      corrida_id: corridaId,
+      usuario_id: usuarioAtual.id,
+      usuario_nome: usuarioAtual.nome,
+      tipo_usuario: 'passageiro',
+      motivo
+    }]);
+    alert('Chamado enviado à central!');
   }
 
+  function abrirTermosUsoModal() { document.getElementById('modal-termos-uso').classList.remove('hidden'); }
+  function fecharTermosUsoModal() { document.getElementById('modal-termos-uso').classList.add('hidden'); }
+
   async function excluirMinhaConta() {
-    if (!confirm('Excluir permanentemente?')) return;
+    if (!confirm('Confirma a exclusão permanente de sua conta e todos os seus dados?')) return;
     await db.from('usuarios').delete().eq('id', usuarioAtual.id);
     localStorage.removeItem('passageiro_logado');
     location.reload();
