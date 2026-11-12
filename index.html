@@ -5,688 +5,384 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>App Passageiro - Mobilidade Urbana</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #0f172a;
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      min-height: 100vh;
-    }
-    .app-container {
-      width: 100%;
-      max-width: 440px;
-      background-color: #f8fafc;
-      min-height: 100vh;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      overflow-x: hidden;
-    }
-    .map-bg {
-      background-color: #e2e8f0;
-      background-image: 
-        linear-gradient(to right, rgba(148, 163, 184, 0.25) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(148, 163, 184, 0.25) 1px, transparent 1px);
-      background-size: 28px 28px;
-    }
-    .pulse-ring {
-      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: .6; transform: scale(1.08); }
-    }
+    body { font-family: 'Inter', sans-serif; background-color: #0f172a; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+    .app-container { width: 100%; max-width: 440px; background-color: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow-x: hidden; }
+    .map-bg { background-color: #e2e8f0; background-image: linear-gradient(to right, rgba(148, 163, 184, 0.25) 1px, transparent 1px), linear-gradient(to bottom, rgba(148, 163, 184, 0.25) 1px, transparent 1px); background-size: 28px 28px; }
   </style>
 </head>
 <body>
 
-<div class="app-container" id="app">
+<div class="app-container">
 
-  <!-- BARRA SUPERIOR / STATUS -->
-  <header class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between z-20 shadow-md">
+  <!-- TOPO -->
+  <header class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md z-20">
     <div class="flex items-center gap-2">
-      <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center font-bold text-slate-950">
+      <div class="w-8 h-8 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center font-bold">
         <i class="fa-solid fa-car-side"></i>
       </div>
       <div>
-        <h1 class="text-sm font-bold leading-tight">Mobilidade Direta</h1>
-        <p class="text-[11px] text-slate-400">Passageiro • <span id="strikes-badge" class="text-emerald-400 font-semibold">Conta Regular (0/3)</span></p>
+        <h1 class="text-sm font-bold leading-tight">Mobilidade Laguna</h1>
+        <p class="text-[10px] text-slate-400">Passageiro</p>
       </div>
     </div>
-
-    <!-- Botão de Simulação para Testes de Inadimplência e Termos -->
-    <div class="flex items-center gap-2">
-      <button onclick="simularPendenciaPagamento()" title="Simular aviso de não pagamento" class="text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-1 rounded hover:bg-amber-500/30 transition">
-        <i class="fa-solid fa-triangle-exclamation"></i> Testar Alerta
-      </button>
-    </div>
+    <button id="btn-sair" onclick="sairConta()" class="hidden text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-medium">
+      Sair
+    </button>
   </header>
 
-  <!-- ÁREA DO MAPA SIMULADO -->
-  <div class="relative flex-1 map-bg min-h-[270px] flex flex-col justify-between p-4 overflow-hidden">
-    <!-- Botão Emergência Discreto (Visível na corrida) -->
-    <div id="btn-emergencia" class="hidden self-end z-20">
-      <button onclick="abrirModalEmergencia()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg flex items-center gap-1.5 transition">
-        <i class="fa-solid fa-shield-halved"></i> Segurança
+  <!-- TELA 1: CADASTRO E ACESSO DO PASSAGEIRO -->
+  <section id="tela-auth" class="p-5 flex-1 flex flex-col justify-center space-y-5">
+    <div class="text-center space-y-1">
+      <h2 class="text-xl font-extrabold text-slate-900">Acesso do Passageiro</h2>
+      <p class="text-xs text-slate-500">Cadastre-se com foto para segurança nas viagens ou entre com seu telefone.</p>
+    </div>
+
+    <!-- Alternador Entrar / Cadastrar -->
+    <div class="grid grid-cols-2 bg-slate-200 p-1 rounded-xl text-xs font-bold">
+      <button id="tab-cadastro" onclick="alternarAbaAuth('cadastro')" class="bg-white text-slate-900 py-2 rounded-lg shadow-sm transition">Criar Cadastro</button>
+      <button id="tab-login" onclick="alternarAbaAuth('login')" class="text-slate-600 py-2 rounded-lg transition">Já tenho conta</button>
+    </div>
+
+    <!-- Formulário de Cadastro -->
+    <form id="form-cadastro" onsubmit="cadastrarPassageiro(event)" class="space-y-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+      <!-- Foto Obrigatória -->
+      <div class="flex flex-col items-center space-y-2 pb-2">
+        <label for="input-foto" class="cursor-pointer relative group">
+          <img id="preview-foto" src="https://ui-avatars.com/api/?name=Foto+Obrigatoria&background=e2e8f0&color=475569&size=150" alt="Sua Foto" class="w-24 h-24 rounded-full object-cover border-4 border-emerald-500 shadow" />
+          <span class="absolute bottom-0 right-0 bg-slate-900 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs shadow-md">
+            <i class="fa-solid fa-camera"></i>
+          </span>
+        </label>
+        <input type="file" id="input-foto" accept="image/*" capture="user" required onchange="processarFoto(event)" class="hidden" />
+        <span class="text-[11px] font-bold text-red-600">* Foto de rosto obrigatória</span>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-slate-700">Nome Completo</label>
+        <input type="text" id="cad-nome" required placeholder="Ex: João da Silva" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-emerald-500" />
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-slate-700">Telefone (WhatsApp)</label>
+        <input type="tel" id="cad-telefone" required placeholder="Ex: 48999998888" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-emerald-500" />
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-slate-700">CPF</label>
+        <input type="text" id="cad-cpf" required placeholder="000.000.000-00" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-emerald-500" />
+      </div>
+
+      <button type="submit" id="btn-submit-cad" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition mt-2">
+        Enviar Cadastro para Análise
       </button>
-    </div>
+    </form>
 
-    <!-- Pino Central / Rota -->
-    <div class="my-auto mx-auto text-center z-10">
-      <div id="map-status-pill" class="bg-slate-900/90 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg backdrop-blur-sm inline-flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-        <span id="map-status-text">Pronto para solicitar sua viagem</span>
-      </div>
-    </div>
-
-    <!-- Cronômetro de Tolerância no Embarque -->
-    <div id="tolerance-banner" class="hidden bg-amber-500 text-slate-950 px-3 py-2 rounded-xl shadow-md flex items-center justify-between text-xs font-bold z-10">
-      <span><i class="fa-regular fa-clock mr-1"></i> Motorista aguardando no embarque</span>
-      <span id="tolerance-timer" class="bg-slate-900 text-white px-2 py-0.5 rounded font-mono">03:00</span>
-    </div>
-  </div>
-
-  <!-- PAINEL INFERIOR DINÂMICO -->
-  <main class="bg-white rounded-t-3xl -mt-5 z-20 p-5 shadow-[0_-10px_25px_rgba(0,0,0,0.08)] flex-1 flex flex-col justify-between">
-
-    <!-- ETAPA 1: SOLICITAÇÃO DE CORRIDA -->
-    <section id="step-request" class="space-y-4">
+    <!-- Formulário de Login -->
+    <form id="form-login" onsubmit="entrarPassageiro(event)" class="hidden space-y-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
       <div>
-        <h2 class="text-base font-bold text-slate-800">Para onde vamos hoje?</h2>
-        <p class="text-xs text-slate-500">Valor fechado antes de iniciar. Sem taxas ocultas.</p>
+        <label class="text-xs font-bold text-slate-700">Digite seu Telefone Cadastrado</label>
+        <input type="tel" id="login-telefone" required placeholder="Ex: 48999998888" class="w-full mt-1 px-3 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-emerald-500" />
       </div>
+      <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs shadow transition">
+        Entrar no Aplicativo
+      </button>
+    </form>
+  </section>
 
-      <div class="space-y-2.5">
-        <div class="relative">
-          <i class="fa-solid fa-circle-dot text-emerald-500 absolute left-3.5 top-3.5 text-sm"></i>
-          <input id="input-origem" type="text" value="Praça República Juliana - Centro" class="w-full pl-9 pr-3 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:border-slate-900" placeholder="Local de embarque" />
-        </div>
-        <div class="relative">
-          <i class="fa-solid fa-location-dot text-red-500 absolute left-3.5 top-3.5 text-sm"></i>
-          <input id="input-destino" type="text" value="Praia do Mar Grosso - Molhes" oninput="recalcularPreco()" class="w-full pl-9 pr-3 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:border-slate-900" placeholder="Destino final" />
-        </div>
-      </div>
+  <!-- TELA 2: AGUARDANDO APROVAÇÃO DO ADMINISTRADOR -->
+  <section id="tela-pendente" class="hidden p-6 flex-1 flex flex-col justify-center items-center text-center space-y-4">
+    <div class="w-20 h-20 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-3xl animate-pulse">
+      <i class="fa-solid fa-clock"></i>
+    </div>
+    <h2 class="text-lg font-extrabold text-slate-900" id="titulo-status-conta">Cadastro em Análise</h2>
+    <p class="text-xs text-slate-600 leading-relaxed" id="desc-status-conta">
+      Seus dados e sua foto foram enviados para a Central Administrativa. Assim que o administrador aprovar seu cadastro, sua tela será liberada automaticamente!
+    </p>
+    <button onclick="verificarStatusAtual()" class="bg-slate-900 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow">
+      Atualizar Status Agora
+    </button>
+  </section>
 
-      <!-- Escolha de Pagamento Presencial -->
-      <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1.5">Pagamento direto ao motorista no desembarque:</label>
-        <div class="grid grid-cols-2 gap-2.5">
-          <button type="button" id="pay-pix" onclick="selecionarPagamento('PIX')" class="pay-opt border-2 border-slate-900 bg-slate-900 text-white rounded-xl p-3 flex items-center justify-center gap-2 text-sm font-semibold transition">
-            <i class="fa-brands fa-pix text-emerald-400"></i> PIX Direto
-          </button>
-          <button type="button" id="pay-dinheiro" onclick="selecionarPagamento('Dinheiro')" class="pay-opt border-2 border-slate-200 bg-white text-slate-700 rounded-xl p-3 flex items-center justify-center gap-2 text-sm font-semibold transition">
-            <i class="fa-solid fa-money-bill-wave text-emerald-600"></i> Dinheiro
-          </button>
-        </div>
-      </div>
-
-      <!-- Resumo de Valor -->
-      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center justify-between">
+  <!-- TELA 3: APLICATIVO PRINCIPAL (CHAMAR CORRIDA) -->
+  <section id="tela-app" class="hidden flex-1 flex flex-col">
+    <div class="relative flex-1 map-bg min-h-[240px] flex flex-col justify-between p-4">
+      <div class="bg-white/95 backdrop-blur px-3 py-2 rounded-2xl shadow flex items-center gap-2.5 self-start border border-slate-200">
+        <img id="user-avatar" src="" class="w-9 h-9 rounded-full object-cover border border-emerald-500" />
         <div>
-          <span class="text-xs text-slate-500 block">Valor exato da corrida</span>
-          <span class="text-xl font-extrabold text-slate-900" id="ride-price">R$ 18,50</span>
-        </div>
-        <div class="text-right text-xs text-slate-500">
-          <span class="block font-semibold text-slate-700">~ 9 min</span>
-          <span>5,4 km</span>
+          <p class="text-xs font-bold text-slate-900" id="user-nome-display">Passageiro</p>
+          <span class="text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-circle-check"></i> Conta Verificada</span>
         </div>
       </div>
 
-      <button onclick="abrirModalAceitePagamento()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 text-sm">
-        <span>Chamar Motorista</span>
-        <i class="fa-solid fa-arrow-right"></i>
-      </button>
-    </section>
-
-    <!-- ETAPA 2: BUSCANDO MOTORISTA -->
-    <section id="step-searching" class="hidden space-y-5 text-center py-4">
-      <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto pulse-ring text-2xl">
-        <i class="fa-solid fa-satellite-dish"></i>
-      </div>
-      <div>
-        <h3 class="text-base font-bold text-slate-800">Localizando motorista próximo...</h3>
-        <p class="text-xs text-slate-500 mt-1">Pagamento combinado: <strong id="search-pay-method" class="text-slate-800">PIX Direto</strong> • <strong id="search-price" class="text-slate-800">R$ 18,50</strong></p>
-      </div>
-
-      <div class="pt-2 space-y-2">
-        <!-- Botão de simulação para avançar fluxo -->
-        <button onclick="simularMotoristaAceitou()" class="w-full bg-slate-900 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-slate-800 transition">
-          [Simular Motorista Aceitando Corrida]
-        </button>
-
-        <button onclick="abrirModalCancelamento()" class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-3 rounded-xl text-xs transition border border-red-200">
-          Cancelar Solicitação
-        </button>
-      </div>
-    </section>
-
-    <!-- ETAPA 3: MOTORISTA A CAMINHO / EM CORRIDA -->
-    <section id="step-active" class="hidden space-y-4">
-      <!-- Status Badge -->
-      <div class="flex items-center justify-between">
-        <span id="ride-phase-badge" class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-lg">
-          Motorista a caminho do embarque
-        </span>
-        <span class="text-xs font-bold text-slate-900" id="active-price">R$ 18,50</span>
-      </div>
-
-      <!-- CARTÃO DO PERFIL SIMPLIFICADO DO MOTORISTA -->
-      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center gap-3.5">
-        <!-- Foto Miniatura -->
-        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face" alt="Foto do motorista" class="w-14 h-14 rounded-full object-cover border-2 border-emerald-500 shadow-sm shrink-0" />
-        
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center justify-between">
-            <!-- Apenas Primeiro Nome -->
-            <h3 class="text-base font-bold text-slate-900 truncate">Carlos</h3>
-            <!-- Avaliação -->
-            <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-              <i class="fa-solid fa-star text-amber-500 text-[10px]"></i> 4.9
-            </span>
-          </div>
-          <!-- Tempo de Plataforma -->
-          <p class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-award text-emerald-600 mr-1"></i> Motorista há 2 anos e 4 meses</p>
-          <!-- Carro e Placa -->
-          <div class="mt-1.5 flex items-center gap-2 text-xs">
-            <span class="font-semibold text-slate-700">Renault Logan Branco</span>
-            <span class="bg-slate-200 text-slate-900 font-mono font-bold px-1.5 py-0.5 rounded text-[11px] border border-slate-300">QWE-4B89</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Ações da Corrida -->
-      <div id="pre-start-controls" class="space-y-2">
-        <div class="grid grid-cols-2 gap-2">
-          <button onclick="simularChegadaEmbarque()" class="bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold py-2.5 rounded-xl transition">
-            [Simular Chegada]
-          </button>
-          <button onclick="simularInicioViagem()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 rounded-xl transition">
-            [Simular Início Viagem]
-          </button>
-        </div>
-
-        <!-- Botão de Cancelar (Desaparece ao iniciar viagem) -->
-        <button id="btn-cancel-active" onclick="abrirModalCancelamento()" class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-2.5 rounded-xl text-xs transition border border-red-200">
-          Cancelar Viagem
-        </button>
-      </div>
-
-      <!-- Controles Durante a Viagem Iniciada -->
-      <div id="in-progress-controls" class="hidden space-y-2">
-        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900 flex items-center justify-between">
-          <span>Acerto no desembarque (<strong id="active-pay-label">PIX</strong>):</span>
-          <strong class="text-sm" id="active-pay-value">R$ 18,50</strong>
-        </div>
-        <button onclick="finalizarViagemParaAvaliacao()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow transition">
-          [Simular Chegada ao Destino e Finalizar]
-        </button>
-      </div>
-    </section>
-
-    <!-- ETAPA 4: AVALIAÇÃO PÓS-VIAGEM (1 A 5 ESTRELAS) -->
-    <section id="step-rating" class="hidden space-y-4">
-      <div class="text-center">
-        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face" alt="Motorista" class="w-14 h-14 rounded-full object-cover mx-auto border-2 border-slate-200 mb-2" />
-        <h3 class="text-base font-bold text-slate-900">Como foi sua viagem com Carlos?</h3>
-        <p class="text-xs text-slate-500">Selecione de 1 a 5 estrelas</p>
-      </div>
-
-      <!-- Estrelas (1 a 5 - Sem zero) -->
-      <div class="flex justify-center gap-3 py-1" id="stars-container">
-        <button type="button" onclick="selecionarEstrela(1)" class="star-btn text-3xl text-slate-300 hover:scale-110 transition" data-val="1"><i class="fa-solid fa-star"></i></button>
-        <button type="button" onclick="selecionarEstrela(2)" class="star-btn text-3xl text-slate-300 hover:scale-110 transition" data-val="2"><i class="fa-solid fa-star"></i></button>
-        <button type="button" onclick="selecionarEstrela(3)" class="star-btn text-3xl text-slate-300 hover:scale-110 transition" data-val="3"><i class="fa-solid fa-star"></i></button>
-        <button type="button" onclick="selecionarEstrela(4)" class="star-btn text-3xl text-slate-300 hover:scale-110 transition" data-val="4"><i class="fa-solid fa-star"></i></button>
-        <button type="button" onclick="selecionarEstrela(5)" class="star-btn text-3xl text-slate-300 hover:scale-110 transition" data-val="5"><i class="fa-solid fa-star"></i></button>
-      </div>
-
-      <!-- Aviso de bloqueio automático em 1 estrela -->
-      <div id="one-star-warning" class="hidden bg-red-50 border border-red-200 text-red-700 text-[11px] p-2.5 rounded-xl">
-        <i class="fa-solid fa-ban mr-1"></i> Ao avaliar com <strong>1 estrela</strong>, você não será mais pareado com este motorista em futuras corridas.
-      </div>
-
-      <!-- Campo de justificativa obrigatória para notas 1 a 4 -->
-      <div id="rating-comment-box" class="hidden space-y-2">
-        <label class="block text-xs font-bold text-slate-700">Justificativa obrigatória para nota abaixo de 5 estrelas:</label>
-        <textarea id="rating-comment" rows="3" class="w-full p-3 bg-slate-100 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-slate-900" placeholder="Descreva o motivo da nota (ex: rota, condução, pontualidade)..."></textarea>
-        
-        <!-- Aviso / Termos de Conduta de Avaliação -->
-        <div class="bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-[11px] text-slate-600 leading-relaxed">
-          <p>
-            Por favor, mantenha o respeito. O campo de avaliação é monitorado e <strong>proíbe estritamente ofensas, palavras de baixo calão, discriminação ou ataques pessoais</strong>. Avaliações impróprias são barradas pela auditoria.
-          </p>
-          <button type="button" onclick="abrirModalTermos('avaliacao')" class="text-slate-900 font-bold underline mt-1 inline-block">
-            Ver Termos de Uso das Avaliações
-          </button>
-        </div>
-      </div>
-
-      <button onclick="enviarAvaliacao()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl text-sm transition">
-        Enviar Avaliação
-      </button>
-    </section>
-
-  </main>
-
-  <!-- ========================================================= -->
-  <!-- MODAIS DO SISTEMA                                         -->
-  <!-- ========================================================= -->
-
-  <!-- MODAL 1: CAIXA DE DIÁLOGO DE ACEITE DA POLÍTICA DE PAGAMENTO -->
-  <div id="modal-aceite-pagamento" class="hidden fixed inset-0 bg-slate-950/75 z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-xs">
-    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
-      <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl">
-        <i class="fa-solid fa-handshake"></i>
-      </div>
-      <div>
-        <h3 class="text-base font-bold text-slate-900">Confirmação de Pagamento</h3>
-        <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
-          Você está ciente e aceita a <strong>Política de Pagamento</strong> do aplicativo? O acerto integral do valor da viagem deve ser realizado diretamente ao motorista no encerramento da corrida (via Dinheiro ou PIX), <strong>não sendo permitidos pagamentos posteriores ou pendentes</strong>.
-        </p>
-      </div>
-
-      <div>
-        <button type="button" onclick="abrirModalTermos('pagamento')" class="text-xs font-bold text-emerald-700 underline flex items-center gap-1">
-          <i class="fa-solid fa-file-contract"></i> Ler Termos de Política de Pagamento
-        </button>
-      </div>
-
-      <div class="pt-2 space-y-2">
-        <button onclick="confirmarAceiteEChamar()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow transition">
-          Aceitar Termos e Chamar Motorista
-        </button>
-        <button onclick="fecharModal('modal-aceite-pagamento')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition">
-          Voltar
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL 2: CANCELAMENTO COM MOTIVO -->
-  <div id="modal-cancelamento" class="hidden fixed inset-0 bg-slate-950/75 z-50 flex items-end sm:items-center justify-center p-4">
-    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
-      <div>
-        <h3 class="text-base font-bold text-slate-900">Cancelar Viagem</h3>
-        <p class="text-xs text-slate-500 mt-1">Selecione o motivo do cancelamento (será registrado no painel administrativo):</p>
-      </div>
-
-      <div class="space-y-2" id="cancel-reasons">
-        <label class="flex items-center gap-2.5 p-2.5 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50">
-          <input type="radio" name="cancelReason" value="Motorista demorando para chegar" checked class="accent-slate-900" />
-          Motorista demorando para chegar
-        </label>
-        <label class="flex items-center gap-2.5 p-2.5 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50">
-          <input type="radio" name="cancelReason" value="Coloquei o endereço errado" class="accent-slate-900" />
-          Coloquei o endereço errado
-        </label>
-        <label class="flex items-center gap-2.5 p-2.5 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50">
-          <input type="radio" name="cancelReason" value="Mudei de ideia / Não preciso mais" class="accent-slate-900" />
-          Mudei de ideia / Não preciso mais
-        </label>
-      </div>
-
-      <div class="flex gap-2 pt-1">
-        <button onclick="fecharModal('modal-cancelamento')" class="flex-1 bg-slate-100 text-slate-700 font-semibold py-2.5 rounded-xl text-xs">
-          Continuar Viagem
-        </button>
-        <button onclick="confirmarCancelamento()" class="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-xl text-xs">
-          Confirmar Cancelamento
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL 3: NOTIFICAÇÃO DE FALTA DE PAGAMENTO (REGRA DOS 3 CASOS) -->
-  <div id="modal-pendencia" class="hidden fixed inset-0 bg-slate-950/85 z-50 flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl border-2 border-red-500">
-      <div class="flex items-center gap-3 text-red-600">
-        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-lg shrink-0">
-          <i class="fa-solid fa-circle-exclamation"></i>
-        </div>
-        <div>
-          <h3 class="text-sm font-extrabold uppercase tracking-wide">Pendência de Pagamento</h3>
-          <span class="text-[11px] font-bold bg-red-100 px-2 py-0.5 rounded text-red-700" id="pendencia-contador-texto">Ocorrência 1 de 3</span>
-        </div>
-      </div>
-
-      <p class="text-xs text-slate-700 leading-relaxed">
-        O motorista informou que a última viagem (<strong>R$ 18,50</strong>) não foi quitada no desembarque. Você confirma que o pagamento ficou pendente?
-      </p>
-
-      <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-900 leading-relaxed">
-        <strong>Aviso Legal (Termos de Uso):</strong> O não pagamento viola as regras da plataforma, gera registro de inadimplência e pode acarretar bloqueio da conta e medidas legais. Ao acumular <strong>3 ocorrências</strong>, seu cadastro será banido permanentemente.
-      </div>
-
-      <div class="space-y-2 pt-1">
-        <button onclick="responderPendencia('confirmar_nao_pago')" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl text-xs transition">
-          Confirmar Pendência / Quitar via PIX Agora
-        </button>
-        <button onclick="responderPendencia('contestar')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-2.5 rounded-xl text-xs transition">
-          Contestar (Informar que já paguei)
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL 4: CONTA BANIDA (3/3 OCORRÊNCIAS) -->
-  <div id="modal-banido" class="hidden fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-6 text-center">
-    <div class="bg-slate-900 border border-red-500/40 w-full max-w-sm rounded-3xl p-6 space-y-4 text-white">
-      <div class="w-16 h-16 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center text-3xl mx-auto">
-        <i class="fa-solid fa-user-lock"></i>
-      </div>
-      <h3 class="text-lg font-extrabold text-red-400">Conta Banida Permanentemente</h3>
-      <p class="text-xs text-slate-300 leading-relaxed">
-        Seu cadastro atingiu o limite máximo de <strong>3 registros de falta de pagamento</strong> previstos nos Termos de Uso da plataforma. O acesso para solicitação de novas corridas foi bloqueado definitivamente.
-      </p>
-      <button onclick="resetarDemonstracao()" class="text-[11px] text-slate-400 underline pt-2">
-        [Reiniciar simulação para testes]
-      </button>
-    </div>
-  </div>
-
-  <!-- MODAL 5: TERMOS DE USO COMPLETOS -->
-  <div id="modal-termos" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-3 shadow-2xl max-h-[80vh] flex flex-col">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-        <h3 class="text-sm font-bold text-slate-900" id="termos-titulo">Termos de Uso</h3>
-        <button onclick="fecharModal('modal-termos')" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
-      </div>
-      <div class="text-xs text-slate-600 space-y-2.5 overflow-y-auto pr-1 leading-relaxed" id="termos-conteudo">
-        <!-- Preenchido via JS -->
-      </div>
-      <button onclick="fecharModal('modal-termos')" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs mt-2">
-        Entendi e Fechar
-      </button>
-    </div>
-  </div>
-
-  <!-- MODAL 6: EMERGÊNCIA / SEGURANÇA -->
-  <div id="modal-emergencia" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
-      <div class="flex items-center gap-3 text-red-600">
-        <i class="fa-solid fa-shield-halved text-2xl"></i>
-        <h3 class="text-base font-bold text-slate-900">Central de Segurança</h3>
-      </div>
-      <p class="text-xs text-slate-600 leading-relaxed">
-        Sua localização em tempo real e os dados do veículo (<strong>Renault Logan • QWE-4B89</strong>) estão sendo monitorados pela central.
-      </p>
-      <div class="space-y-2">
-        <button onclick="alert('Alerta crítico enviado ao Painel do Administrador com sua localização GPS atual!'); fecharModal('modal-emergencia')" class="w-full bg-red-600 text-white font-bold py-3 rounded-xl text-xs">
-          Enviar Alerta à Central Administrativa
-        </button>
-        <a href="tel:190" class="block text-center w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-xs">
-          Ligar para Polícia Militar (190)
+      <div class="self-end">
+        <a href="tel:190" class="bg-red-600 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg flex items-center gap-1.5">
+          <i class="fa-solid fa-shield-halved"></i> Emergência 190
         </a>
-        <button onclick="fecharModal('modal-emergencia')" class="w-full bg-slate-100 text-slate-700 font-semibold py-2.5 rounded-xl text-xs">
-          Cancelar
-        </button>
       </div>
     </div>
-  </div>
+
+    <main class="bg-white rounded-t-3xl -mt-5 z-20 p-5 shadow-[0_-10px_25px_rgba(0,0,0,0.08)] space-y-4">
+      <!-- Estado: Solicitar Corrida -->
+      <div id="box-solicitar" class="space-y-3">
+        <h3 class="text-sm font-extrabold text-slate-900">Para onde vamos hoje?</h3>
+        <div>
+          <label class="text-[11px] font-bold text-slate-500">Local de Embarque</label>
+          <input type="text" id="corrida-origem" value="Praça República Juliana - Centro" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium" />
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-slate-500">Destino</label>
+          <input type="text" id="corrida-destino" value="Praia do Mar Grosso - Molhes" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] font-bold text-slate-500">Pagamento ao Motorista</label>
+            <select id="corrida-pagamento" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold">
+              <option value="PIX Direto">PIX Direto</option>
+              <option value="Dinheiro">Dinheiro</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] font-bold text-slate-500">Valor Estimado (R$)</label>
+            <input type="number" id="corrida-valor" value="18.50" step="0.50" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-extrabold text-emerald-700" />
+          </div>
+        </div>
+        <button onclick="solicitarCorridaReal()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs shadow-lg transition">
+          Chamar Motorista Agora
+        </button>
+      </div>
+
+      <!-- Estado: Acompanhando Corrida Ativa -->
+      <div id="box-andamento" class="hidden space-y-4">
+        <div class="bg-slate-900 text-white p-4 rounded-2xl space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400" id="status-corrida-label">Procurando motorista...</span>
+            <span class="text-sm font-extrabold" id="valor-corrida-label">R$ 18,50</span>
+          </div>
+          <p class="text-xs text-slate-300" id="detalhe-motorista-label">Aguardando um motorista disponível aceitar sua chamada na região.</p>
+        </div>
+
+        <button id="btn-cancelar-corrida" onclick="cancelarCorridaAtual()" class="w-full bg-red-50 text-red-600 border border-red-200 font-bold py-3 rounded-xl text-xs">
+          Cancelar Chamada
+        </button>
+      </div>
+    </main>
+  </section>
 
 </div>
 
 <script>
-  // Estado da Aplicação
-  let pagamentoSelecionado = 'PIX';
-  let notaSelecionada = 0;
-  let ocorrenciasNaoPagamento = 0;
-  let timerInterval = null;
+  const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_XZVaqjSNHsQSgZwxsfIZsQ__crRqWTo';
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  function selecionarPagamento(tipo) {
-    pagamentoSelecionado = tipo;
-    const btnPix = document.getElementById('pay-pix');
-    const btnDin = document.getElementById('pay-dinheiro');
+  let usuarioAtual = null;
+  let fotoBase64 = '';
+  let corridaAtualId = null;
 
-    if (tipo === 'PIX') {
-      btnPix.className = 'pay-opt border-2 border-slate-900 bg-slate-900 text-white rounded-xl p-3 flex items-center justify-center gap-2 text-sm font-semibold transition';
-      btnDin.className = 'pay-opt border-2 border-slate-200 bg-white text-slate-700 rounded-xl p-3 flex items-center justify-center gap-2 text-sm font-semibold transition';
-    } else {
-      btnDin.className = 'pay-opt border-2 border-slate-900 bg-slate-900 text-white rounded-xl p-3 flex items-center justify-center gap-2 text-sm font-semibold transition';
-      btnPix.className = 'pay-opt border-2 border-slate-200 bg-white text-slate-700 rounded-xl p-3 flex items-center justify-center gap-2 text-sm font-semibold transition';
+  // Ao abrir, verifica se já existe sessão salva no aparelho
+  window.onload = async () => {
+    const salvo = localStorage.getItem('passageiro_logado');
+    if (salvo) {
+      usuarioAtual = JSON.parse(salvo);
+      await verificarStatusAtual();
     }
+  };
+
+  function alternarAbaAuth(aba) {
+    document.getElementById('form-cadastro').classList.toggle('hidden', aba !== 'cadastro');
+    document.getElementById('form-login').classList.toggle('hidden', aba !== 'login');
+    document.getElementById('tab-cadastro').className = aba === 'cadastro' ? 'bg-white text-slate-900 py-2 rounded-lg shadow-sm transition' : 'text-slate-600 py-2 rounded-lg transition';
+    document.getElementById('tab-login').className = aba === 'login' ? 'bg-white text-slate-900 py-2 rounded-lg shadow-sm transition' : 'text-slate-600 py-2 rounded-lg transition';
   }
 
-  function recalcularPreco() {
-    const dest = document.getElementById('input-destino').value.trim();
-    const base = dest.length > 0 ? (12 + (dest.length % 15) * 1.25) : 10.00;
-    document.getElementById('ride-price').innerText = 'R$ ' + base.toFixed(2).replace('.', ',');
+  // Redimensiona a foto para ficar leve no banco de dados
+  function processarFoto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const max = 250;
+        const scale = max / Math.max(img.width, img.height);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        fotoBase64 = canvas.toDataURL('image/jpeg', 0.75);
+        document.getElementById('preview-foto').src = fotoBase64;
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
   }
 
-  function abrirModalAceitePagamento() {
-    if (ocorrenciasNaoPagamento >= 3) {
-      document.getElementById('modal-banido').classList.remove('hidden');
+  async function cadastrarPassageiro(e) {
+    e.preventDefault();
+    if (!fotoBase64) {
+      alert('Por favor, tire ou selecione uma foto sua antes de continuar.');
       return;
     }
-    const dest = document.getElementById('input-destino').value.trim();
-    if (!dest) {
-      alert('Por favor, informe o endereço de destino.');
+    const btn = document.getElementById('btn-submit-cad');
+    btn.disabled = true;
+    btn.innerText = 'Enviando dados...';
+
+    const novoUser = {
+      tipo: 'passageiro',
+      nome: document.getElementById('cad-nome').value.trim(),
+      telefone: document.getElementById('cad-telefone').value.trim(),
+      cpf: document.getElementById('cad-cpf').value.trim(),
+      foto_url: fotoBase64,
+      status_aprovacao: 'pendente'
+    };
+
+    const { data, error } = await db.from('usuarios').insert([novoUser]).select().single();
+    btn.disabled = false;
+    btn.innerText = 'Enviar Cadastro para Análise';
+
+    if (error) {
+      alert('Erro ao cadastrar (verifique se o telefone já não está cadastrado): ' + error.message);
       return;
     }
-    document.getElementById('modal-aceite-pagamento').classList.remove('hidden');
+
+    usuarioAtual = data;
+    localStorage.setItem('passageiro_logado', JSON.stringify(data));
+    verificarStatusAtual();
   }
 
-  function fecharModal(id) {
-    document.getElementById(id).classList.add('hidden');
+  async function entrarPassageiro(e) {
+    e.preventDefault();
+    const tel = document.getElementById('login-telefone').value.trim();
+    const { data, error } = await db.from('usuarios').select('*').eq('telefone', tel).eq('tipo', 'passageiro').single();
+    if (error || !data) {
+      alert('Telefone não encontrado no cadastro de passageiros.');
+      return;
+    }
+    usuarioAtual = data;
+    localStorage.setItem('passageiro_logado', JSON.stringify(data));
+    verificarStatusAtual();
   }
 
-  function confirmarAceiteEChamar() {
-    fecharModal('modal-aceite-pagamento');
-    mostrarEtapa('step-searching');
-    document.getElementById('map-status-text').innerText = 'Procurando motoristas na região...';
-    document.getElementById('search-pay-method').innerText = pagamentoSelecionado === 'PIX' ? 'PIX Direto' : 'Dinheiro';
-    document.getElementById('search-price').innerText = document.getElementById('ride-price').innerText;
-  }
-
-  function simularMotoristaAceitou() {
-    mostrarEtapa('step-active');
-    const preco = document.getElementById('ride-price').innerText;
-    document.getElementById('active-price').innerText = preco;
-    document.getElementById('active-pay-value').innerText = preco;
-    document.getElementById('active-pay-label').innerText = pagamentoSelecionado;
-    document.getElementById('map-status-text').innerText = 'Carlos está a 3 min do seu local';
-    document.getElementById('btn-emergencia').classList.remove('hidden');
-
-    // Garante que botão cancelar esteja visível antes do início
-    document.getElementById('pre-start-controls').classList.remove('hidden');
-    document.getElementById('in-progress-controls').classList.add('hidden');
-    document.getElementById('ride-phase-badge').innerText = 'Motorista a caminho do embarque';
-    document.getElementById('ride-phase-badge').className = 'bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-lg';
-  }
-
-  function simularChegadaEmbarque() {
-    document.getElementById('ride-phase-badge').innerText = 'Motorista no local de embarque';
-    document.getElementById('ride-phase-badge').className = 'bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-lg';
-    document.getElementById('map-status-text').innerText = 'Carlos chegou! Tolerância de 3 min iniciada';
-    
-    const banner = document.getElementById('tolerance-banner');
-    banner.classList.remove('hidden');
-    let segundos = 180;
-    clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-      segundos--;
-      const min = String(Math.floor(segundos / 60)).padStart(2, '0');
-      const sec = String(segundos % 60).padStart(2, '0');
-      document.getElementById('tolerance-timer').innerText = `${min}:${sec}`;
-      if (segundos <= 0) clearInterval(timerInterval);
-    }, 1000);
-  }
-
-  function simularInicioViagem() {
-    clearInterval(timerInterval);
-    document.getElementById('tolerance-banner').classList.add('hidden');
-    // Remove controles pré-início (incluindo o botão de cancelamento)
-    document.getElementById('pre-start-controls').classList.add('hidden');
-    document.getElementById('in-progress-controls').classList.remove('hidden');
-
-    document.getElementById('ride-phase-badge').innerText = 'Viagem em andamento';
-    document.getElementById('ride-phase-badge').className = 'bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-lg';
-    document.getElementById('map-status-text').innerText = 'Em trânsito para o destino';
-  }
-
-  function abrirModalCancelamento() {
-    document.getElementById('modal-cancelamento').classList.remove('hidden');
-  }
-
-  function confirmarCancelamento() {
-    const motivo = document.querySelector('input[name="cancelReason"]:checked').value;
-    fecharModal('modal-cancelamento');
-    clearInterval(timerInterval);
-    document.getElementById('tolerance-banner').classList.add('hidden');
-    document.getElementById('btn-emergencia').classList.add('hidden');
-    alert(`Viagem cancelada.\nMotivo registrado no Painel Admin: "${motivo}"`);
-    voltarInicio();
-  }
-
-  function finalizarViagemParaAvaliacao() {
-    document.getElementById('btn-emergencia').classList.add('hidden');
-    document.getElementById('map-status-text').innerText = 'Viagem concluída';
-    notaSelecionada = 0;
-    atualizarEstrelasVisuais(0);
-    document.getElementById('rating-comment').value = '';
-    document.getElementById('rating-comment-box').classList.add('hidden');
-    document.getElementById('one-star-warning').classList.add('hidden');
-    mostrarEtapa('step-rating');
-  }
-
-  function selecionarEstrela(nota) {
-    notaSelecionada = nota;
-    atualizarEstrelasVisuais(nota);
-
-    const commentBox = document.getElementById('rating-comment-box');
-    const oneStarWarn = document.getElementById('one-star-warning');
-
-    if (nota < 5) {
-      commentBox.classList.remove('hidden');
-    } else {
-      commentBox.classList.add('hidden');
+  async function verificarStatusAtual() {
+    if (!usuarioAtual) return;
+    const { data } = await db.from('usuarios').select('*').eq('id', usuarioAtual.id).single();
+    if (data) {
+      usuarioAtual = data;
+      localStorage.setItem('passageiro_logado', JSON.stringify(data));
     }
 
-    if (nota === 1) {
-      oneStarWarn.classList.remove('hidden');
+    document.getElementById('btn-sair').classList.remove('hidden');
+    document.getElementById('tela-auth').classList.add('hidden');
+
+    if (usuarioAtual.status_aprovacao === 'aprovado' && !usuarioAtual.banido) {
+      document.getElementById('tela-pendente').classList.add('hidden');
+      document.getElementById('tela-app').classList.remove('hidden');
+      document.getElementById('user-nome-display').innerText = usuarioAtual.nome;
+      document.getElementById('user-avatar').src = usuarioAtual.foto_url || 'https://ui-avatars.com/api/?name=' + usuarioAtual.nome;
+      escutarCorridas();
+    } else if (usuarioAtual.status_aprovacao === 'rejeitado' || usuarioAtual.banido) {
+      document.getElementById('tela-app').classList.add('hidden');
+      document.getElementById('tela-pendente').classList.remove('hidden');
+      document.getElementById('titulo-status-conta').innerText = 'Cadastro Não Aprovado / Bloqueado';
+      document.getElementById('desc-status-conta').innerText = 'Seu cadastro foi recusado ou bloqueado pela administração. Entre em contato com o suporte.';
     } else {
-      oneStarWarn.classList.add('hidden');
+      document.getElementById('tela-app').classList.add('hidden');
+      document.getElementById('tela-pendente').classList.remove('hidden');
+      escutarAprovacaoUsuario();
     }
   }
 
-  function atualizarEstrelasVisuais(nota) {
-    const btns = document.querySelectorAll('.star-btn');
-    btns.forEach(btn => {
-      const val = Number(btn.getAttribute('data-val'));
-      if (val <= nota) {
-        btn.classList.remove('text-slate-300');
-        btn.classList.add('text-amber-400');
-      } else {
-        btn.classList.remove('text-amber-400');
-        btn.classList.add('text-slate-300');
+  function escutarAprovacaoUsuario() {
+    db.channel('aprovacao-passageiro')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'usuarios', filter: `id=eq.${usuarioAtual.id}` }, (payload) => {
+        usuarioAtual = payload.new;
+        verificarStatusAtual();
+      })
+      .subscribe();
+  }
+
+  async function solicitarCorridaReal() {
+    const origem = document.getElementById('corrida-origem').value.trim();
+    const destino = document.getElementById('corrida-destino').value.trim();
+    const pagamento = document.getElementById('corrida-pagamento').value;
+    const valor = parseFloat(document.getElementById('corrida-valor').value);
+
+    const { data, error } = await db.from('corridas').insert([{
+      passageiro_id: usuarioAtual.id,
+      passageiro_nome: usuarioAtual.nome,
+      origem: origem,
+      destino: destino,
+      valor: valor,
+      forma_pagamento: pagamento,
+      status: 'aguardando'
+    }]).select().single();
+
+    if (error) {
+      alert('Erro ao chamar corrida: ' + error.message);
+      return;
+    }
+
+    corridaAtualId = data.id;
+    atualizarTelaCorrida(data);
+  }
+
+  function escutarCorridas() {
+    db.channel('corridas-passageiro')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'corridas', filter: `passageiro_id=eq.${usuarioAtual.id}` }, (payload) => {
+        atualizarTelaCorrida(payload.new);
+      })
+      .subscribe();
+  }
+
+  function atualizarTelaCorrida(corrida) {
+    if (!corrida || corrida.status === 'finalizada' || corrida.status === 'cancelada') {
+      document.getElementById('box-solicitar').classList.remove('hidden');
+      document.getElementById('box-andamento').classList.add('hidden');
+      if (corrida && corrida.status === 'finalizada') {
+        alert('Viagem finalizada! Obrigado por viajar conosco.');
       }
-    });
-  }
-
-  function enviarAvaliacao() {
-    if (notaSelecionada === 0) {
-      alert('Por favor, selecione de 1 a 5 estrelas para avaliar.');
-      return;
-    }
-    const comentario = document.getElementById('rating-comment').value.trim();
-    if (notaSelecionada < 5 && comentario.length < 5) {
-      alert('Para notas de 1 a 4 estrelas, é obrigatório escrever uma justificativa.');
       return;
     }
 
-    let msg = `Avaliação de ${notaSelecionada} estrela(s) registrada com sucesso!`;
-    if (notaSelecionada === 1) {
-      msg += '\nEste motorista foi bloqueado silenciosamente para suas próximas corridas.';
-    }
-    alert(msg);
-    voltarInicio();
-  }
+    corridaAtualId = corrida.id;
+    document.getElementById('box-solicitar').classList.add('hidden');
+    document.getElementById('box-andamento').classList.remove('hidden');
+    document.getElementById('valor-corrida-label').innerText = `R$ ${Number(corrida.valor).toFixed(2)}`;
 
-  // Simulação da Regra dos 3 Casos de Inadimplência
-  function simularPendenciaPagamento() {
-    if (ocorrenciasNaoPagamento >= 3) {
-      document.getElementById('modal-banido').classList.remove('hidden');
-      return;
-    }
-    document.getElementById('pendencia-contador-texto').innerText = `Aviso de Ocorrência (${ocorrenciasNaoPagamento + 1} de 3)`;
-    document.getElementById('modal-pendencia').classList.remove('hidden');
-  }
+    const statusLabel = document.getElementById('status-corrida-label');
+    const detalheLabel = document.getElementById('detalhe-motorista-label');
 
-  function responderPendencia(acao) {
-    fecharModal('modal-pendencia');
-    if (acao === 'confirmar_nao_pago') {
-      ocorrenciasNaoPagamento++;
-      atualizarBadgeStrikes();
-      if (ocorrenciasNaoPagamento >= 3) {
-        document.getElementById('modal-banido').classList.remove('hidden');
-      } else {
-        alert(`Pendência registrada (${ocorrenciasNaoPagamento}/3). Lembre-se: ao atingir 3 ocorrências, sua conta será banida automaticamente.`);
-      }
-    } else {
-      alert('Contestação enviada! O caso foi encaminhado para auditoria no Painel do Administrador.');
+    if (corrida.status === 'aguardando') {
+      statusLabel.innerText = 'Procurando Motorista...';
+      detalheLabel.innerText = 'Sua chamada já apareceu na tela dos motoristas online na rua.';
+    } else if (corrida.status === 'aceita') {
+      statusLabel.innerText = 'Motorista a Caminho!';
+      detalheLabel.innerText = `O motorista ${corrida.motorista_nome || 'parceiro'} aceitou sua corrida e está indo até você.`;
+    } else if (corrida.status === 'no_local') {
+      statusLabel.innerText = 'Motorista Chegou!';
+      detalheLabel.innerText = `O motorista ${corrida.motorista_nome || ''} está aguardando no ponto de embarque.`;
+    } else if (corrida.status === 'em_viagem') {
+      statusLabel.innerText = 'Em Viagem para o Destino';
+      detalheLabel.innerText = `Boa viagem! Pagamento combinado: ${corrida.forma_pagamento}.`;
+      document.getElementById('btn-cancelar-corrida').classList.add('hidden');
     }
   }
 
-  function atualizarBadgeStrikes() {
-    const badge = document.getElementById('strikes-badge');
-    if (ocorrenciasNaoPagamento === 0) {
-      badge.innerText = 'Conta Regular (0/3)';
-      badge.className = 'text-emerald-400 font-semibold';
-    } else {
-      badge.innerText = `Advertências (${ocorrenciasNaoPagamento}/3)`;
-      badge.className = 'text-amber-400 font-bold';
-    }
+  async function cancelarCorridaAtual() {
+    if (!corridaAtualId) return;
+    await db.from('corridas').update({ status: 'cancelada' }).eq('id', corridaAtualId);
+    document.getElementById('box-solicitar').classList.remove('hidden');
+    document.getElementById('box-andamento').classList.add('hidden');
   }
 
-  function resetarDemonstracao() {
-    ocorrenciasNaoPagamento = 0;
-    atualizarBadgeStrikes();
-    fecharModal('modal-banido');
-    voltarInicio();
-  }
-
-  function abrirModalTermos(tipo) {
-    const titulo = document.getElementById('termos-titulo');
-    const conteudo = document.getElementById('termos-conteudo');
-
-    if (tipo === 'pagamento') {
-      titulo.innerText = 'Termos de Política de Pagamento e Segurança';
-      conteudo.innerHTML = `
-        <p><strong>1. Liquidação Imediata:</strong> O valor exibido na solicitação é final e deve ser quitado integralmente no encerramento da viagem diretamente ao motorista parceiro.</p>
-        <p><strong>2. Formas Aceitas:</strong> Exclusivamente Dinheiro em espécie ou transferência PIX direta. A plataforma não realiza fiado nem acumula saldo devedor para corridas futuras.</p>
-        <p><strong>3. Inadimplência e Penalidades:</strong> A recusa de pagamento constitui infração contratual grave. O usuário recebe notificação formal no aplicativo e, ao acumular <strong>3 (três) registros de não pagamento</strong>, terá seu cadastro banido permanentemente.</p>
-        <p><strong>4. Respaldo Legal:</strong> O transporte individual de passageiros é serviço oneroso. Em caso de fraude ou recusa dolosa de pagamento, a plataforma e o motorista parceiro reservam-se o direito de bloquear o cadastro imediatamente e acionar as autoridades policiais competentes.</p>
-      `;
-    } else {
-      titulo.innerText = 'Termos de Conduta nas Avaliações';
-      conteudo.innerHTML = `
-        <p><strong>1. Respeito Mútuo:</strong> As avaliações servem exclusivamente para relatar a qualidade do serviço prestado (pontualidade, limpeza do veículo, direção segura).</p>
-        <p><strong>2. Conteúdo Proibido:</strong> É terminantemente proibido publicar palavras de baixo calão, injúrias, calúnias, difamação, assédio ou qualquer forma de discriminação.</p>
-        <p><strong>3. Auditoria:</strong> Comentários ofensivos serão removidos pela administração e o autor estará sujeito à suspensão definitiva da conta.</p>
-      `;
-    }
-    document.getElementById('modal-termos').classList.remove('hidden');
-  }
-
-  function abrirModalEmergencia() {
-    document.getElementById('modal-emergencia').classList.remove('hidden');
-  }
-
-  function mostrarEtapa(id) {
-    ['step-request', 'step-searching', 'step-active', 'step-rating'].forEach(sec => {
-      document.getElementById(sec).classList.add('hidden');
-    });
-    document.getElementById(id).classList.remove('hidden');
-  }
-
-  function voltarInicio() {
-    mostrarEtapa('step-request');
-    document.getElementById('map-status-text').innerText = 'Pronto para solicitar sua viagem';
+  function sairConta() {
+    localStorage.removeItem('passageiro_logado');
+    location.reload();
   }
 </script>
 </body>

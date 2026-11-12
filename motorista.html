@@ -5,292 +5,383 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>App Motorista - Mobilidade Urbana</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #0f172a;
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      min-height: 100vh;
-    }
-    .app-container {
-      width: 100%;
-      max-width: 440px;
-      background-color: #f8fafc;
-      min-height: 100vh;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      overflow-x: hidden;
-    }
-    .map-bg {
-      background-color: #e2e8f0;
-      background-image: 
-        linear-gradient(to right, rgba(148, 163, 184, 0.25) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(148, 163, 184, 0.25) 1px, transparent 1px);
-      background-size: 28px 28px;
-    }
+    body { font-family: 'Inter', sans-serif; background-color: #0f172a; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+    .app-container { width: 100%; max-width: 440px; background-color: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow-x: hidden; }
+    .map-bg { background-color: #e2e8f0; background-image: linear-gradient(to right, rgba(148, 163, 184, 0.25) 1px, transparent 1px), linear-gradient(to bottom, rgba(148, 163, 184, 0.25) 1px, transparent 1px); background-size: 28px 28px; }
   </style>
 </head>
 <body>
 
 <div class="app-container">
 
-  <!-- BARRA SUPERIOR / STATUS DO MOTORISTA -->
-  <header class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between z-20 shadow-md">
+  <!-- TOPO -->
+  <header class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md z-20">
     <div class="flex items-center gap-2">
-      <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face" alt="Carlos" class="w-9 h-9 rounded-full object-cover border-2 border-emerald-500" />
+      <div class="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-bold">
+        <i class="fa-solid fa-steering-wheel"></i>
+      </div>
       <div>
-        <h1 class="text-sm font-bold leading-tight">Carlos (Motorista)</h1>
-        <p class="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Online (Pronto)
-        </p>
+        <h1 class="text-sm font-bold leading-tight">Parceiro Motorista</h1>
+        <p class="text-[10px] text-slate-400" id="header-sub">Acesso Restrito</p>
       </div>
     </div>
-    <div class="text-right">
-      <span class="text-xs text-slate-400 block">Ganhos hoje</span>
-      <span class="text-sm font-bold text-emerald-400">R$ 142,50</span>
-    </div>
+    <button id="btn-sair" onclick="sairConta()" class="hidden text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-medium">
+      Sair
+    </button>
   </header>
 
-  <!-- ÁREA DO MAPA / RADAR -->
-  <div class="relative flex-1 map-bg min-h-[300px] flex flex-col justify-between p-4 overflow-hidden">
-    <!-- Status Pill -->
-    <div class="self-center z-10">
-      <div id="driver-status-pill" class="bg-slate-900/90 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg backdrop-blur-sm inline-flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-        <span id="driver-status-text">Aguardando chamadas na região...</span>
-      </div>
+  <!-- TELA 1: CADASTRO E ACESSO DO MOTORISTA -->
+  <section id="tela-auth" class="p-5 flex-1 flex flex-col justify-center space-y-5">
+    <div class="text-center space-y-1">
+      <h2 class="text-xl font-extrabold text-slate-900">Portal do Motorista</h2>
+      <p class="text-xs text-slate-500">Cadastre seus dados e veículo para aprovação da central.</p>
     </div>
 
-    <!-- Central de Emergência do Motorista -->
-    <div class="self-end z-10">
-      <button onclick="abrirModalEmergenciaDriver()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg flex items-center gap-1.5 transition">
-        <i class="fa-solid fa-shield-halved"></i> Segurança
+    <div class="grid grid-cols-2 bg-slate-200 p-1 rounded-xl text-xs font-bold">
+      <button id="tab-cadastro" onclick="alternarAbaAuth('cadastro')" class="bg-white text-slate-900 py-2 rounded-lg shadow-sm transition">Cadastrar Veículo</button>
+      <button id="tab-login" onclick="alternarAbaAuth('login')" class="text-slate-600 py-2 rounded-lg transition">Já sou cadastrado</button>
+    </div>
+
+    <form id="form-cadastro" onsubmit="cadastrarMotorista(event)" class="space-y-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+      <div>
+        <label class="text-xs font-bold text-slate-700">Nome Completo</label>
+        <input type="text" id="cad-nome" required placeholder="Ex: Carlos Eduardo" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs font-bold text-slate-700">Telefone (WhatsApp)</label>
+          <input type="tel" id="cad-telefone" required placeholder="48999997777" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs" />
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-700">CPF</label>
+          <input type="text" id="cad-cpf" required placeholder="000.000.000-00" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs font-bold text-slate-700">Modelo / Cor do Carro</label>
+          <input type="text" id="cad-modelo" required placeholder="Ex: Logan Branco" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs" />
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-700">Placa do Veículo</label>
+          <input type="text" id="cad-placa" required placeholder="ABC-1D23" class="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs uppercase" />
+        </div>
+      </div>
+
+      <button type="submit" id="btn-submit-cad" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition mt-2">
+        Enviar Cadastro para Aprovação
       </button>
-    </div>
-  </div>
+    </form>
 
-  <!-- PAINEL INFERIOR DINÂMICO -->
-  <main class="bg-white rounded-t-3xl -mt-5 z-20 p-5 shadow-[0_-10px_25px_rgba(0,0,0,0.08)] flex-1 flex flex-col justify-between">
-
-    <!-- ESTADO 1: ONLINE / À PROCURA DE CORRIDAS -->
-    <section id="driver-waiting" class="space-y-4 py-4 text-center">
-      <div class="w-16 h-16 bg-slate-100 text-slate-700 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">
-        <i class="fa-solid fa-radar"></i>
-      </div>
+    <form id="form-login" onsubmit="entrarMotorista(event)" class="hidden space-y-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
       <div>
-        <h2 class="text-base font-bold text-slate-800">Você está na área de cobertura</h2>
-        <p class="text-xs text-slate-500 mt-1">As chamadas dos passageiros aparecerão automaticamente aqui na sua tela.</p>
+        <label class="text-xs font-bold text-slate-700">Digite seu Telefone Cadastrado</label>
+        <input type="tel" id="login-telefone" required placeholder="Ex: 48999997777" class="w-full mt-1 px-3 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs" />
       </div>
+      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow transition">
+        Entrar e Ficar Online
+      </button>
+    </form>
+  </section>
 
-      <!-- Botão de Simulação para Testar Recebimento de Chamada -->
-      <div class="pt-4">
-        <button onclick="simularReceberChamada()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs transition shadow">
-          [Simular Passageiro Chamando Corrente]
-        </button>
-      </div>
-    </section>
-
-    <!-- ESTADO 2: NOVA CORRIDA RECEBIDA (ALERTA COM TIMEOUT) -->
-    <section id="driver-incoming" class="hidden space-y-4">
-      <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-emerald-800 uppercase tracking-wide">Nova Corrida Disponível</span>
-          <span class="text-base font-extrabold text-slate-900" id="incoming-price">R$ 18,50</span>
-        </div>
-
-        <div class="space-y-2 text-xs text-slate-700">
-          <div class="flex items-start gap-2">
-            <i class="fa-solid fa-circle-dot text-emerald-600 mt-0.5"></i>
-            <div>
-              <span class="text-[10px] text-slate-400 block">Embarque</span>
-              <span class="font-semibold text-slate-900">Praça República Juliana - Centro</span>
-            </div>
-          </div>
-          <div class="flex items-start gap-2">
-            <i class="fa-solid fa-location-dot text-red-600 mt-0.5"></i>
-            <div>
-              <span class="text-[10px] text-slate-400 block">Destino</span>
-              <span class="font-semibold text-slate-900">Praia do Mar Grosso - Molhes</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="border-t border-emerald-200 pt-2 flex items-center justify-between text-xs font-bold text-slate-800">
-          <span>Forma de Pagamento:</span>
-          <span class="bg-slate-900 text-white px-2.5 py-1 rounded-lg" id="incoming-pay">PIX Direto</span>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-2 pt-2">
-        <button onclick="recusarChamada()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-xs transition">
-          Recusar
-        </button>
-        <button onclick="aceitarChamada()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-emerald-600/20">
-          Aceitar Corrida
-        </button>
-      </div>
-    </section>
-
-    <!-- ESTADO 3: EM ANDAMENTO / RUMO AO EMBARQUE E DESTINO -->
-    <section id="driver-active" class="hidden space-y-4">
-      <div class="flex items-center justify-between">
-        <span id="driver-phase-badge" class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-lg">
-          Dirigindo-se ao embarque
-        </span>
-        <span class="text-xs font-bold text-slate-900" id="driver-active-price">R$ 18,50</span>
-      </div>
-
-      <!-- Perfil simplificado do Passageiro para o Motorista -->
-      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center gap-3.5">
-        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face" alt="Passageiro" class="w-14 h-14 rounded-full object-cover border-2 border-slate-300 shadow-sm shrink-0" />
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center justify-between">
-            <h3 class="text-base font-bold text-slate-900">Mariana</h3>
-            <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-              <i class="fa-solid fa-star text-amber-500 text-[10px]"></i> 4.95
-            </span>
-          </div>
-          <p class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-user-check text-emerald-600 mr-1"></i> Passageira verificada</p>
-          <p class="text-[11px] text-slate-600 mt-1">Pagamento combinado no desembarque: <strong id="driver-pay-method" class="text-slate-900">PIX Direto</strong></p>
-        </div>
-      </div>
-
-      <!-- Botões de Controle da Viagem -->
-      <div class="space-y-2 pt-2">
-        <button id="btn-cheguei" onclick="marcarChegadaLocal()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl text-xs transition shadow">
-          Cheguei no Local de Embarque
-        </button>
-        <button id="btn-iniciar" onclick="iniciarCorridaPercurso()" class="hidden w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs transition">
-          Iniciar Viagem para o Destino
-        </button>
-        <button id="btn-finalizar" onclick="abrirModalFinalizacao()" class="hidden w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs transition shadow">
-          Finalizar Viagem
-        </button>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- MODAL DE FINALIZAÇÃO E CONFIRMAÇÃO DE PAGAMENTO -->
-  <div id="modal-finalizar-driver" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
-      <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl">
-        <i class="fa-solid fa-cash-register"></i>
-      </div>
-      <div>
-        <h3 class="text-base font-bold text-slate-900">Encerramento da Corrida</h3>
-        <p class="text-xs text-slate-600 mt-1">
-          O pagamento no valor de <strong class="text-slate-900">R$ 18,50</strong> foi realizado integralmente pelo passageiro (Dinheiro ou PIX)?
-        </p>
-      </div>
-
-      <div class="space-y-2 pt-2">
-        <button onclick="confirmarPagamentoRecebido()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow transition">
-          Sim, Pagamento Recebido (Tudo OK)
-        </button>
-        <button onclick="registrarFaltaPagamento()" class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-3 rounded-xl text-xs border border-red-200 transition">
-          Não Recebi / Registrar Falta de Pagamento
-        </button>
-      </div>
+  <!-- TELA 2: AGUARDANDO APROVAÇÃO DO ADMINISTRADOR -->
+  <section id="tela-pendente" class="hidden p-6 flex-1 flex flex-col justify-center items-center text-center space-y-4">
+    <div class="w-20 h-20 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-3xl animate-pulse">
+      <i class="fa-solid fa-id-card"></i>
     </div>
-  </div>
+    <h2 class="text-lg font-extrabold text-slate-900" id="titulo-status-conta">Cadastro em Análise pela Central</h2>
+    <p class="text-xs text-slate-600 leading-relaxed" id="desc-status-conta">
+      Seus dados e os dados do seu veículo estão sendo verificados pelo administrador. Assim que aprovado, você poderá receber corridas na rua!
+    </p>
+    <button onclick="verificarStatusAtual()" class="bg-slate-900 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow">
+      Verificar Aprovação
+    </button>
+  </section>
 
-  <!-- MODAL DE EMERGÊNCIA DO MOTORISTA -->
-  <div id="modal-emergencia-driver" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
-      <div class="flex items-center gap-3 text-red-600">
-        <i class="fa-solid fa-shield-halved text-2xl"></i>
-        <h3 class="text-base font-bold text-slate-900">Segurança do Motorista</h3>
+  <!-- TELA 3: OPERAÇÃO NA RUA -->
+  <section id="tela-app" class="hidden flex-1 flex flex-col">
+    <div class="relative flex-1 map-bg min-h-[240px] flex flex-col justify-between p-4">
+      <div class="self-center">
+        <div class="bg-slate-900/90 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg inline-flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+          <span id="driver-status-text">Online • Escutando chamadas ao vivo</span>
+        </div>
       </div>
-      <p class="text-xs text-slate-600 leading-relaxed">
-        Sua localização GPS e os dados da corrida atual estão sendo gravados pela central de segurança da plataforma.
-      </p>
-      <div class="space-y-2">
-        <button onclick="alert('Alerta enviado à Central de Monitoramento!'); fecharModalDriver('modal-emergencia-driver')" class="w-full bg-red-600 text-white font-bold py-3 rounded-xl text-xs">
-          Acionar Central de Apoio
-        </button>
-        <a href="tel:190" class="block text-center w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-xs">
-          Ligar para Polícia (190)
+
+      <div class="self-end">
+        <a href="tel:190" class="bg-red-600 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg flex items-center gap-1.5">
+          <i class="fa-solid fa-shield-halved"></i> Emergência 190
         </a>
-        <button onclick="fecharModalDriver('modal-emergencia-driver')" class="w-full bg-slate-100 text-slate-700 font-semibold py-2.5 rounded-xl text-xs">
-          Fechar
-        </button>
       </div>
     </div>
-  </div>
+
+    <main class="bg-white rounded-t-3xl -mt-5 z-20 p-5 shadow-[0_-10px_25px_rgba(0,0,0,0.08)] space-y-4">
+      <!-- Estado 1: Aguardando Chamadas -->
+      <div id="driver-waiting" class="text-center py-6 space-y-3">
+        <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl">
+          <i class="fa-solid fa-satellite-dish"></i>
+        </div>
+        <h3 class="text-sm font-extrabold text-slate-900">Você está disponível na rua</h3>
+        <p class="text-xs text-slate-500">Assim que um passageiro solicitar uma corrida, ela aparecerá automaticamente aqui.</p>
+        <button onclick="buscarCorridasAbertas()" class="text-xs text-emerald-700 font-bold underline">Atualizar radar agora</button>
+      </div>
+
+      <!-- Estado 2: Nova Corrida Recebida -->
+      <div id="driver-incoming" class="hidden space-y-4">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-emerald-800 uppercase">Nova Chamada Recebida!</span>
+            <span class="text-base font-extrabold text-slate-900" id="inc-valor">R$ 0,00</span>
+          </div>
+          <div class="text-xs space-y-1.5 text-slate-700">
+            <p><strong>Passageiro:</strong> <span id="inc-passageiro">-</span></p>
+            <p><strong>Embarque:</strong> <span id="inc-origem">-</span></p>
+            <p><strong>Destino:</strong> <span id="inc-destino">-</span></p>
+            <p><strong>Pagamento:</strong> <span class="bg-slate-900 text-white px-2 py-0.5 rounded font-bold" id="inc-pagamento">-</span></p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="ignorarChamada()" class="bg-slate-100 text-slate-700 font-bold py-3 rounded-xl text-xs">Ignorar</button>
+          <button onclick="aceitarCorridaReal()" class="bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs shadow-lg">Aceitar Corrida</button>
+        </div>
+      </div>
+
+      <!-- Estado 3: Corrida em Andamento -->
+      <div id="driver-active" class="hidden space-y-4">
+        <div class="flex items-center justify-between">
+          <span id="badge-etapa" class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-lg">Indo buscar passageiro</span>
+          <span class="text-sm font-extrabold text-slate-900" id="act-valor">R$ 0,00</span>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center gap-3">
+          <img id="act-foto-passageiro" src="" class="w-14 h-14 rounded-full object-cover border-2 border-emerald-500" />
+          <div>
+            <h4 class="text-sm font-extrabold text-slate-900" id="act-nome-passageiro">Passageiro</h4>
+            <p class="text-xs text-slate-600 mt-0.5" id="act-endereco">Embarque -> Destino</p>
+            <p class="text-[11px] font-bold text-emerald-700 mt-1" id="act-pagamento">Pagamento: PIX</p>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <button id="btn-cheguei" onclick="atualizarEtapaCorrida('no_local')" class="w-full bg-amber-500 text-slate-950 font-bold py-3 rounded-xl text-xs shadow">
+            Cheguei no Local de Embarque
+          </button>
+          <button id="btn-iniciar" onclick="atualizarEtapaCorrida('em_viagem')" class="hidden w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-xs">
+            Iniciar Viagem
+          </button>
+          <button id="btn-finalizar" onclick="finalizarCorridaReal()" class="hidden w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs shadow">
+            Finalizar Viagem e Confirmar Pagamento
+          </button>
+        </div>
+      </div>
+    </main>
+  </section>
 
 </div>
 
 <script>
-  function simularReceberChamada() {
-    mostrarSecaoDriver('driver-incoming');
-    document.getElementById('driver-status-text').innerText = 'Nova solicitação recebida!';
+  const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_XZVaqjSNHsQSgZwxsfIZsQ__crRqWTo';
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let motoristaAtual = null;
+  let corridaEmTela = null;
+
+  window.onload = async () => {
+    const salvo = localStorage.getItem('motorista_logado');
+    if (salvo) {
+      motoristaAtual = JSON.parse(salvo);
+      await verificarStatusAtual();
+    }
+  };
+
+  function alternarAbaAuth(aba) {
+    document.getElementById('form-cadastro').classList.toggle('hidden', aba !== 'cadastro');
+    document.getElementById('form-login').classList.toggle('hidden', aba !== 'login');
+    document.getElementById('tab-cadastro').className = aba === 'cadastro' ? 'bg-white text-slate-900 py-2 rounded-lg shadow-sm transition' : 'text-slate-600 py-2 rounded-lg transition';
+    document.getElementById('tab-login').className = aba === 'login' ? 'bg-white text-slate-900 py-2 rounded-lg shadow-sm transition' : 'text-slate-600 py-2 rounded-lg transition';
   }
 
-  function recusarChamada() {
-    mostrarSecaoDriver('driver-waiting');
-    document.getElementById('driver-status-text').innerText = 'Aguardando chamadas na região...';
+  async function cadastrarMotorista(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-submit-cad');
+    btn.disabled = true;
+    btn.innerText = 'Enviando...';
+
+    const novoMotorista = {
+      tipo: 'motorista',
+      nome: document.getElementById('cad-nome').value.trim(),
+      telefone: document.getElementById('cad-telefone').value.trim(),
+      cpf: document.getElementById('cad-cpf').value.trim(),
+      veiculo_modelo: document.getElementById('cad-modelo').value.trim(),
+      veiculo_placa: document.getElementById('cad-placa').value.trim().toUpperCase(),
+      status_aprovacao: 'pendente'
+    };
+
+    const { data, error } = await db.from('usuarios').insert([novoMotorista]).select().single();
+    btn.disabled = false;
+    btn.innerText = 'Enviar Cadastro para Aprovação';
+
+    if (error) {
+      alert('Erro ao cadastrar motorista: ' + error.message);
+      return;
+    }
+
+    motoristaAtual = data;
+    localStorage.setItem('motorista_logado', JSON.stringify(data));
+    verificarStatusAtual();
   }
 
-  function aceitarChamada() {
-    mostrarSecaoDriver('driver-active');
-    document.getElementById('driver-phase-badge').innerText = 'Dirigindo-se ao embarque';
-    document.getElementById('driver-status-text').innerText = 'A caminho do passageiro';
+  async function entrarMotorista(e) {
+    e.preventDefault();
+    const tel = document.getElementById('login-telefone').value.trim();
+    const { data, error } = await db.from('usuarios').select('*').eq('telefone', tel).eq('tipo', 'motorista').single();
+    if (error || !data) {
+      alert('Telefone não encontrado no cadastro de motoristas.');
+      return;
+    }
+    motoristaAtual = data;
+    localStorage.setItem('motorista_logado', JSON.stringify(data));
+    verificarStatusAtual();
   }
 
-  function marcarChegadaLocal() {
-    document.getElementById('driver-phase-badge').innerText = 'No local de embarque';
-    document.getElementById('btn-cheguei').classList.add('hidden');
-    document.getElementById('btn-iniciar').classList.remove('hidden');
+  async function verificarStatusAtual() {
+    if (!motoristaAtual) return;
+    const { data } = await db.from('usuarios').select('*').eq('id', motoristaAtual.id).single();
+    if (data) {
+      motoristaAtual = data;
+      localStorage.setItem('motorista_logado', JSON.stringify(data));
+    }
+
+    document.getElementById('btn-sair').classList.remove('hidden');
+    document.getElementById('tela-auth').classList.add('hidden');
+
+    if (motoristaAtual.status_aprovacao === 'aprovado' && !motoristaAtual.banido) {
+      document.getElementById('tela-pendente').classList.add('hidden');
+      document.getElementById('tela-app').classList.remove('hidden');
+      document.getElementById('header-sub').innerText = `${motoristaAtual.nome} • ${motoristaAtual.veiculo_placa}`;
+      iniciarRadarAoVivo();
+      buscarCorridasAbertas();
+    } else if (motoristaAtual.status_aprovacao === 'rejeitado' || motoristaAtual.banido) {
+      document.getElementById('tela-app').classList.add('hidden');
+      document.getElementById('tela-pendente').classList.remove('hidden');
+      document.getElementById('titulo-status-conta').innerText = 'Cadastro Recusado / Bloqueado';
+      document.getElementById('desc-status-conta').innerText = 'Seu perfil de motorista não foi aprovado pela central.';
+    } else {
+      document.getElementById('tela-app').classList.add('hidden');
+      document.getElementById('tela-pendente').classList.remove('hidden');
+      db.channel('aprovacao-motorista')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'usuarios', filter: `id=eq.${motoristaAtual.id}` }, (payload) => {
+          motoristaAtual = payload.new;
+          verificarStatusAtual();
+        })
+        .subscribe();
+    }
   }
 
-  function iniciarCorridaPercurso() {
-    document.getElementById('driver-phase-badge').innerText = 'Viagem em andamento';
+  function iniciarRadarAoVivo() {
+    db.channel('radar-motorista')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'corridas' }, (payload) => {
+        const c = payload.new;
+        if (c.status === 'aguardando' && !corridaEmTela) {
+          exibirChamadaRecebida(c);
+        } else if (corridaEmTela && c.id === corridaEmTela.id && c.status === 'cancelada') {
+          alert('O passageiro cancelou a chamada.');
+          resetarParaEspera();
+        }
+      })
+      .subscribe();
+  }
+
+  async function buscarCorridasAbertas() {
+    const { data } = await db.from('corridas').select('*').eq('status', 'aguardando').order('criado_em', { ascending: false }).limit(1);
+    if (data && data.length > 0 && !corridaEmTela) {
+      exibirChamadaRecebida(data[0]);
+    }
+  }
+
+  function exibirChamadaRecebida(corrida) {
+    corridaEmTela = corrida;
+    document.getElementById('driver-waiting').classList.add('hidden');
+    document.getElementById('driver-incoming').classList.remove('hidden');
+    document.getElementById('inc-valor').innerText = `R$ ${Number(corrida.valor).toFixed(2)}`;
+    document.getElementById('inc-passageiro').innerText = corrida.passageiro_nome || 'Passageiro';
+    document.getElementById('inc-origem').innerText = corrida.origem;
+    document.getElementById('inc-destino').innerText = corrida.destino;
+    document.getElementById('inc-pagamento').innerText = corrida.forma_pagamento;
+  }
+
+  function ignorarChamada() {
+    resetarParaEspera();
+  }
+
+  async function aceitarCorridaReal() {
+    if (!corridaEmTela) return;
+    const { data, error } = await db.from('corridas')
+      .update({
+        status: 'aceita',
+        motorista_id: motoristaAtual.id,
+        motorista_nome: motoristaAtual.nome
+      })
+      .eq('id', corridaEmTela.id)
+      .select()
+      .single();
+
+    if (error) {
+      alert('Erro ao aceitar corrida: ' + error.message);
+      return;
+    }
+
+    // Busca a foto do passageiro para exibir ao motorista por segurança
+    const { data: passData } = await db.from('usuarios').select('foto_url').eq('id', data.passageiro_id).single();
+
+    document.getElementById('driver-incoming').classList.add('hidden');
+    document.getElementById('driver-active').classList.remove('hidden');
+    document.getElementById('act-valor').innerText = `R$ ${Number(data.valor).toFixed(2)}`;
+    document.getElementById('act-nome-passageiro').innerText = data.passageiro_nome;
+    document.getElementById('act-endereco').innerText = `${data.origem} ➔ ${data.destino}`;
+    document.getElementById('act-pagamento').innerText = `Receber: ${data.forma_pagamento}`;
+    document.getElementById('act-foto-passageiro').src = (passData && passData.foto_url) ? passData.foto_url : 'https://ui-avatars.com/api/?name=' + data.passageiro_nome;
+  }
+
+  async function atualizarEtapaCorrida(novaEtapa) {
+    await db.from('corridas').update({ status: novaEtapa }).eq('id', corridaEmTela.id);
+    if (novaEtapa === 'no_local') {
+      document.getElementById('badge-etapa').innerText = 'No local de embarque';
+      document.getElementById('btn-cheguei').classList.add('hidden');
+      document.getElementById('btn-iniciar').classList.remove('hidden');
+    } else if (novaEtapa === 'em_viagem') {
+      document.getElementById('badge-etapa').innerText = 'Viagem em andamento';
+      document.getElementById('btn-iniciar').classList.add('hidden');
+      document.getElementById('btn-finalizar').classList.remove('hidden');
+    }
+  }
+
+  async function finalizarCorridaReal() {
+    await db.from('corridas').update({ status: 'finalizada', pagamento_confirmado: true }).eq('id', corridaEmTela.id);
+    alert('Corrida finalizada e pagamento confirmado!');
+    resetarParaEspera();
+  }
+
+  function resetarParaEspera() {
+    corridaEmTela = null;
+    document.getElementById('driver-incoming').classList.add('hidden');
+    document.getElementById('driver-active').classList.add('hidden');
+    document.getElementById('driver-waiting').classList.remove('hidden');
+    document.getElementById('btn-cheguei').classList.remove('hidden');
     document.getElementById('btn-iniciar').classList.add('hidden');
-    document.getElementById('btn-finalizar').classList.remove('hidden');
-  }
-
-  function abrirModalFinalizacao() {
-    document.getElementById('modal-finalizar-driver').classList.remove('hidden');
-  }
-
-  function fecharModalDriver(id) {
-    document.getElementById(id).classList.add('hidden');
-  }
-
-  function confirmarPagamentoRecebido() {
-    fecharModalDriver('modal-finalizar-driver');
-    alert('Corrida finalizada com sucesso! Ganhos computados.');
-    mostrarSecaoDriver('driver-waiting');
-    document.getElementById('driver-status-text').innerText = 'Aguardando novas chamadas...';
     document.getElementById('btn-finalizar').classList.add('hidden');
-    document.getElementById('btn-cheguei').classList.remove('hidden');
   }
 
-  function registrarFaltaPagamento() {
-    fecharModalDriver('modal-finalizar-driver');
-    alert('Falta de pagamento registrada. O painel administrativo e o aplicativo do passageiro foram notificados com as penalidades previstas.');
-    mostrarSecaoDriver('driver-waiting');
-    document.getElementById('driver-status-text').innerText = 'Aguardando novas chamadas...';
-    document.getElementById('btn-finalizar').classList.add('hidden');
-    document.getElementById('btn-cheguei').classList.remove('hidden');
-  }
-
-  function abrirModalEmergenciaDriver() {
-    document.getElementById('modal-emergencia-driver').classList.remove('hidden');
-  }
-
-  function mostrarSecaoDriver(id) {
-    ['driver-waiting', 'driver-incoming', 'driver-active'].forEach(sec => {
-      document.getElementById(sec).classList.add('hidden');
-    });
-    document.getElementById(id).classList.remove('hidden');
+  function sairConta() {
+    localStorage.removeItem('motorista_logado');
+    location.reload();
   }
 </script>
 </body>

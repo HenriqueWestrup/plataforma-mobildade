@@ -2,196 +2,230 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Painel Admin - Mobilidade Urbana</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #0f172a;
-      color: #f8fafc;
-    }
+    body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-  <!-- TOPO / HEADER ADMINISTRATIVO -->
-  <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-md">
+  <!-- TOPO -->
+  <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-xl bg-red-600/20 text-red-500 flex items-center justify-center font-bold text-lg border border-red-500/30">
-        <i class="fa-solid fa-gauge-high"></i>
+        <i class="fa-solid fa-shield-halved"></i>
       </div>
       <div>
-        <h1 class="text-base font-bold text-white tracking-wide">Central Administrativa</h1>
-        <p class="text-xs text-slate-400">Monitoramento Operacional & Auditoria • Laguna / SC</p>
+        <h1 class="text-base font-bold text-white">Central Administrativa</h1>
+        <p class="text-xs text-slate-400">Aprovação de Cadastros & Monitoramento ao Vivo</p>
       </div>
     </div>
-
-    <div class="flex items-center gap-3">
-      <span class="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-full text-xs font-semibold">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sistema Online
-      </span>
-    </div>
+    <button onclick="carregarTudo()" class="bg-slate-800 hover:bg-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700">
+      <i class="fa-solid fa-rotate mr-1"></i> Atualizar Dados
+    </button>
   </header>
 
-  <!-- CONTEÚDO PRINCIPAL -->
   <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 space-y-6">
 
-    <!-- CARDS DE MÉTRICAS RÁPIDAS -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
-        <span class="text-xs text-slate-400 block">Corridas Hoje</span>
-        <div class="flex items-baseline justify-between mt-1">
-          <span class="text-2xl font-extrabold text-white">24</span>
-          <span class="text-xs font-bold text-emerald-400">+12% vs ontem</span>
-        </div>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
-        <span class="text-xs text-slate-400 block">Motoristas Ativos</span>
-        <div class="flex items-baseline justify-between mt-1">
-          <span class="text-2xl font-extrabold text-white">6</span>
-          <span class="text-xs font-bold text-slate-400">Online na rua</span>
-        </div>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
-        <span class="text-xs text-slate-400 block">Falta de Pagamento (Pendências)</span>
-        <div class="flex items-baseline justify-between mt-1">
-          <span class="text-2xl font-extrabold text-amber-400" id="stat-pendencias">1</span>
-          <span class="text-xs font-bold text-amber-400/80">Aguardando análise</span>
-        </div>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
-        <span class="text-xs text-slate-400 block">Contas Banidas (3/3)</span>
-        <div class="flex items-baseline justify-between mt-1">
-          <span class="text-2xl font-extrabold text-red-400" id="stat-banidos">0</span>
-          <span class="text-xs font-bold text-red-400/80">Bloqueio automático</span>
-        </div>
-      </div>
+    <!-- NAVEGAÇÃO ENTRE ABAS SEPARADAS -->
+    <div class="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
+      <button id="btn-aba-motoristas" onclick="mudarAbaAdmin('motoristas')" class="bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
+        <i class="fa-solid fa-car"></i> Cadastros de Motoristas (<span id="count-mot">0</span>)
+      </button>
+      <button id="btn-aba-passageiros" onclick="mudarAbaAdmin('passageiros')" class="bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
+        <i class="fa-solid fa-users"></i> Cadastros de Passageiros (<span id="count-pas">0</span>)
+      </button>
+      <button id="btn-aba-corridas" onclick="mudarAbaAdmin('corridas')" class="bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
+        <i class="fa-solid fa-route"></i> Corridas ao Vivo (<span id="count-cor">0</span>)
+      </button>
     </div>
 
-    <!-- SEÇÃO DE AUDITORIA DE INADIMPLÊNCIA (REGRA DOS 3 CASOS) -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
-        <div>
-          <h2 class="text-sm font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Auditoria de Inadimplência & Contestação
-          </h2>
-          <p class="text-xs text-slate-400">Gerencie os registros de falta de pagamento informados pelos motoristas e contestações dos passageiros.</p>
-        </div>
-        <span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold px-2.5 py-1 rounded-lg self-start sm:self-auto">
-          1 Ocorrência Ativa
-        </span>
-      </div>
-
-      <!-- Tabela de Ocorrências -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-slate-950 text-slate-400 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-800">
-            <tr>
-              <th class="p-3">Passageiro</th>
-              <th class="p-3">Motorista</th>
-              <th class="p-3">Valor</th>
-              <th class="p-3">Status / Ocorrências</th>
-              <th class="p-3 text-right">Ações Administrativas</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-800 text-slate-300" id="tabela-inadimplencia">
-            <tr>
-              <td class="p-3 font-medium text-white">Mariana (CPF: ***.123.***-**)</td>
-              <td class="p-3">Carlos (Renault Logan)</td>
-              <td class="p-3 font-bold text-emerald-400">R$ 18,50</td>
-              <td class="p-3">
-                <span class="bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded text-[11px] border border-amber-500/30">
-                  1ª Ocorrência Registrada
-                </span>
-              </td>
-              <td class="p-3 text-right space-x-2">
-                <button onclick="aplicarAdvertencia()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3 py-1.5 rounded-lg transition">
-                  Confirmar Advertência (+1)
-                </button>
-                <button onclick="arquivarCaso()" class="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 font-semibold px-3 py-1.5 rounded-lg transition border border-emerald-500/30">
-                  Aceitar Contestação / Limpar
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- SEÇÃO DE MONITORAMENTO DE CORRIDAS ATIVAS -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      
-      <!-- Corridas em Andamento -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
-        <h3 class="text-sm font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-car text-emerald-400"></i> Corridas Rodando na Rua Agora
-        </h3>
-        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2 text-xs">
-          <div class="flex justify-between items-center text-slate-400">
-            <span>ID #8842 • Centro ➔ Mar Grosso</span>
-            <span class="text-emerald-400 font-bold">Em trânsito</span>
-          </div>
-          <div class="flex justify-between text-slate-300 font-medium">
-            <span>Passageiro: Mariana</span>
-            <span>Motorista: Carlos</span>
-          </div>
-          <div class="text-[11px] text-slate-500">Pagamento combinado: PIX Direto (R$ 18,50)</div>
+    <!-- ABA 1: GESTÃO DE MOTORISTAS -->
+    <section id="sec-motoristas" class="space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+        <h2 class="text-sm font-bold text-white mb-4">Fila de Análise e Gestão de Motoristas</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+              <tr>
+                <th class="p-3">Motorista</th>
+                <th class="p-3">Telefone / CPF</th>
+                <th class="p-3">Veículo / Placa</th>
+                <th class="p-3">Status</th>
+                <th class="p-3 text-right">Decisão Central</th>
+              </tr>
+            </thead>
+            <tbody id="lista-motoristas" class="divide-y divide-slate-800"></tbody>
+          </table>
         </div>
       </div>
+    </section>
 
-      <!-- Alertas de Segurança / Pânico -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
-        <h3 class="text-sm font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-shield-halved text-red-500"></i> Central de Alertas & Segurança
-        </h3>
-        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-center text-xs text-slate-400 py-6">
-          <i class="fa-solid fa-circle-check text-emerald-500 text-xl mb-1.5 block"></i>
-          Nenhum alerta de pânico ou ocorrência policial acionada no momento. Operação segura.
+    <!-- ABA 2: GESTÃO DE PASSAGEIROS (COM FOTO OBRIGATÓRIA) -->
+    <section id="sec-passageiros" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+        <h2 class="text-sm font-bold text-white mb-4">Fila de Análise e Gestão de Passageiros</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+              <tr>
+                <th class="p-3">Foto</th>
+                <th class="p-3">Passageiro</th>
+                <th class="p-3">Telefone / CPF</th>
+                <th class="p-3">Status</th>
+                <th class="p-3 text-right">Decisão Central</th>
+              </tr>
+            </thead>
+            <tbody id="lista-passageiros" class="divide-y divide-slate-800"></tbody>
+          </table>
         </div>
       </div>
+    </section>
 
-    </div>
+    <!-- ABA 3: CORRIDAS AO VIVO -->
+    <section id="sec-corridas" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+        <h2 class="text-sm font-bold text-white mb-4">Monitoramento de Corridas em Tempo Real</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+              <tr>
+                <th class="p-3">Passageiro</th>
+                <th class="p-3">Motorista</th>
+                <th class="p-3">Trajeto</th>
+                <th class="p-3">Valor / Pagamento</th>
+                <th class="p-3">Status</th>
+              </tr>
+            </thead>
+            <tbody id="lista-corridas" class="divide-y divide-slate-800"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
 
   </main>
 
-  <!-- RODAPÉ -->
-  <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs text-slate-500">
-    Plataforma de Mobilidade Urbana • Painel de Controle Administrativo v1.0
-  </footer>
-
 <script>
-  let strikesAdmin = 1;
+  const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_XZVaqjSNHsQSgZwxsfIZsQ__crRqWTo';
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  function aplicarAdvertencia() {
-    strikesAdmin++;
-    document.getElementById('stat-pendencias').innerText = '0';
-    if (strikesAdmin >= 3) {
-      document.getElementById('stat-banidos').innerText = '1';
-      alert('Advertência confirmada. O usuário atingiu a 3ª ocorrência e foi BANIDO permanentemente da plataforma.');
-    } else {
-      alert(`Advertência aplicada com sucesso! O usuário possui agora ${strikesAdmin} de 3 ocorrências registradas.`);
-    }
-    document.getElementById('tabela-inadimplencia').innerHTML = `
-      <tr>
-        <td colspan="5" class="p-4 text-center text-slate-500 italic">Nenhuma pendência ou contestação pendente no momento.</td>
-      </tr>
-    `;
+  window.onload = () => {
+    carregarTudo();
+    // Escuta novos cadastros e corridas em tempo real
+    db.channel('admin-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'usuarios' }, () => carregarTudo())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'corridas' }, () => carregarTudo())
+      .subscribe();
+  };
+
+  function mudarAbaAdmin(aba) {
+    ['motoristas', 'passageiros', 'corridas'].forEach(nome => {
+      document.getElementById(`sec-${nome}`).classList.toggle('hidden', nome !== aba);
+      document.getElementById(`btn-aba-${nome}`).className = nome === aba
+        ? 'bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2'
+        : 'bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2';
+    });
   }
 
-  function arquivarCaso() {
-    document.getElementById('stat-pendencias').innerText = '0';
-    alert('Contestação aceita pela auditoria! O registro de inadimplência foi removido do perfil do passageiro.');
-    document.getElementById('tabela-inadimplencia').innerHTML = `
+  async function carregarTudo() {
+    const { data: usuarios } = await db.from('usuarios').select('*').order('criado_em', { ascending: false });
+    const { data: corridas } = await db.from('corridas').select('*').order('criado_em', { ascending: false }).limit(20);
+
+    if (usuarios) {
+      const motoristas = usuarios.filter(u => u.tipo === 'motorista');
+      const passageiros = usuarios.filter(u => u.tipo === 'passageiro');
+
+      document.getElementById('count-mot').innerText = motoristas.length;
+      document.getElementById('count-pas').innerText = passageiros.length;
+
+      renderizarMotoristas(motoristas);
+      renderizarPassageiros(passageiros);
+    }
+
+    if (corridas) {
+      document.getElementById('count-cor').innerText = corridas.length;
+      renderizarCorridas(corridas);
+    }
+  }
+
+  function badgeStatus(status) {
+    if (status === 'aprovado') return '<span class="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded font-bold">Aprovado</span>';
+    if (status === 'rejeitado') return '<span class="bg-red-500/20 text-red-400 px-2.5 py-1 rounded font-bold">Recusado</span>';
+    return '<span class="bg-amber-500/20 text-amber-300 px-2.5 py-1 rounded font-bold animate-pulse">Pendente Análise</span>';
+  }
+
+  function renderizarMotoristas(lista) {
+    const tbody = document.getElementById('lista-motoristas');
+    if (lista.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum motorista cadastrado ainda.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = lista.map(m => `
       <tr>
-        <td colspan="5" class="p-4 text-center text-slate-500 italic">Nenhuma pendência ou contestação pendente no momento.</td>
+        <td class="p-3 font-bold text-white">${m.nome}</td>
+        <td class="p-3 text-slate-300">${m.telefone}<br><span class="text-[10px] text-slate-500">CPF: ${m.cpf}</span></td>
+        <td class="p-3 text-slate-300">${m.veiculo_modelo || '-'}<br><span class="font-bold text-amber-400">${m.veiculo_placa || '-'}</span></td>
+        <td class="p-3">${badgeStatus(m.status_aprovacao)}</td>
+        <td class="p-3 text-right space-x-1.5">
+          <button onclick="decidirCadastro('${m.id}', 'aprovado')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg">Aprovar (Sim)</button>
+          <button onclick="decidirCadastro('${m.id}', 'rejeitado')" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white font-bold px-3 py-1.5 rounded-lg border border-red-500/30">Recusar (Não)</button>
+        </td>
       </tr>
-    `;
+    `).join('');
+  }
+
+  function renderizarPassageiros(lista) {
+    const tbody = document.getElementById('lista-passageiros');
+    if (lista.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum passageiro cadastrado ainda.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = lista.map(p => `
+      <tr>
+        <td class="p-3">
+          <img src="${p.foto_url || 'https://ui-avatars.com/api/?name=' + p.nome}" class="w-12 h-12 rounded-full object-cover border-2 border-slate-700" />
+        </td>
+        <td class="p-3 font-bold text-white">${p.nome}</td>
+        <td class="p-3 text-slate-300">${p.telefone}<br><span class="text-[10px] text-slate-500">CPF: ${p.cpf}</span></td>
+        <td class="p-3">${badgeStatus(p.status_aprovacao)}</td>
+        <td class="p-3 text-right space-x-1.5">
+          <button onclick="decidirCadastro('${p.id}', 'aprovado')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg">Aprovar (Sim)</button>
+          <button onclick="decidirCadastro('${p.id}', 'rejeitado')" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white font-bold px-3 py-1.5 rounded-lg border border-red-500/30">Recusar (Não)</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function renderizarCorridas(lista) {
+    const tbody = document.getElementById('lista-corridas');
+    if (lista.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhuma corrida registrada.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = lista.map(c => `
+      <tr>
+        <td class="p-3 font-bold text-white">${c.passageiro_nome || '-'}</td>
+        <td class="p-3 text-slate-300">${c.motorista_nome || '<span class="text-slate-500 italic">Aguardando...</span>'}</td>
+        <td class="p-3 text-slate-300">${c.origem} ➔ ${c.destino}</td>
+        <td class="p-3 font-bold text-emerald-400">R$ ${Number(c.valor).toFixed(2)} (${c.forma_pagamento})</td>
+        <td class="p-3 uppercase font-bold text-[11px] text-amber-300">${c.status}</td>
+      </tr>
+    `).join('');
+  }
+
+  async function decidirCadastro(userId, decisao) {
+    const { error } = await db.from('usuarios').update({ status_aprovacao: decisao }).eq('id', userId);
+    if (error) {
+      alert('Erro ao atualizar cadastro: ' + error.message);
+      return;
+    }
+    carregarTudo();
   }
 </script>
 </body>
