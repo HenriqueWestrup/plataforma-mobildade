@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   
-  <!-- LEAFLET CSS & JS PARA O MAPA DO MOTORISTA -->
+  <!-- LEAFLET CSS & JS NO CABEÇALHO PARA O MAPA FUNCIONAR -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -28,7 +28,7 @@
   <header class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md z-30">
     <div class="flex items-center gap-2">
       <div class="w-8 h-8 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center font-bold">
-        <i class="fa-solid fa-steering-wheel"></i>
+        <i class="fa-solid fa-car"></i>
       </div>
       <div>
         <h1 class="text-sm font-bold leading-tight">Mobilidade Laguna</h1>
@@ -36,16 +36,15 @@
       </div>
     </div>
     <div id="status-toggle-container">
-      <!-- Botão Online/Offline rápido no header -->
       <button onclick="alternarStatusOnline()" id="btn-status-topo" class="bg-slate-800 text-slate-300 px-3 py-1.5 rounded-xl text-[10px] font-extrabold border border-slate-700">
         <i class="fa-solid fa-circle text-[8px] text-red-500 mr-1"></i> Offline
       </button>
     </div>
   </header>
 
-  <!-- CONTAINER DINÂMICO (INJEÇÃO DAS ABAS DO MOTORISTA) -->
+  <!-- CONTAINER DINÂMICO (INJEÇÃO DAS ABAS) -->
   <main id="conteudo-principal-motorista" class="flex-1 flex flex-col relative overflow-hidden">
-    <!-- O conteúdo da aba ativa entra aqui -->
+    <!-- Conteúdo injetado aqui -->
   </main>
 
   <!-- MENU INFERIOR DE NAVEGAÇÃO -->
@@ -71,12 +70,13 @@
   const SUPABASE_KEY = 'sb_publishable_XZVaqjSNHsQSgZwxsfIZsQ__crRqWTo';
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  let motoristaAtual = null;
+  // Variável global garantida no escopo do motorista
+  window.motoristaAtual = null;
 
   window.onload = async () => {
     const salvo = localStorage.getItem('motorista_logado');
     if (salvo) {
-      motoristaAtual = JSON.parse(salvo);
+      window.motoristaAtual = JSON.parse(salvo);
       document.getElementById('menu-inferior-motorista').classList.remove('hidden');
       atualizarBotaoStatusTopo();
       carregarAbaMotorista('painel');
@@ -103,12 +103,19 @@
       if (resposta.ok) {
         container.innerHTML = await resposta.text();
         
+        // Dispara as funções de carregamento garantindo que o DOM e os dados existam
         if (nomeAba === 'painel' && typeof inicializarRadarMotorista === 'function') {
           setTimeout(inicializarRadarMotorista, 150);
         }
-        if (nomeAba === 'historico' && typeof carregarGanhosMotorista === 'function') carregarGanhosMotorista();
-        if (nomeAba === 'perfil' && typeof carregarPerfilMotorista === 'function') carregarPerfilMotorista();
-        if (nomeAba === 'auth' && typeof inicializarAuthMotorista === 'function') inicializarAuthMotorista();
+        if (nomeAba === 'historico' && typeof carregarGanhosMotorista === 'function') {
+          setTimeout(carregarGanhosMotorista, 100);
+        }
+        if (nomeAba === 'perfil' && typeof carregarPerfilMotorista === 'function') {
+          setTimeout(carregarPerfilMotorista, 100);
+        }
+        if (nomeAba === 'auth' && typeof inicializarAuthMotorista === 'function') {
+          inicializarAuthMotorista();
+        }
       } else {
         container.innerHTML = `<div class="p-6 text-center text-slate-500">Erro ao carregar o módulo ${nomeAba}.</div>`;
       }
@@ -118,12 +125,12 @@
   }
 
   async function alternarStatusOnline() {
-    if (!motoristaAtual) return;
-    const novoStatus = !motoristaAtual.online;
+    if (!window.motoristaAtual) return;
+    const novoStatus = !window.motoristaAtual.online;
     
-    const { data, error } = await db.from('usuarios').update({ online: novoStatus }).eq('id', motoristaAtual.id).select().single();
+    const { data, error } = await db.from('usuarios').update({ online: novoStatus }).eq('id', window.motoristaAtual.id).select().single();
     if (!error && data) {
-      motoristaAtual = data;
+      window.motoristaAtual = data;
       localStorage.setItem('motorista_logado', JSON.stringify(data));
       atualizarBotaoStatusTopo();
       if (typeof verificarEstadoRadar === 'function') verificarEstadoRadar();
@@ -132,8 +139,8 @@
 
   function atualizarBotaoStatusTopo() {
     const btn = document.getElementById('btn-status-topo');
-    if (!btn || !motoristaAtual) return;
-    if (motoristaAtual.online) {
+    if (!btn || !window.motoristaAtual) return;
+    if (window.motoristaAtual.online) {
       btn.innerHTML = `<i class="fa-solid fa-circle text-[8px] text-emerald-400 mr-1 animate-pulse"></i> Online`;
       btn.className = "bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-xl text-[10px] font-extrabold border border-emerald-500/40";
     } else {
@@ -143,8 +150,8 @@
   }
 
   function sairContaMotorista() {
-    if (motoristaAtual) {
-      db.from('usuarios').update({ online: false }).eq('id', motoristaAtual.id);
+    if (window.motoristaAtual) {
+      db.from('usuarios').update({ online: false }).eq('id', window.motoristaAtual.id);
     }
     localStorage.removeItem('motorista_logado');
     location.reload();
