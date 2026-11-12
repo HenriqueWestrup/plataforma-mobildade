@@ -225,22 +225,13 @@
               </div>
             </div>
           </div>
-
-          <div class="border border-slate-200 dark:border-slate-700 rounded-2xl p-3 space-y-2 bg-slate-50 dark:bg-slate-800">
-            <p class="text-[11px] font-bold text-slate-700 dark:text-slate-300"><i class="fa-solid fa-comments mr-1"></i> Chat com Motorista</p>
-            <div id="historico-mensagens" class="h-24 overflow-y-auto space-y-1.5 text-xs pr-1"></div>
-            <div class="flex gap-1.5">
-              <input type="text" id="input-mensagem" placeholder="Digite sua mensagem..." class="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs dark:text-white" />
-              <button onclick="enviarMensagemChat()" class="bg-emerald-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-paper-plane"></i></button>
-            </div>
-          </div>
         </div>
 
       </div>
     </div>
   </section>
 
-  <!-- MODAL CONFIGURAÇÕES (FOTO REDONDA NO TOPO, NOME, ESTRELAS, BOTÃO EDITAR) -->
+  <!-- MODAL CONFIGURAÇÕES (PERFIL NO TOPO + HISTÓRICO DE CORRIDAS) -->
   <div id="modal-config" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800">
       <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -288,7 +279,7 @@
       </div>
 
       <button onclick="abrirHistoricoCorridas()" class="w-full p-3.5 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-between text-xs font-bold text-slate-800 dark:text-white">
-        <span><i class="fa-solid fa-clock-rotate-left text-emerald-500 mr-2"></i> Histórico de Corridas & Suporte</span>
+        <span><i class="fa-solid fa-clock-rotate-left text-emerald-500 mr-2"></i> Histórico de Corridas</span>
         <i class="fa-solid fa-chevron-right text-slate-400"></i>
       </button>
 
@@ -298,11 +289,11 @@
     </div>
   </div>
 
-  <!-- MODAL HISTÓRICO DE CORRIDAS EM CARDS COM SUPORTE -->
+  <!-- MODAL HISTÓRICO DE CORRIDAS EM CARDS COM SUPORTE POR ID -->
   <div id="modal-historico" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[85vh] overflow-y-auto border border-slate-800">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Histórico de Corridas & Suporte</h3>
+        <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Histórico de Corridas</h3>
         <button onclick="fecharHistorico()" class="text-slate-500"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
       <div id="lista-cards-historico" class="space-y-3"></div>
@@ -327,9 +318,9 @@
   let markerOrigem = null;
   let markerParada = null;
   let markerDestino = null;
+  let linhaTrajetoPreview = null;
   let modoSelecaoMapa = null;
   let timerBusca = null;
-  let chatCanal = null;
 
   let coordsOrigem = { lat: -28.4811, lng: -48.7811 };
   let coordsParada = null;
@@ -478,7 +469,7 @@
       if (json && json.display_name) {
         document.getElementById('corrida-origem').value = json.display_name.split(',').slice(0, 3).join(',');
       }
-      calcularValorPorDistancia();
+      atualizarCalculoETrajeto();
     });
   }
 
@@ -535,7 +526,7 @@
       else markerDestino.setLatLng([lat, lng]);
       markerDestino.bindPopup('Destino Final').openPopup();
     }
-    calcularValorPorDistancia();
+    atualizarCalculoETrajeto();
   }
 
   function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
@@ -548,15 +539,25 @@
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 1.25;
   }
 
-  function calcularValorPorDistancia() {
+  function atualizarCalculoETrajeto() {
     if (!coordsOrigem || !coordsDestino) return;
     let kmTotal = 0;
+    const pontosTratados = [[coordsOrigem.lat, coordsOrigem.lng]];
+
     if (coordsParada) {
       kmTotal += calcularDistanciaKm(coordsOrigem.lat, coordsOrigem.lng, coordsParada.lat, coordsParada.lng);
+      pontosTratados.push([coordsParada.lat, coordsParada.lng]);
       kmTotal += calcularDistanciaKm(coordsParada.lat, coordsParada.lng, coordsDestino.lat, coordsDestino.lng);
     } else {
       kmTotal += calcularDistanciaKm(coordsOrigem.lat, coordsOrigem.lng, coordsDestino.lat, coordsDestino.lng);
     }
+    pontosTratados.push([coordsDestino.lat, coordsDestino.lng]);
+
+    // Desenhar prévia do trajeto no mapa
+    if (linhaTrajetoPreview) mapPassageiro.removeLayer(linhaTrajetoPreview);
+    linhaTrajetoPreview = L.polyline(pontosTratados, { color: '#10b981', weight: 4 }).addTo(mapPassageiro);
+    mapPassageiro.fitBounds(linhaTrajetoPreview.getBounds(), { padding: [40, 40] });
+
     const tarifaBase = 6.00;
     const precoPorKm = 3.20;
     valorCalculado = Math.max(10.00, tarifaBase + (kmTotal * precoPorKm));
@@ -639,6 +640,7 @@
     document.getElementById('box-buscando').classList.add('hidden');
     document.getElementById('box-andamento').classList.add('hidden');
     document.getElementById('box-solicitar').classList.remove('hidden');
+    if (linhaTrajetoPreview) mapPassageiro.removeLayer(linhaTrajetoPreview);
   }
 
   function escutarStatusCorrida(corridaId) {
@@ -724,9 +726,10 @@
           <span class="text-emerald-600">R$ ${Number(c.valor).toFixed(2)}</span>
           <span class="text-[10px] text-slate-400">${new Date(c.criado_em).toLocaleString()}</span>
         </div>
+        <p class="text-[10px] text-slate-400 font-mono">ID: ${c.id}</p>
         <p class="text-slate-600 dark:text-slate-300"><strong>Rota:</strong> ${c.origem} ➔ ${c.destino}</p>
         <p class="text-slate-500 text-[11px]"><strong>Status:</strong> ${c.status} | <strong>Motorista:</strong> ${c.motorista_nome || 'Não atribuído'}</p>
-        <button onclick="pedirSuporteCorrida('${c.id}')" class="w-full bg-slate-900 text-white font-bold py-2 rounded-xl text-[11px]">Central de Ajuda / Suporte</button>
+        <button onclick="pedirSuporteCorrida('${c.id}')" class="w-full bg-slate-900 text-white font-bold py-2 rounded-xl text-[11px]">Ajuda / Suporte desta Corrida</button>
       </div>
     `).join('');
   }
@@ -734,16 +737,16 @@
   function fecharHistorico() { document.getElementById('modal-historico').classList.add('hidden'); }
 
   async function pedirSuporteCorrida(corridaId) {
-    const motivo = prompt('Descreva o problema ou dúvida sobre esta corrida:');
+    const motivo = prompt(`Informe o que está acontecendo (Referente à ID da Corrida: ${corridaId.slice(0, 8)}...):`);
     if (!motivo) return;
     await db.from('chamados_suporte').insert([{
       corrida_id: corridaId,
       usuario_id: usuarioAtual.id,
       usuario_nome: usuarioAtual.nome,
       tipo_usuario: 'passageiro',
-      motivo
+      motivo: `[ID Corrida: ${corridaId}] ${motivo}`
     }]);
-    alert('Chamado enviado à central de ajuda com sucesso!');
+    alert('Chamado enviado à central com sucesso!');
   }
 
   function sairConta() { localStorage.removeItem('passageiro_logado'); location.reload(); }
