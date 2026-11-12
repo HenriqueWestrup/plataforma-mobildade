@@ -24,7 +24,7 @@
       </div>
       <div>
         <h1 class="text-base font-bold text-white">Central Administrativa</h1>
-        <p class="text-xs text-slate-400">Aprovações, Gestão de Perfis, Mini Mapas & Auditoria</p>
+        <p class="text-xs text-slate-400">Aprovações, Gestão de Perfis, Mini Mapas & Suporte</p>
       </div>
     </div>
     <button onclick="carregarTudo()" class="bg-slate-800 hover:bg-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700">
@@ -34,7 +34,7 @@
 
   <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 space-y-6">
 
-    <!-- Abas de Navegação -->
+    <!-- Abas Principais -->
     <div class="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
       <button id="btn-aba-cadastros" onclick="mudarAba('cadastros')" class="bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
         <i class="fa-solid fa-user-clock"></i> Cadastros / Aprovações (<span id="count-cad">0</span>)
@@ -45,12 +45,13 @@
       <button id="btn-aba-passageiros" onclick="mudarAba('passageiros')" class="bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
         <i class="fa-solid fa-users"></i> Passageiros (<span id="count-pas">0</span>)
       </button>
-      <button id="btn-aba-suporte" onclick="mudarAba('suporte')" class="bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
+      <button id="btn-aba-suporte" onclick="mudarAba('suporte')" class="bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 relative">
         <i class="fa-solid fa-headset"></i> Suporte & Auditoria (<span id="count-sup">0</span>)
+        <span id="dot-suporte-geral" class="hidden w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
       </button>
     </div>
 
-    <!-- 1. SEÇÃO CADASTROS PENDENTES (3 OPÇÕES: APROVAR, RECUSAR, DEIXAR PENDENTE) -->
+    <!-- 1. SEÇÃO CADASTROS -->
     <section id="sec-cadastros" class="space-y-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
         <h2 class="text-sm font-bold text-white mb-4">Controle de Aprovação de Usuários</h2>
@@ -71,7 +72,7 @@
       </div>
     </section>
 
-    <!-- 2. SEÇÃO GESTÃO DE MOTORISTAS -->
+    <!-- 2. SEÇÃO MOTORISTAS -->
     <section id="sec-motoristas" class="hidden space-y-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
         <h2 class="text-sm font-bold text-white mb-4">Gerenciamento de Motoristas Parceiros</h2>
@@ -92,7 +93,7 @@
       </div>
     </section>
 
-    <!-- 3. SEÇÃO GESTÃO DE PASSAGEIROS -->
+    <!-- 3. SEÇÃO PASSAGEIROS -->
     <section id="sec-passageiros" class="hidden space-y-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
         <h2 class="text-sm font-bold text-white mb-4">Gerenciamento de Passageiros</h2>
@@ -113,24 +114,31 @@
       </div>
     </section>
 
-    <!-- 4. SEÇÃO SUPORTE & AUDITORIA DE AVALIAÇÕES -->
-    <section id="sec-suporte" class="hidden space-y-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-        <h2 class="text-sm font-bold text-white mb-4">Chamados de Suporte com Identificação</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
-              <tr>
-                <th class="p-3">Solicitante (Clique p/ Perfil)</th>
-                <th class="p-3">Tipo</th>
-                <th class="p-3">Motivo Relatado</th>
-                <th class="p-3">Data / Hora</th>
-                <th class="p-3 text-right">Ação</th>
-              </tr>
-            </thead>
-            <tbody id="lista-suporte" class="divide-y divide-slate-800"></tbody>
-          </table>
-        </div>
+    <!-- 4. SEÇÃO SUPORTE SEPARADO (PASSAGEIROS X MOTORISTAS) & AUDITORIA -->
+    <section id="sec-suporte" class="hidden space-y-5">
+      
+      <!-- Sub-abas de Suporte com Alerta Piscando -->
+      <div class="flex gap-3">
+        <button id="subtab-sup-pass" onclick="mudarSubAbaSuporte('passageiros')" class="bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2">
+          <i class="fa-solid fa-user"></i> Suporte Passageiros (<span id="count-sup-pass">0</span>)
+          <span id="blink-sup-pass" class="hidden w-2.5 h-2.5 rounded-full bg-amber-300 animate-ping"></span>
+        </button>
+        <button id="subtab-sup-mot" onclick="mudarSubAbaSuporte('motoristas')" class="bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2">
+          <i class="fa-solid fa-car-side"></i> Suporte Motoristas (<span id="blink-count-mot">0</span>)
+          <span id="blink-sup-mot" class="hidden w-2.5 h-2.5 rounded-full bg-amber-300 animate-ping"></span>
+        </button>
+      </div>
+
+      <!-- Lista Suporte Passageiros (ID à Esquerda, Problema & Resposta à Direita) -->
+      <div id="painel-sup-passageiros" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+        <h3 class="text-sm font-bold text-white">Solicitações de Ajuda — Passageiros</h3>
+        <div id="lista-chamados-passageiros" class="space-y-3"></div>
+      </div>
+
+      <!-- Lista Suporte Motoristas (ID à Esquerda, Problema & Resposta à Direita) -->
+      <div id="painel-sup-motoristas" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+        <h3 class="text-sm font-bold text-white">Solicitações de Ajuda — Motoristas</h3>
+        <div id="lista-chamados-motoristas" class="space-y-3"></div>
       </div>
 
       <!-- Auditoria de Avaliações abaixo de 5 estrelas -->
@@ -142,7 +150,7 @@
 
   </main>
 
-  <!-- MODAL FICHA INDIVIDUAL DO USUÁRIO (MOTORISTA OU PASSAGEIRO) + MINI MAPA DE ROTEIRO -->
+  <!-- MODAL FICHA INDIVIDUAL DO USUÁRIO + MINI MAPA -->
   <div id="modal-ficha-usuario" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-3xl w-full p-6 space-y-5 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -154,7 +162,6 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <!-- Coluna 1: Edição de Perfil -->
         <div class="space-y-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
           <h4 class="text-xs font-bold text-emerald-400 uppercase">Editar Dados Cadastrais</h4>
           <div class="flex items-center gap-3">
@@ -196,7 +203,6 @@
           <button onclick="salvarFichaAdmin()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs">Salvar Alterações no Perfil</button>
         </div>
 
-        <!-- Coluna 2: Mini Mapa de Roteiro & Histórico -->
         <div class="space-y-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col">
           <h4 class="text-xs font-bold text-amber-400 uppercase">Mini Mapa de Roteiro & Histórico</h4>
           <div id="mini-mapa-admin" class="w-full h-44 rounded-xl bg-slate-900 border border-slate-800 z-10"></div>
@@ -230,9 +236,20 @@
     ['cadastros', 'motoristas', 'passageiros', 'suporte'].forEach(nome => {
       document.getElementById(`sec-${nome}`).classList.toggle('hidden', nome !== aba);
       document.getElementById(`btn-aba-${nome}`).className = nome === aba
-        ? 'bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2'
-        : 'bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2';
+        ? 'bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 relative'
+        : 'bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 relative';
     });
+  }
+
+  function mudarSubAbaSuporte(tipo) {
+    document.getElementById('painel-sup-passageiros').classList.toggle('hidden', tipo !== 'passageiros');
+    document.getElementById('painel-sup-motoristas').classList.toggle('hidden', tipo !== 'motoristas');
+    document.getElementById('subtab-sup-pass').className = tipo === 'passageiros'
+      ? 'bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2'
+      : 'bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2';
+    document.getElementById('subtab-sup-mot').className = tipo === 'motoristas'
+      ? 'bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2'
+      : 'bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2';
   }
 
   async function carregarTudo() {
@@ -257,13 +274,84 @@
     }
 
     if (suporte) {
-      document.getElementById('count-sup').innerText = suporte.length;
-      renderizarSuporte(suporte);
+      const supPass = suporte.filter(s => s.tipo_usuario === 'passageiro');
+      const supMot = suporte.filter(s => s.tipo_usuario === 'motorista');
+      const pendPass = supPass.filter(s => !s.respondido).length;
+      const pendMot = supMot.filter(s => !s.respondido).length;
+
+      document.getElementById('count-sup').innerText = pendPass + pendMot;
+      document.getElementById('count-sup-pass').innerText = pendPass;
+      document.getElementById('blink-count-mot').innerText = pendMot;
+
+      document.getElementById('dot-suporte-geral').classList.toggle('hidden', (pendPass + pendMot) === 0);
+      document.getElementById('blink-sup-pass').classList.toggle('hidden', pendPass === 0);
+      document.getElementById('blink-sup-mot').classList.toggle('hidden', pendMot === 0);
+
+      renderizarChamadosSuporte(supPass, 'lista-chamados-passageiros');
+      renderizarChamadosSuporte(supMot, 'lista-chamados-motoristas');
     }
 
     if (corridas) {
       renderizarAuditoriaAvaliacoes(corridas);
     }
+  }
+
+  function renderizarChamadosSuporte(lista, containerId) {
+    const container = document.getElementById(containerId);
+    if (!lista || lista.length === 0) {
+      container.innerHTML = '<p class="text-xs text-slate-500">Nenhuma solicitação de suporte nesta categoria.</p>';
+      return;
+    }
+    container.innerHTML = lista.map(s => `
+      <div class="bg-slate-950 border ${s.respondido ? 'border-slate-800' : 'border-amber-500/50'} rounded-2xl p-4 flex flex-col md:flex-row justify-between gap-4">
+        <!-- Canto Esquerdo: ID Clicável e Identificação -->
+        <div class="md:w-1/3 space-y-1 border-b md:border-b-0 md:border-r border-slate-800 pb-2 md:pb-0 md:pr-3">
+          <span class="text-[10px] uppercase font-bold ${s.respondido ? 'text-emerald-400' : 'text-amber-400'}">
+            ${s.respondido ? '✔ Respondido' : '● Pendente de Resposta'}
+          </span>
+          <p class="text-xs font-bold text-white">${s.usuario_nome}</p>
+          <button onclick="abrirFichaUsuario('${s.usuario_id}')" class="text-[11px] font-mono text-emerald-400 underline hover:text-emerald-300 text-left">
+            ID: ${s.usuario_id ? s.usuario_id.slice(0, 12) : 'N/A'} (Abrir Cadastro)
+          </button>
+          <p class="text-[10px] text-slate-500">${new Date(s.criado_em).toLocaleString()}</p>
+          ${s.corrida_id ? `<p class="text-[10px] text-slate-400">Viagem: #${s.corrida_id.slice(0, 8)}</p>` : ''}
+        </div>
+
+        <!-- Canto Direito: Problema Relatado e Campo de Resposta -->
+        <div class="flex-1 space-y-2.5">
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Problema Relatado:</span>
+            <p class="text-xs text-slate-200 bg-slate-900 p-2.5 rounded-xl border border-slate-800 mt-1">${s.motivo}</p>
+          </div>
+          ${s.respondido ? `
+            <div class="bg-emerald-950/40 border border-emerald-500/30 p-2.5 rounded-xl">
+              <span class="text-[10px] font-bold text-emerald-400 uppercase">Resposta Enviada pela Central:</span>
+              <p class="text-xs text-emerald-100 mt-0.5">${s.resposta_admin}</p>
+            </div>
+          ` : `
+            <div class="flex gap-2">
+              <input type="text" id="resp-input-${s.id}" placeholder="Digite a resposta para o usuário (aparecerá como pop-up no app)..." class="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white" />
+              <button onclick="responderChamadoAdmin('${s.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs">
+                Enviar Resposta
+              </button>
+            </div>
+          `}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function responderChamadoAdmin(chamadoId) {
+    const input = document.getElementById(`resp-input-${chamadoId}`);
+    const texto = input.value.trim();
+    if (!texto) { alert('Escreva uma resposta antes de enviar.'); return; }
+    await db.from('chamados_suporte').update({
+      resposta_admin: texto,
+      respondido: true,
+      visualizado_usuario: false
+    }).eq('id', chamadoId);
+    alert('Resposta enviada! Um alerta aparecerá na tela do aplicativo do usuário.');
+    carregarTudo();
   }
 
   function renderizarCadastros(lista) {
@@ -296,7 +384,7 @@
         </td>
         <td class="p-3 font-mono text-[11px] text-slate-400">${m.id.slice(0, 8)}</td>
         <td class="p-3 text-slate-300">${m.veiculo_modelo || '-'} • <strong>${m.veiculo_placa || '-'}</strong></td>
-        <td class="p-3 text-xs">${m.banido ? '<span class="text-red-500 font-bold">BANIDO</span>' : (m.online ? '<span class="text-emerald-400 font-bold">Online</span>' : '<span class="text-slate-400">Offline</span>')}</td>
+        <td class="p-3 text-xs">${m.banido ? '<span class="text-red-500 font-bold">BLOQUEADO</span>' : (m.online ? '<span class="text-emerald-400 font-bold">Online</span>' : '<span class="text-slate-400">Offline</span>')}</td>
         <td class="p-3 text-right">
           <button onclick="abrirFichaUsuario('${m.id}')" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold px-3 py-1.5 rounded-lg border border-slate-700">Gerenciar & Mapa</button>
         </td>
@@ -314,32 +402,9 @@
         </td>
         <td class="p-3 font-mono text-[11px] text-slate-400">${p.id.slice(0, 8)}</td>
         <td class="p-3 text-slate-300">${p.telefone}<br><span class="text-[10px] text-slate-500">${p.endereco || '-'}</span></td>
-        <td class="p-3 text-xs">${p.banido ? '<span class="text-red-500 font-bold">BANIDO</span>' : '<span class="text-emerald-400 font-bold">' + p.status_aprovacao + '</span>'}</td>
+        <td class="p-3 text-xs">${p.banido ? '<span class="text-red-500 font-bold">BLOQUEADO</span>' : '<span class="text-emerald-400 font-bold">' + p.status_aprovacao + '</span>'}</td>
         <td class="p-3 text-right">
           <button onclick="abrirFichaUsuario('${p.id}')" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold px-3 py-1.5 rounded-lg border border-slate-700">Editar Perfil</button>
-        </td>
-      </tr>
-    `).join('');
-  }
-
-  function renderizarSuporte(lista) {
-    const tbody = document.getElementById('lista-suporte');
-    if (lista.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum chamado aberto.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = lista.map(s => `
-      <tr>
-        <td class="p-3">
-          <button onclick="abrirFichaUsuario('${s.usuario_id}')" class="font-bold text-emerald-400 underline text-left">
-            ${s.usuario_nome} (ID: ${s.usuario_id ? s.usuario_id.slice(0, 8) : '-'})
-          </button>
-        </td>
-        <td class="p-3 uppercase text-[10px] text-amber-400 font-bold">${s.tipo_usuario}</td>
-        <td class="p-3 text-slate-200">${s.motivo}</td>
-        <td class="p-3 text-slate-400 text-[10px]">${new Date(s.criado_em).toLocaleString()}</td>
-        <td class="p-3 text-right">
-          <button onclick="resolverChamado('${s.id}')" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold px-3 py-1.5 rounded-lg border border-slate-700">Concluir</button>
         </td>
       </tr>
     `).join('');
@@ -366,12 +431,6 @@
     carregarTudo();
   }
 
-  async function resolverChamado(id) {
-    await db.from('chamados_suporte').delete().eq('id', id);
-    carregarTudo();
-  }
-
-  // Ficha Individual com Mini Mapa de Roteiro
   async function abrirFichaUsuario(userId) {
     const user = todosUsuarios.find(u => u.id === userId);
     if (!user) return;
@@ -470,8 +529,10 @@
   async function alternarBanimentoUsuario() {
     if (!usuarioEmEdicao) return;
     const novoBan = !usuarioEmEdicao.banido;
-    await db.from('usuarios').update({ banido: novoBan }).eq('id', usuarioEmEdicao.id);
-    alert(novoBan ? 'Usuário banido da plataforma.' : 'Usuário desbloqueado.');
+    const updates = { banido: novoBan };
+    if (novoBan) updates.online = false; // Força desconexão imediata do radar
+    await db.from('usuarios').update(updates).eq('id', usuarioEmEdicao.id);
+    alert(novoBan ? 'Usuário bloqueado imediatamente.' : 'Usuário desbloqueado.');
     carregarTudo();
     fecharFichaUsuario();
   }

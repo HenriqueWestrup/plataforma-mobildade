@@ -107,13 +107,32 @@
     <button onclick="verificarStatusAtual()" class="bg-slate-900 dark:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow">Atualizar Status</button>
   </section>
 
+  <!-- TELA DE BLOQUEIO PENDENTE -->
+  <section id="tela-bloqueio" class="hidden p-6 flex-1 flex flex-col justify-center items-center text-center space-y-4 z-30 bg-slate-950 text-white">
+    <div class="w-20 h-20 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center text-3xl">
+      <i class="fa-solid fa-ban"></i>
+    </div>
+    <h2 class="text-xl font-extrabold text-red-400">Conta com Bloqueio Pendente</h2>
+    <p class="text-xs text-slate-300 max-w-xs leading-relaxed">
+      Seu acesso ao aplicativo foi temporariamente bloqueado pela administração. Caso queira rever a situação da sua conta, entre em contato com a central.
+    </p>
+    <div class="space-y-2 w-full max-w-xs pt-2">
+      <button onclick="solicitarRevisaoBloqueio()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg">
+        Solicitar Revisão à Central
+      </button>
+      <button onclick="verificarStatusAtual()" class="w-full bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs">
+        Verificar Novamente
+      </button>
+      <button onclick="sairConta()" class="w-full text-slate-500 text-xs underline pt-2">Sair</button>
+    </div>
+  </section>
+
   <!-- TELA 3: APLICATIVO PRINCIPAL -->
   <section id="tela-app" class="hidden flex-1 flex flex-col relative">
     <div class="absolute inset-0 z-0">
       <div id="mapa-passageiro" class="map-container"></div>
     </div>
 
-    <!-- Banner de Modo Seleção no Mapa -->
     <div id="banner-selecao-mapa" class="hidden z-30 bg-emerald-600 text-white px-4 py-2 text-xs font-bold flex items-center justify-between shadow-lg">
       <span><i class="fa-solid fa-location-crosshairs mr-1"></i> Toque no mapa para marcar o local</span>
       <button onclick="cancelarModoMapa()" class="bg-slate-900 px-2.5 py-1 rounded text-[10px]">Concluir</button>
@@ -139,7 +158,6 @@
             <button onclick="usarMinhaLocalizacaoGPS()" class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold"><i class="fa-solid fa-location-arrow"></i> Meu GPS</button>
           </div>
 
-          <!-- Ponto A -->
           <div class="relative">
             <div class="flex justify-between items-center">
               <label class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Ponto A (Embarque)</label>
@@ -149,7 +167,6 @@
             <div id="sugestoes-origem" class="hidden absolute left-0 right-0 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl shadow-xl z-40 max-h-32 overflow-y-auto text-xs"></div>
           </div>
 
-          <!-- Parada B -->
           <div id="wrapper-parada-b" class="hidden relative">
             <div class="flex justify-between items-center">
               <label class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Parada B (Opcional)</label>
@@ -163,7 +180,6 @@
             <button id="btn-add-parada" onclick="adicionarParadaB()" class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">+ Adicionar Parada B</button>
           </div>
 
-          <!-- Destino C -->
           <div class="relative">
             <div class="flex justify-between items-center">
               <label class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Destino Final (C)</label>
@@ -206,7 +222,6 @@
             </div>
           </div>
 
-          <!-- Chat Interno em Tempo Real -->
           <div id="box-chat" class="hidden border border-slate-200 dark:border-slate-700 rounded-2xl p-3 space-y-2 bg-slate-50 dark:bg-slate-800">
             <p class="text-[11px] font-bold text-slate-700 dark:text-slate-300"><i class="fa-solid fa-comments mr-1"></i> Chat com Motorista</p>
             <div id="historico-mensagens" class="h-28 overflow-y-auto space-y-1.5 text-xs pr-1"></div>
@@ -222,6 +237,23 @@
       </div>
     </div>
   </section>
+
+  <!-- POP-UP DE RESPOSTA DA CENTRAL ADMINISTRATIVA -->
+  <div id="modal-resposta-central" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 space-y-4 border-2 border-emerald-500 shadow-2xl">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+          <i class="fa-solid fa-headset"></i>
+        </div>
+        <div>
+          <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Resposta da Central</h3>
+          <p class="text-[10px] text-slate-400">Suporte Administrativo</p>
+        </div>
+      </div>
+      <div class="bg-slate-100 dark:bg-slate-800 p-3.5 rounded-2xl text-xs text-slate-800 dark:text-slate-200 leading-relaxed" id="texto-resposta-central"></div>
+      <button onclick="confirmarLeituraRespostaCentral()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs shadow">Ciente / Fechar</button>
+    </div>
+  </div>
 
   <!-- MODAL CONFIRMAÇÃO DE TERMOS DE PAGAMENTO -->
   <div id="modal-termos-pagamento" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
@@ -247,7 +279,7 @@
     </div>
   </div>
 
-  <!-- MODAL DE AVALIAÇÃO PÓS-CORRIDA (PASSAGEIRO) -->
+  <!-- MODAL DE AVALIAÇÃO PÓS-CORRIDA -->
   <div id="modal-avaliacao" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 space-y-4 text-center border border-slate-800">
       <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Viagem Finalizada!</h3>
@@ -275,7 +307,6 @@
         <button onclick="fecharMenuConfig()" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
 
-      <!-- Modo Escuro Visível -->
       <div class="flex items-center justify-between p-3.5 bg-slate-100 dark:bg-slate-800 rounded-2xl">
         <div class="flex items-center gap-2.5">
           <i class="fa-solid fa-moon text-emerald-500"></i>
@@ -284,7 +315,6 @@
         <button onclick="alternarTema()" class="bg-slate-900 dark:bg-emerald-600 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold">Alternar Tema</button>
       </div>
 
-      <!-- Editar Perfil (Telefone, Endereço, Foto) -->
       <div class="p-3.5 bg-slate-100 dark:bg-slate-800 rounded-2xl space-y-3">
         <p class="text-xs font-extrabold text-slate-800 dark:text-white">Atualizar Meus Dados</p>
         <div class="flex items-center gap-3">
@@ -305,13 +335,11 @@
         <button onclick="salvarEdicaoPerfil()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs">Salvar Alterações</button>
       </div>
 
-      <!-- Acesso ao Histórico e Suporte -->
       <button onclick="abrirHistorico()" class="w-full p-3.5 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-between text-xs font-bold text-slate-800 dark:text-white">
         <span><i class="fa-solid fa-clock-rotate-left text-emerald-500 mr-2"></i> Histórico de Corridas & Suporte</span>
         <i class="fa-solid fa-chevron-right text-slate-400"></i>
       </button>
 
-      <!-- Link Discreto para Termos de Uso -->
       <div class="pt-2 text-center space-y-3">
         <button onclick="abrirTermosUsoModal()" class="text-[11px] text-slate-500 underline">Termos de Uso e Política de Privacidade</button>
         <button onclick="sairConta()" class="w-full bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs">Sair da Conta</button>
@@ -319,7 +347,7 @@
     </div>
   </div>
 
-  <!-- MODAL TERMOS DE USO (COM EXCLUSÃO DE DADOS DISCRETA NO FINAL) -->
+  <!-- MODAL TERMOS DE USO -->
   <div id="modal-termos-uso" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[85vh] overflow-y-auto border border-slate-800">
       <div class="flex justify-between items-center">
@@ -362,6 +390,7 @@
   let fotoEditBase64 = '';
   let corridaAtualId = null;
   let ultimaCorridaFinalizadaId = null;
+  let chamadoRespostaAtualId = null;
   let estrelaSelecionada = 5;
 
   let mapPassageiro = null;
@@ -478,10 +507,21 @@
     const { data } = await db.from('usuarios').select('*').eq('id', usuarioAtual.id).single();
     if (data) { usuarioAtual = data; localStorage.setItem('passageiro_logado', JSON.stringify(data)); }
 
-    document.getElementById('btn-menu').classList.remove('hidden');
     document.getElementById('tela-auth').classList.add('hidden');
+    escutarBloqueioERespostasSuporte();
 
-    if (usuarioAtual.status_aprovacao === 'aprovado' && !usuarioAtual.banido) {
+    if (usuarioAtual.banido) {
+      document.getElementById('tela-app').classList.add('hidden');
+      document.getElementById('tela-pendente').classList.add('hidden');
+      document.getElementById('btn-menu').classList.add('hidden');
+      document.getElementById('tela-bloqueio').classList.remove('hidden');
+      return;
+    }
+
+    document.getElementById('tela-bloqueio').classList.add('hidden');
+    document.getElementById('btn-menu').classList.remove('hidden');
+
+    if (usuarioAtual.status_aprovacao === 'aprovado') {
       document.getElementById('tela-pendente').classList.add('hidden');
       document.getElementById('tela-app').classList.remove('hidden');
       document.getElementById('user-nome-display').innerText = usuarioAtual.nome;
@@ -492,6 +532,60 @@
       document.getElementById('tela-app').classList.add('hidden');
       document.getElementById('tela-pendente').classList.remove('hidden');
     }
+  }
+
+  function escutarBloqueioERespostasSuporte() {
+    verificarRespostasPendentes();
+    db.channel('user-status-suporte-' + usuarioAtual.id)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'usuarios', filter: `id=eq.${usuarioAtual.id}` }, (p) => {
+        usuarioAtual = p.new;
+        localStorage.setItem('passageiro_logado', JSON.stringify(p.new));
+        verificarStatusAtual();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chamados_suporte', filter: `usuario_id=eq.${usuarioAtual.id}` }, (p) => {
+        if (p.new.respondido && !p.new.visualizado_usuario && p.new.resposta_admin) {
+          exibirPopupRespostaCentral(p.new);
+        }
+      })
+      .subscribe();
+  }
+
+  async function verificarRespostasPendentes() {
+    const { data } = await db.from('chamados_suporte')
+      .select('*')
+      .eq('usuario_id', usuarioAtual.id)
+      .eq('respondido', true)
+      .eq('visualizado_usuario', false)
+      .limit(1);
+    if (data && data.length > 0) {
+      exibirPopupRespostaCentral(data[0]);
+    }
+  }
+
+  function exibirPopupRespostaCentral(chamado) {
+    chamadoRespostaAtualId = chamado.id;
+    document.getElementById('texto-resposta-central').innerText = chamado.resposta_admin;
+    document.getElementById('modal-resposta-central').classList.remove('hidden');
+  }
+
+  async function confirmarLeituraRespostaCentral() {
+    document.getElementById('modal-resposta-central').classList.add('hidden');
+    if (chamadoRespostaAtualId) {
+      await db.from('chamados_suporte').update({ visualizado_usuario: true }).eq('id', chamadoRespostaAtualId);
+      chamadoRespostaAtualId = null;
+    }
+  }
+
+  async function solicitarRevisaoBloqueio() {
+    const motivo = prompt('Escreva sua solicitação de revisão de conta para a central:');
+    if (!motivo) return;
+    await db.from('chamados_suporte').insert([{
+      usuario_id: usuarioAtual.id,
+      usuario_nome: usuarioAtual.nome,
+      tipo_usuario: 'passageiro',
+      motivo: '[REVISÃO DE BLOQUEIO] ' + motivo
+    }]);
+    alert('Solicitação enviada à central administrativa.');
   }
 
   function inicializarMapaPassageiro() {
@@ -617,6 +711,7 @@
   }
 
   function abrirModalTermosPagamento() {
+    if (usuarioAtual.banido) { verificarStatusAtual(); return; }
     if (!document.getElementById('corrida-destino').value.trim()) {
       alert('Por favor, informe o destino final.');
       return;
@@ -753,7 +848,6 @@
     await db.from('corridas').update({ status: 'cancelada' }).eq('id', corridaAtualId);
   }
 
-  // Avaliação Bilateral
   function abrirModalAvaliacao() {
     estrelaSelecionada = 5;
     atualizarEstrelasUI();
@@ -785,7 +879,6 @@
     document.getElementById('texto-motivo-avaliacao').value = '';
   }
 
-  // Configurações & Perfil
   function abrirMenuConfig() {
     document.getElementById('edit-telefone').value = usuarioAtual.telefone || '';
     document.getElementById('edit-endereco').value = usuarioAtual.endereco || '';

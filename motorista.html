@@ -116,13 +116,32 @@
     <button onclick="verificarStatusAtual()" class="bg-slate-900 dark:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs">Verificar Status</button>
   </section>
 
+  <!-- TELA DE BLOQUEIO PENDENTE -->
+  <section id="tela-bloqueio" class="hidden p-6 flex-1 flex flex-col justify-center items-center text-center space-y-4 z-30 bg-slate-950 text-white">
+    <div class="w-20 h-20 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center text-3xl">
+      <i class="fa-solid fa-ban"></i>
+    </div>
+    <h2 class="text-xl font-extrabold text-red-400">Conta com Bloqueio Pendente</h2>
+    <p class="text-xs text-slate-300 max-w-xs leading-relaxed">
+      Seu acesso de motorista parceiro está suspenso devido a um bloqueio pendente. Caso queira rever a conta, entre em contato com a central.
+    </p>
+    <div class="space-y-2 w-full max-w-xs pt-2">
+      <button onclick="solicitarRevisaoBloqueioMot()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg">
+        Solicitar Revisão à Central
+      </button>
+      <button onclick="verificarStatusAtual()" class="w-full bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs">
+        Verificar Novamente
+      </button>
+      <button onclick="sairConta()" class="w-full text-slate-500 text-xs underline pt-2">Sair</button>
+    </div>
+  </section>
+
   <!-- TELA 3: APLICATIVO DO MOTORISTA -->
   <section id="tela-app" class="hidden flex-1 flex flex-col relative">
     <div class="absolute inset-0 z-0">
       <div id="mapa-motorista" class="map-container"></div>
     </div>
 
-    <!-- Barra Superior de Status Online / Offline -->
     <div class="p-4 z-20 flex justify-between items-center pointer-events-none">
       <div id="pill-status" class="bg-slate-900/95 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg pointer-events-auto flex items-center gap-2 border border-slate-700">
         <span id="dot-status" class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
@@ -140,7 +159,6 @@
     <div class="mt-auto z-20 p-4">
       <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
         
-        <!-- Aguardando Chamadas -->
         <div id="driver-waiting" class="text-center py-3 space-y-2">
           <div class="w-12 h-12 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full flex items-center justify-center mx-auto text-lg">
             <i class="fa-solid fa-satellite-dish"></i>
@@ -149,7 +167,6 @@
           <p id="sub-radar" class="text-xs text-slate-500">Clique em "Ligar App" no topo para ficar online e receber chamadas.</p>
         </div>
 
-        <!-- Nova Chamada com Timer de 15 Segundos -->
         <div id="driver-incoming" class="hidden space-y-3">
           <div class="bg-emerald-50 dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 rounded-2xl p-3.5 space-y-2">
             <div class="flex items-center justify-between">
@@ -172,14 +189,12 @@
           </div>
         </div>
 
-        <!-- Corrida Ativa -->
         <div id="driver-active" class="hidden space-y-3">
           <div class="flex items-center justify-between">
             <span id="badge-etapa" class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-lg">Indo buscar</span>
             <span class="text-sm font-extrabold text-slate-900 dark:text-white" id="act-valor">R$ 0,00</span>
           </div>
 
-          <!-- Cronômetro de espera de 3 minutos no local -->
           <div id="box-cronometro-espera" class="hidden bg-amber-500/20 border border-amber-500/40 rounded-xl p-2.5 text-center">
             <p class="text-xs font-bold text-amber-500">Tempo de espera no local: <span id="lbl-timer-espera">03:00</span></p>
           </div>
@@ -192,7 +207,6 @@
             </div>
           </div>
 
-          <!-- Chat do Motorista -->
           <div id="box-chat-mot" class="border border-slate-200 dark:border-slate-700 rounded-2xl p-3 space-y-2 bg-slate-50 dark:bg-slate-800">
             <p class="text-[11px] font-bold text-slate-700 dark:text-slate-300"><i class="fa-solid fa-comments mr-1"></i> Chat com Passageiro</p>
             <div id="historico-mensagens-mot" class="h-24 overflow-y-auto space-y-1.5 text-xs pr-1"></div>
@@ -214,7 +228,24 @@
     </div>
   </section>
 
-  <!-- MODAL DE AVALIAÇÃO PÓS-CORRIDA (MOTORISTA) -->
+  <!-- POP-UP DE RESPOSTA DA CENTRAL ADMINISTRATIVA -->
+  <div id="modal-resposta-central-mot" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 space-y-4 border-2 border-emerald-500 shadow-2xl">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+          <i class="fa-solid fa-headset"></i>
+        </div>
+        <div>
+          <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Resposta da Central</h3>
+          <p class="text-[10px] text-slate-400">Suporte Administrativo</p>
+        </div>
+      </div>
+      <div class="bg-slate-100 dark:bg-slate-800 p-3.5 rounded-2xl text-xs text-slate-800 dark:text-slate-200 leading-relaxed" id="texto-resposta-central-mot"></div>
+      <button onclick="confirmarLeituraRespostaCentralMot()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs shadow">Ciente / Fechar</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE AVALIAÇÃO PÓS-CORRIDA -->
   <div id="modal-avaliacao-mot" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 space-y-4 text-center border border-slate-800">
       <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-3">
@@ -237,7 +268,7 @@
     </div>
   </div>
 
-  <!-- MODAL DE CONFIGURAÇÕES COMPLETO (HUB MOTORISTA) -->
+  <!-- MODAL DE CONFIGURAÇÕES COMPLETO -->
   <div id="modal-config" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800">
       <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -245,7 +276,6 @@
         <button onclick="fecharMenuConfig()" class="text-slate-500"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
 
-      <!-- Modo Escuro Visível -->
       <div class="flex items-center justify-between p-3.5 bg-slate-100 dark:bg-slate-800 rounded-2xl">
         <div class="flex items-center gap-2.5">
           <i class="fa-solid fa-moon text-emerald-500"></i>
@@ -254,13 +284,11 @@
         <button onclick="alternarTema()" class="bg-slate-900 dark:bg-emerald-600 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold">Alternar Tema</button>
       </div>
 
-      <!-- Acesso Direto ao Extrato de Ganhos e Histórico -->
       <button onclick="abrirExtratoGanhos()" class="w-full p-3.5 bg-emerald-600/15 border border-emerald-500/30 rounded-2xl flex items-center justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400">
         <span><i class="fa-solid fa-wallet mr-2"></i> Acessar Extrato de Ganhos & Histórico</span>
         <i class="fa-solid fa-chevron-right"></i>
       </button>
 
-      <!-- Editar Perfil (Telefone, Endereço, Foto) -->
       <div class="p-3.5 bg-slate-100 dark:bg-slate-800 rounded-2xl space-y-3">
         <p class="text-xs font-extrabold text-slate-800 dark:text-white">Atualizar Meus Dados</p>
         <div class="flex items-center gap-3">
@@ -281,7 +309,6 @@
         <button onclick="salvarEdicaoPerfilMot()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs">Salvar Alterações</button>
       </div>
 
-      <!-- Termos de Uso (Exclusão discreta no final) -->
       <div class="pt-2 text-center space-y-3">
         <button onclick="abrirTermosUsoModal()" class="text-[11px] text-slate-500 underline">Termos de Uso e Política de Privacidade</button>
         <button onclick="sairConta()" class="w-full bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs">Sair da Conta</button>
@@ -304,7 +331,7 @@
     </div>
   </div>
 
-  <!-- MODAL TERMOS DE USO (COM EXCLUSÃO DISCRETA NO FINAL) -->
+  <!-- MODAL TERMOS DE USO -->
   <div id="modal-termos-uso" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 space-y-4 max-h-[85vh] overflow-y-auto border border-slate-800">
       <div class="flex justify-between items-center">
@@ -335,6 +362,7 @@
   let fotoEditMotBase64 = '';
   let corridaEmTela = null;
   let ultimaCorridaMotId = null;
+  let chamadoRespostaMotId = null;
   let estrelaMot = 5;
 
   let mapMotorista = null;
@@ -449,10 +477,23 @@
     const { data } = await db.from('usuarios').select('*').eq('id', motoristaAtual.id).single();
     if (data) { motoristaAtual = data; localStorage.setItem('motorista_logado', JSON.stringify(data)); }
 
-    document.getElementById('btn-menu').classList.remove('hidden');
     document.getElementById('tela-auth').classList.add('hidden');
+    escutarBloqueioERespostasMot();
 
-    if (motoristaAtual.status_aprovacao === 'aprovado' && !motoristaAtual.banido) {
+    if (motoristaAtual.banido) {
+      estaOnline = false;
+      resetarParaEspera();
+      document.getElementById('tela-app').classList.add('hidden');
+      document.getElementById('tela-pendente').classList.add('hidden');
+      document.getElementById('btn-menu').classList.add('hidden');
+      document.getElementById('tela-bloqueio').classList.remove('hidden');
+      return;
+    }
+
+    document.getElementById('tela-bloqueio').classList.add('hidden');
+    document.getElementById('btn-menu').classList.remove('hidden');
+
+    if (motoristaAtual.status_aprovacao === 'aprovado') {
       document.getElementById('tela-pendente').classList.add('hidden');
       document.getElementById('tela-app').classList.remove('hidden');
       document.getElementById('header-sub').innerText = `${motoristaAtual.nome} • ${motoristaAtual.veiculo_placa}`;
@@ -466,6 +507,60 @@
     }
   }
 
+  function escutarBloqueioERespostasMot() {
+    verificarRespostasPendentesMot();
+    db.channel('mot-status-suporte-' + motoristaAtual.id)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'usuarios', filter: `id=eq.${motoristaAtual.id}` }, (p) => {
+        motoristaAtual = p.new;
+        localStorage.setItem('motorista_logado', JSON.stringify(p.new));
+        verificarStatusAtual();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chamados_suporte', filter: `usuario_id=eq.${motoristaAtual.id}` }, (p) => {
+        if (p.new.respondido && !p.new.visualizado_usuario && p.new.resposta_admin) {
+          exibirPopupRespostaCentralMot(p.new);
+        }
+      })
+      .subscribe();
+  }
+
+  async function verificarRespostasPendentesMot() {
+    const { data } = await db.from('chamados_suporte')
+      .select('*')
+      .eq('usuario_id', motoristaAtual.id)
+      .eq('respondido', true)
+      .eq('visualizado_usuario', false)
+      .limit(1);
+    if (data && data.length > 0) {
+      exibirPopupRespostaCentralMot(data[0]);
+    }
+  }
+
+  function exibirPopupRespostaCentralMot(chamado) {
+    chamadoRespostaMotId = chamado.id;
+    document.getElementById('texto-resposta-central-mot').innerText = chamado.resposta_admin;
+    document.getElementById('modal-resposta-central-mot').classList.remove('hidden');
+  }
+
+  async function confirmarLeituraRespostaCentralMot() {
+    document.getElementById('modal-resposta-central-mot').classList.add('hidden');
+    if (chamadoRespostaMotId) {
+      await db.from('chamados_suporte').update({ visualizado_usuario: true }).eq('id', chamadoRespostaMotId);
+      chamadoRespostaMotId = null;
+    }
+  }
+
+  async function solicitarRevisaoBloqueioMot() {
+    const motivo = prompt('Escreva sua solicitação de revisão de conta para a central:');
+    if (!motivo) return;
+    await db.from('chamados_suporte').insert([{
+      usuario_id: motoristaAtual.id,
+      usuario_nome: motoristaAtual.nome,
+      tipo_usuario: 'motorista',
+      motivo: '[REVISÃO DE BLOQUEIO] ' + motivo
+    }]);
+    alert('Solicitação enviada à central administrativa.');
+  }
+
   function inicializarMapaMotorista() {
     if (mapMotorista) return;
     mapMotorista = L.map('mapa-motorista', { zoomControl: false }).setView([posAtualMot.lat, posAtualMot.lng], 15);
@@ -476,7 +571,7 @@
         posAtualMot = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         mapMotorista.setView([posAtualMot.lat, posAtualMot.lng], 16);
         markerMotorista.setLatLng([posAtualMot.lat, posAtualMot.lng]);
-        if (estaOnline) {
+        if (estaOnline && !motoristaAtual.banido) {
           await db.from('usuarios').update({ lat: posAtualMot.lat, lng: posAtualMot.lng }).eq('id', motoristaAtual.id);
         }
       });
@@ -484,6 +579,7 @@
   }
 
   async function alternarOnlineOffline() {
+    if (motoristaAtual.banido) { verificarStatusAtual(); return; }
     estaOnline = !estaOnline;
     await db.from('usuarios').update({ online: estaOnline, lat: posAtualMot.lat, lng: posAtualMot.lng }).eq('id', motoristaAtual.id);
     atualizarVisualOnlineOffline();
@@ -497,7 +593,7 @@
     const titulo = document.getElementById('titulo-radar');
     const sub = document.getElementById('sub-radar');
 
-    if (estaOnline) {
+    if (estaOnline && !motoristaAtual.banido) {
       dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping';
       txt.innerText = 'Online';
       btn.innerText = 'Desligar App';
@@ -518,7 +614,8 @@
     db.channel('radar-motorista-canal')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'corridas' }, (payload) => {
         const c = payload.new;
-        if (c.status === 'aguardando' && estaOnline && !corridaEmTela) {
+        if (motoristaAtual.banido || !estaOnline) return;
+        if (c.status === 'aguardando' && !corridaEmTela) {
           verificarElegibilidadeChamada(c);
         } else if (corridaEmTela && c.id === corridaEmTela.id && c.status === 'cancelada') {
           alert('O passageiro cancelou a corrida.');
@@ -529,7 +626,7 @@
   }
 
   async function buscarCorridasAbertas() {
-    if (!estaOnline || corridaEmTela) return;
+    if (!estaOnline || motoristaAtual.banido || corridaEmTela) return;
     const { data } = await db.from('corridas').select('*').eq('status', 'aguardando').order('criado_em', { ascending: true });
     if (data && data.length > 0) {
       for (const c of data) {
@@ -551,15 +648,16 @@
   }
 
   async function verificarElegibilidadeChamada(corrida) {
+    if (motoristaAtual.banido || !estaOnline) return false;
     const ignorados = (corrida.motoristas_ignorados || '').split(',');
     if (ignorados.includes(motoristaAtual.id)) return false;
 
-    const { data: onlineMots } = await db.from('usuarios').select('id, lat, lng').eq('tipo', 'motorista').eq('online', true);
+    const { data: onlineMots } = await db.from('usuarios').select('id, lat, lng').eq('tipo', 'motorista').eq('online', true).eq('banido', false);
     if (onlineMots && onlineMots.length > 1 && corrida.origem_lat) {
       const elegiveis = onlineMots.filter(m => !ignorados.includes(m.id));
       elegiveis.sort((a, b) => calcularDistancia(a.lat, a.lng, corrida.origem_lat, corrida.origem_lng) - calcularDistancia(b.lat, b.lng, corrida.origem_lat, corrida.origem_lng));
       if (elegiveis.length > 0 && elegiveis[0].id !== motoristaAtual.id) {
-        return false; // Aguarda o motorista mais próximo responder primeiro
+        return false;
       }
     }
 
@@ -568,6 +666,7 @@
   }
 
   async function exibirChamadaRecebida(corrida) {
+    if (motoristaAtual.banido) return;
     corridaEmTela = corrida;
     document.getElementById('driver-waiting').classList.add('hidden');
     document.getElementById('driver-incoming').classList.remove('hidden');
@@ -586,7 +685,6 @@
     const { data: pass } = await db.from('usuarios').select('foto_url').eq('id', corrida.passageiro_id).single();
     document.getElementById('inc-foto-passageiro').src = (pass && pass.foto_url) ? pass.foto_url : 'https://ui-avatars.com/api/?name=' + corrida.passageiro_nome;
 
-    // Timer de 15 segundos
     let tempoRestante = 15;
     document.getElementById('timer-chamada').innerText = tempoRestante;
     clearInterval(intervaloTimerChamada);
@@ -610,7 +708,7 @@
 
   async function aceitarCorridaReal() {
     clearInterval(intervaloTimerChamada);
-    if (!corridaEmTela) return;
+    if (!corridaEmTela || motoristaAtual.banido) return;
     const { data, error } = await db.from('corridas')
       .update({ status: 'aceita', motorista_id: motoristaAtual.id, motorista_nome: motoristaAtual.nome })
       .eq('id', corridaEmTela.id)
@@ -696,7 +794,7 @@
   }
 
   function iniciarCronometroEspera3Min() {
-    segundosEspera = 180; // 3 minutos
+    segundosEspera = 180;
     document.getElementById('box-cronometro-espera').classList.remove('hidden');
     clearInterval(intervaloTimerEspera);
     intervaloTimerEspera = setInterval(() => {
@@ -714,11 +812,9 @@
   async function cancelarCorridaMotorista() {
     if (!corridaEmTela) return;
     if (corridaEmTela.status === 'no_local' && segundosEspera <= 0) {
-      // Passou dos 3 minutos no local -> Cancela em definitivo para o passageiro
       await db.from('corridas').update({ status: 'cancelada' }).eq('id', corridaEmTela.id);
       alert('Corrida encerrada por ausência do passageiro após 3 minutos.');
     } else {
-      // Cancelou antes de dar os 3 min no local -> Redireciona para o próximo motorista online
       const ignorados = corridaEmTela.motoristas_ignorados ? corridaEmTela.motoristas_ignorados + ',' + motoristaAtual.id : motoristaAtual.id;
       await db.from('corridas').update({
         status: 'aguardando',
@@ -753,7 +849,6 @@
     document.getElementById('btn-finalizar').classList.add('hidden');
   }
 
-  // Avaliação do Passageiro pelo Motorista
   function abrirModalAvaliacaoMot(valor) {
     estrelaMot = 5;
     document.getElementById('lbl-valor-finalizado-mot').innerText = `R$ ${valor}`;
@@ -786,7 +881,6 @@
     document.getElementById('texto-motivo-avaliacao-mot').value = '';
   }
 
-  // Configurações & Extrato
   function abrirMenuConfig() {
     document.getElementById('edit-telefone-mot').value = motoristaAtual.telefone || '';
     document.getElementById('edit-endereco-mot').value = motoristaAtual.endereco || '';
