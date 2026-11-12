@@ -1,0 +1,20 @@
+<div class="absolute inset-0 z-0">
+  <div id="mapa-passageiro" class="w-full h-full"></div>
+</div>
+
+<div class="mt-auto z-20 p-4 bg-slate-900/90 backdrop-blur rounded-t-3xl border-t border-slate-800 space-y-3">
+  <h3 class="text-sm font-extrabold text-white">Para onde vamos hoje?</h3>
+  <input type="text" id="destino-input" placeholder="Digite o destino..." class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white" />
+  <button onclick="chamarCorrida()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs">Chamar Motorista</button>
+</div>
+
+<!-- Scripts exclusivos do mapa -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  function inicializarMapa() {
+    const map = L.map('mapa-passageiro', { zoomControl: false }).setView([-28.4811, -48.7811], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    console.log("Módulo do mapa carregado isoladamente com sucesso!");
+  }
+</script>
