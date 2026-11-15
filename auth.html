@@ -6,12 +6,12 @@
   <title>Mobilidade Laguna - Passageiro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-center items-center p-4">
 
   <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-5">
     
-    <!-- CABEÇALHO -->
     <div class="text-center space-y-1">
       <div class="inline-block bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 p-3 rounded-2xl mb-1">
         <i class="fa-solid fa-user text-xl"></i>
@@ -20,49 +20,30 @@
       <p id="subtitulo-tela" class="text-xs text-slate-400">Entre com seu celular e senha para viajar</p>
     </div>
 
-    <!-- ==================== FORMULÁRIO DE LOGIN ==================== -->
+    <!-- LOGIN -->
     <form id="form-login" class="space-y-4 text-xs" onsubmit="realizarLogin(event)">
       <div class="space-y-1">
-        <label class="text-slate-300 font-medium">Número de Celular</label>
-        <div class="relative">
-          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
-            <i class="fa-solid fa-phone"></i>
-          </span>
-          <input type="tel" id="login-celular" required placeholder="(48) 9 9999-9999" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 pl-9 text-slate-100 focus:outline-none focus:border-emerald-500">
-        </div>
+        <label class="text-slate-300 font-medium">Celular</label>
+        <input type="tel" id="login-celular" required placeholder="(48) 9 9999-9999" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
       </div>
-
       <div class="space-y-1">
         <label class="text-slate-300 font-medium">Senha</label>
-        <div class="relative">
-          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
-            <i class="fa-solid fa-lock"></i>
-          </span>
-          <input type="password" id="login-senha" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 pl-9 text-slate-100 focus:outline-none focus:border-emerald-500">
-        </div>
+        <input type="password" id="login-senha" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
       </div>
-
-      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
-        Entrar na Conta
-      </button>
+      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Entrar na Conta</button>
     </form>
 
-    <!-- ==================== MODAL DE SELFIE (15 EM 15 DIAS) ==================== -->
+    <!-- REVALIDAÇÃO FACIAL (15 DIAS) -->
     <div id="box-revalidacao-selfie" class="hidden space-y-3 text-center text-xs bg-slate-950 p-4 rounded-2xl border border-amber-500/40">
       <p class="text-amber-400 font-bold"><i class="fa-solid fa-shield-halved mr-1"></i> Validação Facial (15 dias)</p>
-      <p class="text-slate-400 text-[11px]">Confirme sua identidade com uma selfie rápida para liberar o acesso.</p>
       <div class="w-24 h-24 mx-auto rounded-full overflow-hidden border-2 border-amber-500 bg-slate-900">
         <video id="video-reval" class="w-full h-full object-cover" autoplay playsinline></video>
       </div>
-      <button type="button" onclick="confirmarRevalidacaoSelfie()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl">
-        <i class="fa-solid fa-camera mr-1"></i> Tirar Selfie e Entrar
-      </button>
+      <button type="button" onclick="confirmarRevalidacaoSelfie()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl">Tirar Selfie e Entrar</button>
     </div>
 
-    <!-- ==================== FORMULÁRIO DE CADASTRO ==================== -->
+    <!-- CADASTRO -->
     <form id="form-cadastro" class="hidden space-y-3 text-xs" onsubmit="realizarCadastro(event)">
-      
-      <!-- SELFIE INICIAL OBRIGATÓRIA -->
       <div class="flex flex-col items-center space-y-2 pb-2 border-b border-slate-800">
         <div class="relative w-20 h-20 rounded-full bg-slate-950 border-2 border-dashed border-emerald-500/60 flex items-center justify-center overflow-hidden">
           <img id="preview-selfie" class="hidden w-full h-full object-cover" />
@@ -70,189 +51,114 @@
           <i id="icone-camera" class="fa-solid fa-camera text-slate-500 text-xl"></i>
         </div>
         <div class="flex gap-2">
-          <button type="button" id="btn-abrir-camera" onclick="iniciarCamera()" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-3 py-1 rounded-lg text-[11px] font-bold border border-slate-700">
-            <i class="fa-solid fa-camera mr-1"></i> Selfie de Verificação
-          </button>
-          <button type="button" id="btn-capturar-foto" onclick="capturarSelfie()" class="hidden bg-emerald-600 text-white px-3 py-1 rounded-lg text-[11px] font-bold">
-            <i class="fa-solid fa-check mr-1"></i> Confirmar Foto
-          </button>
+          <button type="button" id="btn-abrir-camera" onclick="iniciarCamera()" class="bg-slate-800 text-emerald-400 px-3 py-1 rounded-lg text-[11px] font-bold border border-slate-700">Selfie Inicial</button>
+          <button type="button" id="btn-capturar-foto" onclick="capturarSelfie()" class="hidden bg-emerald-600 text-white px-3 py-1 rounded-lg text-[11px] font-bold">Confirmar</button>
         </div>
         <canvas id="canvas-selfie" class="hidden"></canvas>
       </div>
 
-      <div class="space-y-1">
-        <label class="text-slate-300 font-medium">Nome Completo</label>
-        <input type="text" id="cad-nome" required placeholder="Ex: João da Silva" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+      <input type="text" id="cad-nome" required placeholder="Nome Completo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
+      <input type="text" id="cad-cpf" required placeholder="CPF" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
+      
+      <div class="flex gap-2">
+        <input type="tel" id="cad-celular" required placeholder="Celular" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
+        <button type="button" onclick="enviarCodigoSMS()" class="bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 px-3 rounded-xl font-bold text-[11px]">Enviar SMS</button>
       </div>
 
-      <div class="space-y-1">
-        <label class="text-slate-300 font-medium">CPF</label>
-        <input type="text" id="cad-cpf" required placeholder="000.000.000-00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
-      </div>
-
-      <!-- CELULAR + VERIFICAÇÃO SMS -->
-      <div class="space-y-1">
-        <label class="text-slate-300 font-medium">Celular (com SMS)</label>
-        <div class="flex gap-2">
-          <input type="tel" id="cad-celular" required placeholder="(48) 9 9999-9999" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
-          <button type="button" onclick="enviarCodigoSMS()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 px-3 rounded-xl font-bold text-[11px] whitespace-nowrap">
-            Enviar SMS
-          </button>
-        </div>
-      </div>
-
-      <!-- CAMPO CÓDIGO SMS -->
       <div id="box-codigo-sms" class="hidden space-y-1 bg-slate-950 p-2.5 rounded-xl border border-emerald-500/30">
-        <label class="text-emerald-400 font-bold text-[11px]">Digite o código de 4 dígitos enviado por SMS</label>
-        <div class="flex gap-2">
-          <input type="text" id="input-codigo-sms" maxlength="4" placeholder="0000" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-center tracking-widest font-extrabold text-white">
-          <button type="button" onclick="validarCodigoSMS()" class="bg-emerald-600 text-white px-3 rounded-lg font-bold text-[11px]">Validar</button>
-        </div>
-        <p id="status-sms" class="text-[10px] text-slate-400"></p>
+        <input type="text" id="input-codigo-sms" maxlength="4" placeholder="Código SMS" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-center font-bold text-white">
+        <button type="button" onclick="validarCodigoSMS()" class="w-full bg-emerald-600 text-white py-1 rounded font-bold text-[10px] mt-1">Validar Código</button>
+        <p id="status-sms" class="text-[10px] text-slate-400 text-center"></p>
       </div>
 
-      <!-- ENDEREÇO -->
-      <div class="space-y-1">
-        <div class="flex justify-between items-center">
-          <label class="text-slate-300 font-medium">Endereço</label>
-          <button type="button" onclick="obterMeuEndereco()" class="text-[10px] bg-emerald-600/20 text-emerald-400 px-2 py-0.5 rounded-md border border-emerald-500/30 font-bold">
-            <i class="fa-solid fa-location-crosshairs mr-1"></i> Meu Endereço
-          </button>
-        </div>
-        <input type="text" id="cad-endereco" required placeholder="Rua, número e bairro" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+      <div class="flex justify-between items-center">
+        <input type="text" id="cad-endereco" required placeholder="Endereço" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
+        <button type="button" onclick="obterMeuEndereco()" class="ml-1 text-[10px] bg-emerald-600/20 text-emerald-400 px-2 py-2 rounded-xl border border-emerald-500/30 font-bold whitespace-nowrap"><i class="fa-solid fa-location-crosshairs"></i> GPS</button>
       </div>
 
-      <!-- SENHA PARA LOGIN -->
-      <div class="space-y-1">
-        <label class="text-slate-300 font-medium">Criar Senha de Acesso</label>
-        <input type="password" id="cad-senha" required minlength="4" placeholder="Mínimo 4 caracteres" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
-      </div>
+      <input type="password" id="cad-senha" required placeholder="Senha de Acesso" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
 
-      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition mt-2">
-        Concluir e Acessar App
-      </button>
+      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition mt-2">Concluir Cadastro</button>
     </form>
 
-    <!-- RODAPÉ DE NAVEGAÇÃO -->
     <div class="text-center text-[11px] text-slate-500 space-y-2 pt-2 border-t border-slate-800">
       <div id="texto-alternar">
         Não tem uma conta? <button type="button" onclick="alternarTela('cadastro')" class="text-emerald-400 font-bold hover:underline">Cadastre-se</button>
       </div>
       <div class="flex justify-center gap-4">
         <a href="auth-motorista.html" class="text-slate-400 hover:text-slate-200 underline">Sou Motorista</a>
-        <a href="admin.html" class="text-slate-500 hover:text-slate-300 underline">Painel Admin</a>
+        <a href="admin.html" class="text-slate-500 hover:text-slate-300 underline">Admin</a>
       </div>
     </div>
-
   </div>
 
   <script>
-    let streamAtual = null;
-    let fotoBase64 = null;
-    let codigoSMSEnviado = null;
-    let smsVerificado = false;
-    let usuarioPendenteReval = null;
+    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';[cite: 6]
+    const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_PUBLIC_AQUI'; // Cole sua chave anon public aqui
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    function alternarTela(modo) {
-      const formLogin = document.getElementById('form-login');
-      const formCadastro = document.getElementById('form-cadastro');
-      const titulo = document.getElementById('titulo-tela');
-      const subtitulo = document.getElementById('subtitulo-tela');
-      const textoAlternar = document.getElementById('texto-alternar');
+    let streamAtual = null, fotoBase64 = null, codigoSMSEnviado = null, smsVerificado = false, usuarioLogadoTemp = null;
 
-      if (modo === 'cadastro') {
-        formLogin.classList.add('hidden');
-        formCadastro.classList.remove('hidden');
-        titulo.innerText = "Criar Conta Passageiro";
-        subtitulo.innerText = "Liberação imediata após selfie e SMS";
-        textoAlternar.innerHTML = 'Já possui conta? <button type="button" onclick="alternarTela(\'login\')" class="text-emerald-400 font-bold hover:underline">Fazer Login</button>';
+    function alternarTela(m) {
+      if (m === 'cadastro') {
+        document.getElementById('form-login').classList.add('hidden');
+        document.getElementById('form-cadastro').classList.remove('hidden');
+        document.getElementById('titulo-tela').innerText = "Criar Conta";
       } else {
-        pararCamera();
-        formCadastro.classList.add('hidden');
-        formLogin.classList.remove('hidden');
-        titulo.innerText = "Área do Passageiro";
-        subtitulo.innerText = "Entre com seu celular e senha para viajar";
-        textoAlternar.innerHTML = 'Não tem uma conta? <button type="button" onclick="alternarTela(\'cadastro\')" class="text-emerald-400 font-bold hover:underline">Cadastre-se</button>';
+        document.getElementById('form-cadastro').classList.add('hidden');
+        document.getElementById('form-login').classList.remove('hidden');
+        document.getElementById('titulo-tela').innerText = "Área do Passageiro";
       }
     }
 
     function enviarCodigoSMS() {
-      const cel = document.getElementById('cad-celular').value.trim();
-      if (cel.length < 8) {
-        alert("Digite um número de celular válido antes de enviar o SMS.");
-        return;
-      }
       codigoSMSEnviado = Math.floor(1000 + Math.random() * 9000).toString();
       document.getElementById('box-codigo-sms').classList.remove('hidden');
-      document.getElementById('status-sms').innerText = `Código SMS enviado para ${cel}. (Código de teste: ${codigoSMSEnviado})`;
+      document.getElementById('status-sms').innerText = `Código teste enviado: ${codigoSMSEnviado}`;
     }
 
     function validarCodigoSMS() {
-      const digitado = document.getElementById('input-codigo-sms').value.trim();
-      if (digitado === codigoSMSEnviado) {
+      if (document.getElementById('input-codigo-sms').value.trim() === codigoSMSEnviado) {
         smsVerificado = true;
-        document.getElementById('status-sms').innerHTML = '<span class="text-emerald-400 font-bold"><i class="fa-solid fa-circle-check"></i> Celular verificado com sucesso!</span>';
-      } else {
-        alert("Código incorreto. Tente novamente.");
-      }
+        document.getElementById('status-sms').innerHTML = '<span class="text-emerald-400 font-bold">Celular confirmado!</span>';
+      } else { alert("Código incorreto."); }
     }
 
     function obterMeuEndereco() {
-      const campo = document.getElementById('cad-endereco');
-      if (!navigator.geolocation) return alert("GPS não suportado.");
-      campo.value = "Localizando...";
       navigator.geolocation.getCurrentPosition(async (pos) => {
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
           const d = await res.json();
-          campo.value = `${d.address.road || ''}, ${d.address.suburb || d.address.neighbourhood || ''} - ${d.address.city || d.address.town || 'Laguna'}`;
-        } catch {
-          campo.value = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
-        }
-      }, () => { campo.value = ""; alert("Permissão de GPS negada."); });
+          document.getElementById('cad-endereco').value = `${d.address.road || ''}, ${d.address.suburb || ''} - ${d.address.city || 'Laguna'}`;
+        } catch { document.getElementById('cad-endereco').value = `${pos.coords.latitude}, ${pos.coords.longitude}`; }
+      });
     }
 
     async function iniciarCamera() {
-      try {
-        streamAtual = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-        const video = document.getElementById('camera-stream');
-        video.srcObject = streamAtual;
-        video.classList.remove('hidden');
-        document.getElementById('icone-camera').classList.add('hidden');
-        document.getElementById('preview-selfie').classList.add('hidden');
-        document.getElementById('btn-abrir-camera').classList.add('hidden');
-        document.getElementById('btn-capturar-foto').classList.remove('hidden');
-      } catch { alert("Não foi possível abrir a câmera."); }
+      streamAtual = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+      const v = document.getElementById('camera-stream');
+      v.srcObject = streamAtual;
+      v.classList.remove('hidden');
+      document.getElementById('icone-camera').classList.add('hidden');
+      document.getElementById('btn-abrir-camera').classList.add('hidden');
+      document.getElementById('btn-capturar-foto').classList.remove('hidden');
     }
 
     function capturarSelfie() {
-      const video = document.getElementById('camera-stream');
-      const canvas = document.getElementById('canvas-selfie');
-      const preview = document.getElementById('preview-selfie');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0);
-      fotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
-      preview.src = fotoBase64;
-      preview.classList.remove('hidden');
-      video.classList.add('hidden');
-      document.getElementById('btn-capturar-foto').classList.add('hidden');
-      document.getElementById('btn-abrir-camera').innerHTML = '<i class="fa-solid fa-rotate-right mr-1"></i> Refazer';
-      document.getElementById('btn-abrir-camera').classList.remove('hidden');
-      pararCamera();
-    }
-
-    function pararCamera() {
-      if (streamAtual) {
-        streamAtual.getTracks().forEach(t => t.stop());
-        streamAtual = null;
-      }
+      const v = document.getElementById('camera-stream');
+      const c = document.getElementById('canvas-selfie');
+      c.width = v.videoWidth; c.height = v.videoHeight;
+      c.getContext('2d').drawImage(v, 0, 0);
+      fotoBase64 = c.toDataURL('image/jpeg', 0.8);
+      document.getElementById('preview-selfie').src = fotoBase64;
+      document.getElementById('preview-selfie').classList.remove('hidden');
+      v.classList.add('hidden');
+      if(streamAtual) streamAtual.getTracks().forEach(t => t.stop());
     }
 
     function passou15Dias(dataISO) {
       if (!dataISO) return true;
-      const diff = (new Date() - new Date(dataISO)) / (1000 * 60 * 60 * 24);
-      return diff >= 15;
+      return ((new Date() - new Date(dataISO)) / (1000 * 60 * 60 * 24)) >= 15;
     }
 
     async function realizarLogin(e) {
@@ -260,16 +166,14 @@
       const cel = document.getElementById('login-celular').value.trim();
       const senha = document.getElementById('login-senha').value;
 
-      const lista = JSON.parse(localStorage.getItem('lista_passageiros') || '[]');
-      const encontrado = lista.find(u => u.telefone === cel && u.senha === senha);
-
-      if (!encontrado) {
-        alert("Celular ou senha incorretos. Se ainda não tem conta, clique em Cadastre-se.");
+      const { data, error } = await supabaseClient.from('usuarios').select('*').eq('telefone', cel).eq('senha', senha).single();
+      if (error || !data) {
+        alert("Celular ou senha inválidos.");
         return;
       }
 
-      if (passou15Dias(encontrado.ultima_verificacao_facial)) {
-        usuarioPendenteReval = encontrado;
+      if (passou15Dias(data.ultima_verificacao_facial)) {
+        usuarioLogadoTemp = data;
         document.getElementById('form-login').classList.add('hidden');
         document.getElementById('box-revalidacao-selfie').classList.remove('hidden');
         streamAtual = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
@@ -277,37 +181,33 @@
         return;
       }
 
-      localStorage.setItem('passageiro_logado', JSON.stringify(encontrado));
+      localStorage.setItem('passageiro_logado', JSON.stringify(data));
       window.location.href = 'index.html';
     }
 
-    function confirmarRevalidacaoSelfie() {
-      const video = document.getElementById('video-reval');
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0);
-      usuarioPendenteReval.foto_url = canvas.toDataURL('image/jpeg', 0.8);
-      usuarioPendenteReval.ultima_verificacao_facial = new Date().toISOString();
-      pararCamera();
+    async function confirmarRevalidacaoSelfie() {
+      const v = document.getElementById('video-reval');
+      const c = document.createElement('canvas');
+      c.width = v.videoWidth; c.height = v.videoHeight;
+      c.getContext('2d').drawImage(v, 0, 0);
+      const novaFoto = c.toDataURL('image/jpeg', 0.8);
+      if(streamAtual) streamAtual.getTracks().forEach(t => t.stop());
 
-      const lista = JSON.parse(localStorage.getItem('lista_passageiros') || '[]');
-      const idx = lista.findIndex(u => u.id === usuarioPendenteReval.id);
-      if (idx !== -1) lista[idx] = usuarioPendenteReval;
-      localStorage.setItem('lista_passageiros', JSON.stringify(lista));
-      localStorage.setItem('passageiro_logado', JSON.stringify(usuarioPendenteReval));
-
+      const agora = new Date().toISOString();
+      await supabaseClient.from('usuarios').update({ foto_url: novaFoto, ultima_verificacao_facial: agora }).eq('id', usuarioLogadoTemp.id);
+      
+      usuarioLogadoTemp.foto_url = novaFoto;
+      usuarioLogadoTemp.ultima_verificacao_facial = agora;
+      localStorage.setItem('passageiro_logado', JSON.stringify(usuarioLogadoTemp));
       window.location.href = 'index.html';
     }
 
-    function realizarCadastro(e) {
+    async function realizarCadastro(e) {
       e.preventDefault();
-      if (!fotoBase64) return alert("Tire a selfie de confirmação para provar que é uma pessoa real.");
-      if (!smsVerificado) return alert("Valide seu número de celular via código SMS.");
+      if (!fotoBase64) return alert("Tire a selfie.");
+      if (!smsVerificado) return alert("Valide o SMS.");
 
-      const agora = new Date();
-      const novoPassageiro = {
-        id: 'PAS-' + Date.now(),
+      const novo = {
         nome: document.getElementById('cad-nome').value,
         cpf: document.getElementById('cad-cpf').value,
         telefone: document.getElementById('cad-celular').value.trim(),
@@ -315,17 +215,17 @@
         senha: document.getElementById('cad-senha').value,
         foto_url: fotoBase64,
         tipo: 'passageiro',
-        status: 'aprovado', // Acesso imediato sem depender de admin
-        data_cadastro: agora.toLocaleDateString('pt-BR') + ' às ' + agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
-        ultima_verificacao_facial: agora.toISOString()
+        data_cadastro: new Date().toLocaleDateString('pt-BR'),
+        ultima_verificacao_facial: new Date().toISOString()
       };
 
-      const lista = JSON.parse(localStorage.getItem('lista_passageiros') || '[]');
-      lista.push(novoPassageiro);
-      localStorage.setItem('lista_passageiros', JSON.stringify(lista));
-      localStorage.setItem('passageiro_logado', JSON.stringify(novoPassageiro));
-
-      window.location.href = 'index.html';
+      const { data, error } = await supabaseClient.from('usuarios').insert([novo]).select().single();
+      if (error) {
+        alert("Erro ao cadastrar: " + error.message);
+      } else {
+        localStorage.setItem('passageiro_logado', JSON.stringify(data));
+        window.location.href = 'index.html';
+      }
     }
   </script>
 </body>
