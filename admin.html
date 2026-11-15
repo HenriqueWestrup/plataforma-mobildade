@@ -46,7 +46,7 @@
   <!-- CONTEÚDO COM SCROLL -->
   <main class="flex-1 overflow-y-auto p-4 space-y-4 pb-16">
     
-    <!-- SEÇÃO 1: MOTORISTAS (Com sub-abas Online/Offline) -->
+    <!-- SEÇÃO 1: MOTORISTAS -->
     <div id="secao-motoristas" class="space-y-3">
       <div class="flex gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
         <button onclick="mudarSubAbaMotorista('online')" id="sub-btn-online" class="flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-emerald-600/20 text-emerald-400 border border-emerald-500/30">
@@ -85,12 +85,12 @@
 
   </main>
 
-  <!-- MODAL DE EDIÇÃO DE PERFIL / CONFIGURAÇÕES -->
+  <!-- MODAL DE EDIÇÃO -->
   <div id="modal-edicao" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
-          <i class="fa-solid fa-user-pen text-emerald-400"></i> Gestão de Perfil e Histórico
+          <i class="fa-solid fa-user-pen text-emerald-400"></i> Gestão de Perfil e Senha
         </h3>
         <button onclick="fecharModalEdicao()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
       </div>
@@ -103,7 +103,7 @@
           <img id="edit-foto-preview" class="w-14 h-14 rounded-full object-cover border border-emerald-500">
           <div>
             <p id="edit-tipo-badge" class="font-bold text-emerald-400 uppercase text-[10px]">-</p>
-            <p class="text-[10px] text-slate-400">ID do Usuário</p>
+            <p class="text-[10px] text-slate-400">Painel Administrativo</p>
           </div>
         </div>
 
@@ -127,22 +127,17 @@
           <input type="text" id="edit-endereco" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
         </div>
 
-        <!-- GERADOR DE SENHA TEMPORÁRIA -->
         <div class="space-y-1.5 pt-2 border-t border-slate-800 bg-slate-950/60 p-3 rounded-2xl border border-amber-500/20">
           <label class="text-amber-400 font-bold flex items-center justify-between">
-            <span><i class="fa-solid fa-key mr-1"></i> Senha Temporária de Acesso</span>
-            <span class="text-[9px] text-slate-400 font-normal">(Deixe vazio para manter a atual)</span>
+            <span><i class="fa-solid fa-key mr-1"></i> Senha Temporária</span>
+            <span class="text-[9px] text-slate-400 font-normal">(Opcional)</span>
           </label>
           <div class="flex gap-1.5">
-            <input type="text" id="edit-senha-temp" placeholder="Clique em Gerar..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold tracking-wider text-center">
-            <button type="button" onclick="gerarSenhaTemporaria()" class="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white border border-amber-500/40 px-3 py-2 rounded-xl font-bold transition whitespace-nowrap">
-              <i class="fa-solid fa-dice mr-1"></i> Gerar
-            </button>
-            <button type="button" onclick="copiarSenhaTemporaria()" title="Copiar senha para enviar ao usuário" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl font-bold transition">
-              <i class="fa-solid fa-copy"></i>
-            </button>
+            <input type="text" id="edit-senha-temp" placeholder="Gerar..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold tracking-wider text-center">
+            <button type="button" onclick="gerarSenhaTemporaria()" class="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white border border-amber-500/40 px-3 py-2 rounded-xl font-bold transition">Gerar</button>
+            <button type="button" onclick="copiarSenhaTemporaria()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl font-bold"><i class="fa-solid fa-copy"></i></button>
           </div>
-          <p id="feedback-copia-senha" class="text-[10px] text-emerald-400 hidden font-semibold text-right">Senha copiada! Lembre-se de clicar em Salvar.</p>
+          <p id="feedback-copia-senha" class="text-[10px] text-emerald-400 hidden font-semibold text-right">Senha copiada!</p>
         </div>
 
         <div id="edit-bloco-veiculo" class="space-y-2 pt-2 border-t border-slate-800 hidden">
@@ -156,18 +151,9 @@
           </div>
         </div>
 
-        <div class="space-y-1 pt-2 border-t border-slate-800">
-          <label class="text-slate-300 font-medium flex items-center gap-1">
-            <i class="fa-solid fa-clock-rotate-left text-amber-400"></i> Histórico de Viagens / Interações
-          </label>
-          <div id="edit-historico-viagens" class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 max-h-32 overflow-y-auto text-[11px] text-slate-400 space-y-1">
-            Carregando histórico...
-          </div>
-        </div>
-
         <div class="flex gap-2 pt-2">
-          <button type="button" onclick="fecharModalEdicao()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl transition">Cancelar</button>
-          <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition">Salvar Alterações</button>
+          <button type="button" onclick="fecharModalEdicao()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl">Cancelar</button>
+          <button type="submit" class="flex-1 bg-emerald-600 text-white font-bold py-2.5 rounded-xl">Salvar</button>
         </div>
       </form>
     </div>
@@ -188,11 +174,11 @@
 
     async function carregarDadosAdmin() {
       try {
-        // Busca motoristas
+        // 1. Busca motoristas
         const { data: motoristas, error: errMot } = await supabaseClient.from('motoristas').select('*');
         if (errMot) console.error("Erro motoristas:", errMot);
 
-        // Busca passageiros (tenta 'usuarios', se falhar ou vier vazio, tenta 'passageiros')
+        // 2. Busca passageiros (tenta 'usuarios', se falhar ou vier vazio, tenta 'passageiros')
         let usuarios = [];
         const { data: resUsuarios, error: errUsu } = await supabaseClient.from('usuarios').select('*');
         if (!errUsu && resUsuarios && resUsuarios.length > 0) {
@@ -206,8 +192,15 @@
           }
         }
 
-        // Tabela opcional de suporte
-        const { data: suporte } = await supabaseClient.from('suporte').select('*').catch(() => ({ data: [] }));
+        // 3. Busca suporte (tenta 'chamados_suporte' conforme identificado no print, com fallback para 'suporte')
+        let suporte = [];
+        const { data: resSup, error: errSup } = await supabaseClient.from('chamados_suporte').select('*');
+        if (!errSup && resSup) {
+          suporte = resSup;
+        } else {
+          const { data: resSupAntiga } = await supabaseClient.from('suporte').select('*').catch(() => ({ data: [] }));
+          suporte = resSupAntiga || [];
+        }
 
         dadosGlobaisMotoristas = motoristas || [];
         dadosGlobaisUsuarios = usuarios || [];
@@ -261,7 +254,6 @@
       if (abaAdminAtual === 'motoristas') {
         const onlineList = dadosGlobaisMotoristas.filter(m => m.online === true || m.status === 'aprovado');
         const offlineList = dadosGlobaisMotoristas.filter(m => m.online === false || m.online === null);
-        offlineList.sort((a, b) => new Date(b.ultimo_horario_saida || 0) - new Date(a.ultimo_horario_saida || 0));
 
         document.getElementById('count-online').innerText = onlineList.length;
         document.getElementById('count-offline').innerText = offlineList.length;
@@ -270,34 +262,36 @@
         const container = document.getElementById('lista-admin-motoristas');
 
         if (listaAlvo.length === 0) {
-          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista ${subAbaMotorista}.</div>`;
+          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista ${subAbaMotorista} cadastrado.</div>`;
         } else {
           container.innerHTML = listaAlvo.map(m => gerarCardAdmin(m, 'motoristas')).join('');
         }
       } else if (abaAdminAtual === 'usuarios') {
         const container = document.getElementById('lista-admin-passageiros');
         if (dadosGlobaisUsuarios.length === 0) {
-          container.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro cadastrado nas tabelas "usuarios" ou "passageiros".</div>';
+          container.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro cadastrado no banco.</div>';
         } else {
           container.innerHTML = dadosGlobaisUsuarios.map(u => gerarCardAdmin(u, tabelaUsuariosAtiva)).join('');
         }
       } else if (abaAdminAtual === 'suporte') {
         const container = document.getElementById('lista-admin-suporte');
-        const suporteFiltrado = dadosGlobaisSuporte.filter(s => s.tipo === subAbaSuporte);
+        const suporteFiltrado = dadosGlobaisSuporte.filter(s => {
+          if (subAbaSuporte === 'motoristas') return s.tipo === 'motoristas' || s.origem === 'motorista';
+          return s.tipo === 'passageiros' || s.origem === 'passageiro' || !s.tipo;
+        });
 
-        if (suporteFiltrado.length === 0) {
-          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum chamado de suporte para ${subAbaSuporte}.</div>`;
+        if (dadosGlobaisSuporte.length === 0) {
+          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum chamado de suporte pendente.</div>`;
         } else {
-          container.innerHTML = suporteFiltrado.map(s => `
+          container.innerHTML = dadosGlobaisSuporte.map(s => `
             <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40 space-y-2 shadow">
               <div class="flex justify-between items-start">
-                <h3 class="font-extrabold text-white text-xs">${s.nome_usuario || 'Usuário'}</h3>
-                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-400">Pendente</span>
+                <h3 class="font-extrabold text-white text-xs">${s.usuario_nome || s.nome_usuario || 'Usuário'}</h3>
+                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-400">${s.status || 'Pendente'}</span>
               </div>
-              <p class="text-slate-300 text-[11px]">${s.mensagem || 'Solicitação de suporte aberta.'}</p>
+              <p class="text-slate-300 text-[11px]">${s.mensagem || s.descricao || 'Solicitação de suporte aberta.'}</p>
               <div class="flex gap-2 pt-2 border-t border-slate-800">
-                <button onclick="abrirModalEdicao('${s.usuario_id}', '${subAbaSuporte === 'motoristas' ? 'motoristas' : tabelaUsuariosAtiva}')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 py-1.5 rounded-xl font-bold">Ver Perfil</button>
-                <button onclick="resolverSuporte('${s.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded-xl font-bold">Resolver</button>
+                <button onclick="resolverSuporte('${s.id}')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded-xl font-bold">Marcar como Resolvido</button>
               </div>
             </div>
           `).join('');
@@ -308,7 +302,6 @@
     function gerarCardAdmin(user, tabela) {
       const isBloqueado = user.status === 'bloqueado';
       const isMotorista = tabela === 'motoristas' || user.tipo === 'motorista';
-
       let badge = isBloqueado ? '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-500/20 text-red-400">Bloqueado</span>' : '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400">Ativo</span>';
 
       return `
@@ -317,10 +310,10 @@
             <img src="${user.foto_url || 'https://ui-avatars.com/api/?name=Usuario'}" class="w-12 h-12 rounded-full object-cover border-2 border-slate-700">
             <div class="flex-1">
               <div class="flex justify-between items-start">
-                <h3 class="font-extrabold text-white text-xs">${user.nome}</h3>
+                <h3 class="font-extrabold text-white text-xs">${user.nome || 'Sem Nome'}</h3>
                 ${badge}
               </div>
-              <p class="text-slate-400 text-[11px]">Cel: ${user.telefone} • CPF: ${user.cpf}</p>
+              <p class="text-slate-400 text-[11px]">Cel: ${user.telefone || '-'} • CPF: ${user.cpf || '-'}</p>
               ${isMotorista ? `<p class="text-slate-300 font-bold text-[11px]">Veículo: ${user.veiculo_modelo || 'Não informado'} (${user.veiculo_placa || 'Sem placa'})</p>` : ''}
             </div>
           </div>
@@ -341,12 +334,9 @@
 
     function copiarSenhaTemporaria() {
       const campo = document.getElementById('edit-senha-temp');
-      if (!campo.value) {
-        gerarSenhaTemporaria();
-      }
+      if (!campo.value) gerarSenhaTemporaria();
       navigator.clipboard.writeText(campo.value);
-      const feedback = document.getElementById('feedback-copia-senha');
-      feedback.classList.remove('hidden');
+      document.getElementById('feedback-copia-senha').classList.remove('hidden');
     }
 
     async function abrirModalEdicao(id, tabela) {
@@ -363,7 +353,7 @@
       document.getElementById('edit-senha-temp').value = '';
       document.getElementById('feedback-copia-senha').classList.add('hidden');
       document.getElementById('edit-foto-preview').src = user.foto_url || 'https://ui-avatars.com/api/?name=Usuario';
-      document.getElementById('edit-tipo-badge').innerText = tabela === 'motoristas' ? 'Motorista Parceiro' : 'Passageiro';
+      document.getElementById('edit-tipo-badge').innerText = tabela === 'motoristas' ? 'Motorista' : 'Passageiro';
 
       const blocoVeiculo = document.getElementById('edit-bloco-veiculo');
       if (tabela === 'motoristas') {
@@ -374,7 +364,6 @@
         blocoVeiculo.classList.add('hidden');
       }
 
-      document.getElementById('edit-historico-viagens').innerHTML = `<p class="text-emerald-400 font-semibold">• Sem ocorrências pendentes no histórico.</p>`;
       document.getElementById('modal-edicao').classList.remove('hidden');
     }
 
@@ -395,10 +384,7 @@
         endereco: document.getElementById('edit-endereco').value
       };
 
-      if (senhaTemp !== '') {
-        atualizacao.senha = senhaTemp;
-      }
-
+      if (senhaTemp !== '') atualizacao.senha = senhaTemp;
       if (tabela === 'motoristas') {
         atualizacao.veiculo_modelo = document.getElementById('edit-veiculo-modelo').value;
         atualizacao.veiculo_placa = document.getElementById('edit-veiculo-placa').value.toUpperCase();
@@ -407,7 +393,7 @@
       const { error } = await supabaseClient.from(tabela).update(atualizacao).eq('id', id);
       if (error) alert("Erro ao salvar: " + error.message);
       else {
-        alert(senhaTemp !== '' ? `Atualizado com sucesso! Nova senha temporária definida: ${senhaTemp}` : "Atualizado com sucesso!");
+        alert("Atualizado com sucesso!");
         fecharModalEdicao();
         carregarDadosAdmin();
       }
@@ -434,7 +420,6 @@
         status: 'pendente',
         veiculo_modelo: '',
         veiculo_placa: '',
-        data_cadastro: new Date().toLocaleDateString('pt-BR'),
         ultima_verificacao_facial: new Date().toISOString()
       };
 
@@ -447,7 +432,7 @@
     }
 
     async function resolverSuporte(idChamado) {
-      await supabaseClient.from('suporte').update({ status: 'resolvido' }).eq('id', idChamado);
+      await supabaseClient.from('chamados_suporte').update({ status: 'resolvido' }).eq('id', idChamado);
       carregarDadosAdmin();
     }
 
