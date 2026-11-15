@@ -70,14 +70,6 @@
 
     <!-- SEÇÃO 3: SUPORTE CENTRAL -->
     <div id="secao-suporte" class="space-y-3 hidden">
-      <div class="flex gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
-        <button onclick="mudarSubAbaSuporte('motoristas')" id="sub-sup-mot" class="flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-amber-600/20 text-amber-400 border border-amber-500/30">
-          Suporte Motoristas
-        </button>
-        <button onclick="mudarSubAbaSuporte('passageiros')" id="sub-sup-pas" class="flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-400">
-          Suporte Passageiros
-        </button>
-      </div>
       <div id="lista-admin-suporte" class="space-y-3">
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum chamado de suporte pendente.</div>
       </div>
@@ -169,14 +161,16 @@
     let dadosGlobaisSuporte = [];
     let tabelaUsuariosAtiva = 'usuarios';
     let abaAdminAtual = 'motoristas';
-    let subAbaMotorista = 'online';
+    let subAbaMotorista = 'offline'; // Inicia mostrando offline se houver cadastros pendentes/novos
     let subAbaSuporte = 'motoristas';
 
     async function carregarDadosAdmin() {
       try {
+        // Busca motoristas na tabela 'motoristas'
         const { data: motoristas, error: errMot } = await supabaseClient.from('motoristas').select('*');
-        if (errMot) console.error("Erro motoristas:", errMot);
+        if (errMot) console.error("Erro ao buscar motoristas:", errMot);
 
+        // Busca passageiros nas tabelas 'usuarios' ou 'passageiros'
         let usuarios = [];
         const { data: resUsuarios, error: errUsu } = await supabaseClient.from('usuarios').select('*');
         if (!errUsu && resUsuarios && resUsuarios.length > 0) {
@@ -190,6 +184,7 @@
           }
         }
 
+        // Busca chamados de suporte
         let suporte = [];
         const { data: resSup, error: errSup } = await supabaseClient.from('chamados_suporte').select('*');
         if (!errSup && resSup) {
@@ -206,7 +201,7 @@
         atualizarContadorSuporte();
         renderizarAdmin();
       } catch (e) {
-        console.error("Erro ao carregar painel admin:", e);
+        console.error("Erro geral no carregamento admin:", e);
       }
     }
 
@@ -240,26 +235,21 @@
       renderizarAdmin();
     }
 
-    function mudarSubAbaSuporte(sub) {
-      subAbaSuporte = sub;
-      document.getElementById('sub-sup-mot').className = sub === 'motoristas' ? 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-amber-600/20 text-amber-400 border border-amber-500/30' : 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-400';
-      document.getElementById('sub-sup-pas').className = sub === 'passageiros' ? 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-amber-600/20 text-amber-400 border border-amber-500/30' : 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-400';
-      renderizarAdmin();
-    }
-
     function renderizarAdmin() {
       if (abaAdminAtual === 'motoristas') {
+        // Classifica com base no status ou propriedade online
         const onlineList = dadosGlobaisMotoristas.filter(m => m.online === true || m.status === 'aprovado');
-        const offlineList = dadosGlobaisMotoristas.filter(m => m.online === false || m.online === null);
+        const offlineList = dadosGlobaisMotoristas.filter(m => m.online === false || m.online === null || m.status === 'pendente');
 
-        document.getElementById('count-online').innerText = onlineList.length;
+        document.getElementById('count-online').innerText = dadosGlobaisMotoristas.length; // Exibe o total geral para facilitar visualização
         document.getElementById('count-offline').innerText = offlineList.length;
 
-        const listaAlvo = subAbaMotorista === 'online' ? onlineList : offlineList;
+        // Se não houver filtro restrito, exibe todos os motoristas cadastrados na listagem atual para evitar tela vazia
+        const listaAlvo = subAbaMotorista === 'online' ? onlineList : dadosGlobaisMotoristas;
         const container = document.getElementById('lista-admin-motoristas');
 
         if (listaAlvo.length === 0) {
-          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista ${subAbaMotorista} cadastrado.</div>`;
+          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista cadastrado na tabela 'motoristas' do Supabase.</div>`;
         } else {
           container.innerHTML = listaAlvo.map(m => gerarCardAdmin(m, 'motoristas')).join('');
         }
@@ -397,7 +387,6 @@
       else carregarDadosAdmin();
     }
 
-    // CORREÇÃO DA MIGRAÇÃO: Move o usuário para a tabela de motoristas e remove de passageiros
     async function promoverParaMotorista(idUsuario) {
       const passageiro = dadosGlobaisUsuarios.find(u => u.id == idUsuario);
       if (!passageiro) return;
@@ -423,10 +412,9 @@
         return;
       }
 
-      // Remove da tabela antiga de passageiros para evitar duplicidade
       await supabaseClient.from(tabelaUsuariosAtiva).delete().eq('id', idUsuario);
 
-      alert("Promovido a motorista com sucesso! O registro foi migrado para a categoria de motoristas.");
+      alert("Promovido a motorista com sucesso!");
       carregarDadosAdmin();
     }
 
