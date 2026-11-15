@@ -10,6 +10,20 @@
 </head>
 <body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs">
 
+  <!-- BANNER DE CONTA SUSPENSA / BLOQUEADA -->
+  <div id="banner-bloqueio" class="hidden bg-red-950/90 border-b border-red-600 p-3 flex flex-col gap-2 shrink-0 z-50 transition-all duration-300">
+    <div class="flex items-center gap-2 text-red-300">
+      <i class="fa-solid fa-triangle-exclamation text-base animate-bounce"></i>
+      <div class="flex-1">
+        <h4 class="font-extrabold text-white text-xs">Atenção: Conta Suspensa Temporariamente</h4>
+        <p class="text-[10px] text-red-200">Seu acesso para corridas está restrito. Entre em contato com o suporte para reativação.</p>
+      </div>
+      <button onclick="abrirSuporteBloqueio()" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded-xl font-bold text-[11px] shadow">
+        Falar com Suporte
+      </button>
+    </div>
+  </div>
+
   <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0 z-40">
     <div class="flex items-center gap-3">
       <button onclick="toggleMenuLateral()" class="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800 border border-slate-700">
@@ -63,9 +77,10 @@
 
   <main class="flex-1 overflow-y-auto relative flex flex-col">
     <div id="modulo-inicio" class="flex-1 flex flex-col relative h-full bg-slate-900">
+      
       <!-- Botão ligar motorista (se for motorista) -->
       <div id="painel-botao-ligar" class="absolute bottom-28 inset-x-0 flex justify-center z-30 hidden">
-        <button onclick="ligarAppMotorista()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-8 py-4 rounded-full shadow-2xl flex items-center gap-3 text-sm animate-pulse border-2 border-emerald-400">
+        <button id="btn-ligar-motorista" onclick="tentarLigarMotorista()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-8 py-4 rounded-full shadow-2xl flex items-center gap-3 text-sm transition-all duration-300 border-2 border-emerald-400">
           <i class="fa-solid fa-power-off text-lg"></i> LIGAR APP (FICAR ONLINE)
         </button>
       </div>
@@ -80,23 +95,28 @@
           <i class="fa-solid fa-location-pin text-amber-400"></i>
           <input type="text" placeholder="Para onde vamos?" class="bg-transparent w-full text-xs text-slate-100 focus:outline-none">
         </div>
-        <button class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs">Chamar Motorista</button>
+        <button id="btn-chamar-corrida" onclick="tentarChamarCorrida()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs transition-all duration-300">Chamar Motorista</button>
       </div>
     </div>
   </main>
 
   <script>
-    function inicializarApp() {
+    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let usuarioLogado = null;
+
+    async function inicializarApp() {
       const motoristaStorage = localStorage.getItem('motorista_logado');
       const passageiroStorage = localStorage.getItem('passageiro_logado');
 
-      let usuario = null;
       if (motoristaStorage) {
-        usuario = JSON.parse(motoristaStorage);
+        usuarioLogado = JSON.parse(motoristaStorage);
         document.getElementById('painel-botao-ligar').classList.remove('hidden');
         document.getElementById('menu-tipo').innerText = "Motorista Parceiro";
       } else if (passageiroStorage) {
-        usuario = JSON.parse(passageiroStorage);
+        usuarioLogado = JSON.parse(passageiroStorage);
         document.getElementById('bloco-passageiro-busca').classList.remove('hidden');
         document.getElementById('menu-tipo').innerText = "Passageiro";
       } else {
@@ -104,8 +124,75 @@
         return;
       }
 
-      document.getElementById('menu-nome').innerText = usuario.nome || 'Usuário';
-      document.getElementById('menu-foto').src = usuario.foto_url || 'https://ui-avatars.com/api/?name=Usuario';
+      // Consulta o status atualizado no banco de dados
+      try {
+        const { data } = await supabaseClient.from('usuarios').select('*').eq('id', usuarioLogado.id).single();
+        if (data) usuarioLogado = data;
+      } catch (e) {
+        console.error("Erro ao verificar status:", e);
+      }
+
+      document.getElementById('menu-nome').innerText = usuarioLogado.nome || 'Usuário';
+      document.getElementById('menu-foto').src = usuarioLogado.foto_url || 'https://ui-avatars.com/api/?name=Usuario';
+
+      // Se a conta estiver bloqueada ou pendente (em análise), exibe o aviso
+      if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
+        document.getElementById('banner-bloqueio').classList.remove('hidden');
+      }
+    }
+
+    function dispararAlertaBloqueioVisual() {
+      const banner = document.getElementById('banner-bloqueio');
+      const btn = usuarioLogado.veiculo_modelo ? document.getElementById('btn-ligar-motorista') : document.getElementById('btn-chamar-corrida');
+      
+      // Efeito piscando em vermelho por 3 segundos
+      banner.classList.add('bg-red-600', 'animate-pulse');
+      if (btn) {
+        btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+        btn.classList.add('bg-red-600', 'animate-bounce');
+      }
+
+      setTimeout(() => {
+        banner.classList.remove('bg-red-600', 'animate-pulse');
+        if (btn) {
+          btn.classList.remove('bg-red-600', 'animate-bounce');
+          btn.classList.add('bg-emerald-600');
+        }
+      }, 3000);
+    }
+
+    function tentarLigarMotorista() {
+      if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
+        dispararAlertaBloqueioVisual();
+        return;
+      }
+      alert("Você está online e visível para os passageiros!");
+    }
+
+    function tentarChamarCorrida() {
+      if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
+        dispararAlertaBloqueioVisual();
+        return;
+      }
+      alert("Procurando motorista parceiro próximo...");
+    }
+
+    async function abrirSuporteBloqueio() {
+      const msg = prompt("Descreva o motivo do contato com o suporte:");
+      if (!msg) return;
+
+      const { error } = await supabaseClient.from('chamados_suporte').insert([{
+        usuario_id: usuarioLogado.id,
+        usuario_nome: usuarioLogado.nome,
+        mensagem: msg,
+        status: 'pendente'
+      }]);
+
+      if (error) {
+        alert("Erro ao enviar chamado: " + error.message);
+      } else {
+        alert("Solicitação enviada ao suporte administrativo com sucesso!");
+      }
     }
 
     function toggleMenuLateral() {

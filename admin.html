@@ -131,30 +131,23 @@
         <button onclick="fecharModalEdicao()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
       </div>
 
-      <!-- ID DO USUÁRIO E BOTÃO DE TIPO -->
+      <!-- ID DO USUÁRIO -->
       <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
         <div>
           <span class="text-[10px] text-slate-400 block">ID Único no Banco:</span>
           <span id="edit-id-display" class="font-mono text-emerald-400 font-bold select-all text-[11px]">-</span>
         </div>
-        <div>
-          <button type="button" id="btn-alternar-tipo" onclick="alternarTipoPerfilModal()" class="bg-amber-600/25 hover:bg-amber-600/40 text-amber-400 border border-amber-500/40 px-3 py-1.5 rounded-xl font-bold transition">
-            <i class="fa-solid fa-exchange-alt mr-1"></i> <span id="txt-btn-alternar">Tornar Motorista</span>
-          </button>
+        <div class="text-right">
+          <span id="edit-tipo-badge" class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Motorista Parceiro</span>
         </div>
       </div>
 
       <!-- ABAS INTERNAS DO MODAL -->
-      <div class="flex gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
-        <button type="button" onclick="mudarAbaModal('dados')" id="tab-btn-dados" class="flex-1 py-2 rounded-lg font-bold bg-emerald-600 text-white transition">
-          <i class="fa-solid fa-user mr-1"></i> Dados Pessoais
-        </button>
-        <button type="button" onclick="mudarAbaModal('viagens')" id="tab-btn-viagens" class="flex-1 py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition">
-          <i class="fa-solid fa-road mr-1"></i> Viagens & Ganhos
-        </button>
-        <button type="button" onclick="mudarAbaModal('chat')" id="tab-btn-chat" class="flex-1 py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition">
-          <i class="fa-solid fa-comments mr-1"></i> Chat & Senha
-        </button>
+      <div class="grid grid-cols-4 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px]">
+        <button type="button" onclick="mudarAbaModal('dados')" id="tab-btn-dados" class="py-2 rounded-lg font-bold bg-emerald-600 text-white transition">Dados</button>
+        <button type="button" onclick="mudarAbaModal('viagens')" id="tab-btn-viagens" class="py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition">Viagens</button>
+        <button type="button" onclick="mudarAbaModal('chat')" id="tab-btn-chat" class="py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition">Chat</button>
+        <button type="button" onclick="mudarAbaModal('status')" id="tab-btn-status" class="py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition">Status & Senha</button>
       </div>
 
       <form id="form-editar-usuario" onsubmit="salvarEdicaoUsuario(event)" class="space-y-4 text-xs">
@@ -166,7 +159,7 @@
           <div class="flex items-center gap-3 pb-2 border-b border-slate-800">
             <img id="edit-foto-preview" class="w-14 h-14 rounded-full object-cover border border-emerald-500">
             <div>
-              <p id="edit-tipo-badge" class="font-bold text-emerald-400 uppercase text-[10px]">-</p>
+              <p class="font-bold text-white uppercase text-[10px]">Conta Verificada</p>
               <p class="text-[10px] text-slate-400">Painel Administrativo</p>
             </div>
           </div>
@@ -193,7 +186,6 @@
             </div>
           </div>
 
-          <!-- Bloco Veículo (caso seja motorista) -->
           <div id="edit-bloco-veiculo" class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 hidden">
             <div class="space-y-1">
               <label class="text-slate-300 font-medium">Veículo</label>
@@ -213,8 +205,31 @@
           </div>
         </div>
 
-        <!-- CONTEÚDO DA ABA 3: CHAT E SENHA -->
+        <!-- CONTEÚDO DA ABA 3: CHAT -->
         <div id="modal-conteudo-chat" class="space-y-3 hidden">
+          <div class="space-y-2">
+            <h4 class="font-extrabold text-white text-xs flex items-center gap-1.5">
+              <i class="fa-solid fa-comments text-amber-400"></i> Histórico de Mensagens (Chat)
+            </h4>
+            <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 max-h-48 overflow-y-auto" id="detalhes-chat-usuario">
+              <p class="text-slate-500 text-center py-2">Carregando mensagens...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTEÚDO DA ABA 4: STATUS E SENHA -->
+        <div id="modal-conteudo-status" class="space-y-3 hidden">
+          <div class="space-y-2 bg-slate-950 p-3 rounded-2xl border border-slate-800">
+            <label class="text-slate-300 font-bold block mb-1">Status da Conta</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button type="button" onclick="definirStatusModal('aprovado')" id="btn-status-ativo" class="py-2 rounded-xl font-bold bg-emerald-600/20 text-emerald-400 border border-emerald-500/30">Ativo</button>
+              <button type="button" onclick="definirStatusModal('pendente')" id="btn-status-analise" class="py-2 rounded-xl font-bold bg-slate-900 text-slate-400 border border-slate-800">Em Análise</button>
+              <button type="button" onclick="definirStatusModal('bloqueado')" id="btn-status-bloqueado" class="py-2 rounded-xl font-bold bg-slate-900 text-slate-400 border border-slate-800">Bloqueado</button>
+            </div>
+            <input type="hidden" id="edit-status-valor" value="aprovado">
+            <p class="text-[10px] text-slate-400 mt-1">Contas suspensas/bloqueadas exibirão aviso de conta suspensa temporariamente ao tentar iniciar corridas.</p>
+          </div>
+
           <div class="space-y-1.5 bg-slate-950/60 p-3 rounded-2xl border border-amber-500/20">
             <label class="text-amber-400 font-bold flex items-center justify-between">
               <span><i class="fa-solid fa-key mr-1"></i> Senha Temporária</span>
@@ -226,15 +241,6 @@
               <button type="button" onclick="copiarSenhaTemporaria()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl font-bold"><i class="fa-solid fa-copy"></i></button>
             </div>
           </div>
-
-          <div class="space-y-2">
-            <h4 class="font-extrabold text-white text-xs flex items-center gap-1.5">
-              <i class="fa-solid fa-comments text-amber-400"></i> Histórico de Mensagens (Chat)
-            </h4>
-            <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 max-h-48 overflow-y-auto" id="detalhes-chat-usuario">
-              <p class="text-slate-500 text-center py-2">Carregando mensagens...</p>
-            </div>
-          </div>
         </div>
 
         <div class="flex gap-2 pt-3 border-t border-slate-800">
@@ -242,7 +248,6 @@
           <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl">Salvar Alterações</button>
         </div>
 
-        <!-- BOTÃO DE EXCLUIR USUÁRIO -->
         <div class="pt-2">
           <button type="button" onclick="abrirConfirmacaoExclusao()" class="w-full bg-red-950/40 hover:bg-red-900/40 text-red-400 border border-red-800 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
             <i class="fa-solid fa-trash-can"></i> Excluir Usuário Permanentemente
@@ -407,28 +412,13 @@
 
     async function carregarDadosAdmin() {
       try {
-        // Busca na tabela motoristas
-        const { data: resMot } = await supabaseClient.from('motoristas').select('*');
-        // Busca também na tabela usuarios aqueles que são motoristas (para garantir que nenhum fique de fora)
         const { data: resUsu } = await supabaseClient.from('usuarios').select('*');
         const { data: resSup } = await supabaseClient.from('chamados_suporte').select('*');
 
         const usuariosTotais = resUsu || [];
-        const motoristasTabela = resMot || [];
-
-        // Filtra usuários que tenham tipo motorista ou placa/veículo cadastrados
-        const usuariosComoMotoristas = usuariosTotais.filter(u => u.tipo === 'motorista' || u.veiculo_modelo);
         
-        // Combina e remove duplicados por ID ou telefone
-        const mapaMotoristas = new Map();
-        motoristasTabela.forEach(m => mapaMotoristas.set(m.id || m.telefone, m));
-        usuariosComoMotoristas.forEach(u => {
-          if (!mapaMotoristas.has(u.id || u.telefone)) {
-            mapaMotoristas.set(u.id || u.telefone, { ...u, tipo: 'motorista' });
-          }
-        });
-
-        dadosGlobaisMotoristas = Array.from(mapaMotoristas.values());
+        // Separa quem é motorista e quem é passageiro garantindo segurança caso a tabela "motoristas" não exista separada
+        dadosGlobaisMotoristas = usuariosTotais.filter(u => u.tipo === 'motorista' || u.veiculo_modelo);
         dadosGlobaisUsuarios = usuariosTotais.filter(u => u.tipo !== 'motorista' && !u.veiculo_modelo);
         dadosGlobaisSuporte = resSup || [];
 
@@ -484,7 +474,7 @@
         if (listaAlvo.length === 0) {
           container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista cadastrado.</div>`;
         } else {
-          container.innerHTML = listaAlvo.map(m => gerarCardAdmin(m, 'motoristas')).join('');
+          container.innerHTML = listaAlvo.map(m => gerarCardAdmin(m, 'usuarios')).join('');
         }
       } else if (abaAdminAtual === 'usuarios') {
         const container = document.getElementById('lista-admin-passageiros');
@@ -515,9 +505,14 @@
     }
 
     function gerarCardAdmin(user, tabela) {
-      const isBloqueado = user.status === 'bloqueado';
-      const isMotorista = tabela === 'motoristas';
-      let badge = isBloqueado ? '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-500/20 text-red-400">Bloqueado</span>' : '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400">Ativo</span>';
+      const status = user.status || 'aprovado';
+      const isBloqueado = status === 'bloqueado';
+      const isPendente = status === 'pendente';
+      const isMotorista = user.tipo === 'motorista' || user.veiculo_modelo;
+      
+      let badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400">Ativo</span>';
+      if (isBloqueado) badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-500/20 text-red-400">Bloqueado</span>';
+      else if (isPendente) badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-400">Em Análise</span>';
 
       return `
         <div class="bg-slate-900 p-4 rounded-2xl border ${isBloqueado ? 'border-red-500/40' : 'border-slate-800'} space-y-3 shadow">
@@ -533,39 +528,44 @@
             </div>
           </div>
           <div class="flex gap-2 pt-2 border-t border-slate-800 text-[11px]">
-            <button onclick="abrirModalEdicao('${user.id}', '${isMotorista ? 'motoristas' : 'usuarios'}')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 rounded-xl">Editar Perfil / Ver Histórico</button>
-            ${isBloqueado ? `<button onclick="mudarStatusConta('${user.id}', '${isMotorista ? 'motoristas' : 'usuarios'}', 'aprovado')" class="bg-emerald-600/20 text-emerald-400 px-3 py-2 rounded-xl font-bold">Desbloquear</button>` : `<button onclick="mudarStatusConta('${user.id}', '${isMotorista ? 'motoristas' : 'usuarios'}', 'bloqueado')" class="bg-red-600/20 text-red-400 px-3 py-2 rounded-xl font-bold">Bloquear</button>`}
+            <button onclick="abrirModalEdicao('${user.id}', 'usuarios')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 rounded-xl">Editar Perfil / Ver Histórico</button>
+            ${isBloqueado ? `<button onclick="mudarStatusConta('${user.id}', 'usuarios', 'aprovado')" class="bg-emerald-600/20 text-emerald-400 px-3 py-2 rounded-xl font-bold">Desbloquear</button>` : `<button onclick="mudarStatusConta('${user.id}', 'usuarios', 'bloqueado')" class="bg-red-600/20 text-red-400 px-3 py-2 rounded-xl font-bold">Bloquear</button>`}
           </div>
         </div>
       `;
     }
 
-    // SISTEMA DE ABAS INTERNAS NO MODAL
     function mudarAbaModal(aba) {
       document.getElementById('modal-conteudo-dados').classList.toggle('hidden', aba !== 'dados');
       document.getElementById('modal-conteudo-viagens').classList.toggle('hidden', aba !== 'viagens');
       document.getElementById('modal-conteudo-chat').classList.toggle('hidden', aba !== 'chat');
+      document.getElementById('modal-conteudo-status').classList.toggle('hidden', aba !== 'status');
 
-      document.getElementById('tab-btn-dados').className = aba === 'dados' ? 'flex-1 py-2 rounded-lg font-bold bg-emerald-600 text-white transition' : 'flex-1 py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition';
-      document.getElementById('tab-btn-viagens').className = aba === 'viagens' ? 'flex-1 py-2 rounded-lg font-bold bg-emerald-600 text-white transition' : 'flex-1 py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition';
-      document.getElementById('tab-btn-chat').className = aba === 'chat' ? 'flex-1 py-2 rounded-lg font-bold bg-emerald-600 text-white transition' : 'flex-1 py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition';
+      document.getElementById('tab-btn-dados').className = aba === 'dados' ? 'py-2 rounded-lg font-bold bg-emerald-600 text-white transition' : 'py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition';
+      document.getElementById('tab-btn-viagens').className = aba === 'viagens' ? 'py-2 rounded-lg font-bold bg-emerald-600 text-white transition' : 'py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition';
+      document.getElementById('tab-btn-chat').className = aba === 'chat' ? 'py-2 rounded-lg font-bold bg-emerald-600 text-white transition' : 'py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition';
+      document.getElementById('tab-btn-status').className = aba === 'status' ? 'py-2 rounded-lg font-bold bg-emerald-600 text-white transition' : 'py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition';
+    }
+
+    function definirStatusModal(status) {
+      document.getElementById('edit-status-valor').value = status;
+      const bAtivo = document.getElementById('btn-status-ativo');
+      const bAnalise = document.getElementById('btn-status-analise');
+      const bBloq = document.getElementById('btn-status-bloqueado');
+
+      bAtivo.className = "py-2 rounded-xl font-bold " + (status === 'aprovado' ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
+      bAnalise.className = "py-2 rounded-xl font-bold " + (status === 'pendente' ? "bg-amber-600/20 text-amber-400 border border-amber-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
+      bBloq.className = "py-2 rounded-xl font-bold " + (status === 'bloqueado' ? "bg-red-600/20 text-red-400 border border-red-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
     }
 
     async function abrirModalEdicao(id, tabela) {
-      const lista = tabela === 'motoristas' ? dadosGlobaisMotoristas : dadosGlobaisUsuarios;
-      let user = lista.find(item => item.id == id);
-      
-      // Fallback caso não ache na lista principal
-      if (!user) {
-        user = [...dadosGlobaisMotoristas, ...dadosGlobaisUsuarios].find(item => item.id == id);
-        if (user && user.veiculo_modelo) tabela = 'motoristas';
-      }
+      const user = [...dadosGlobaisMotoristas, ...dadosGlobaisUsuarios].find(item => item.id == id);
       if (!user) return;
 
       document.getElementById('modal-alerta-toast').classList.add('hidden');
       document.getElementById('edit-id').value = user.id;
       document.getElementById('edit-id-display').innerText = user.id;
-      document.getElementById('edit-tabela').value = tabela;
+      document.getElementById('edit-tabela').value = 'usuarios';
       document.getElementById('edit-nome').value = user.nome || '';
       document.getElementById('edit-cpf').value = user.cpf || '';
       document.getElementById('edit-telefone').value = user.telefone || '';
@@ -574,24 +574,23 @@
       document.getElementById('edit-foto-preview').src = user.foto_url || 'https://ui-avatars.com/api/?name=Usuario';
       
       const badgeTipo = document.getElementById('edit-tipo-badge');
-      const txtBtnAlternar = document.getElementById('txt-btn-alternar');
       const blocoVeiculo = document.getElementById('edit-bloco-veiculo');
+      const isMotorista = user.tipo === 'motorista' || user.veiculo_modelo;
 
-      if (tabela === 'motoristas') {
-        badgeTipo.innerText = "Motorista";
-        txtBtnAlternar.innerText = "Tornar Passageiro";
+      if (isMotorista) {
+        badgeTipo.innerText = "Motorista Parceiro";
         blocoVeiculo.classList.remove('hidden');
         document.getElementById('edit-veiculo-modelo').value = user.veiculo_modelo || '';
         document.getElementById('edit-veiculo-placa').value = user.veiculo_placa || '';
       } else {
         badgeTipo.innerText = "Passageiro";
-        txtBtnAlternar.innerText = "Tornar Motorista";
         blocoVeiculo.classList.add('hidden');
       }
 
-      mudarAbaModal('dados'); // Abre sempre na primeira aba
+      definirStatusModal(user.status || 'aprovado');
+      mudarAbaModal('dados');
       document.getElementById('modal-edicao').classList.remove('hidden');
-      carregarHistoricoEGanhosModal(id, tabela);
+      carregarHistoricoEGanhosModal(id, isMotorista ? 'motoristas' : 'usuarios');
     }
 
     function fecharModalEdicao() {
@@ -656,7 +655,7 @@
         containerViagens.innerHTML = htmlViagens;
 
         if (mensagens.length === 0) {
-          containerChat.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma mensagem de chat encontrada.</p>';
+          containerChat.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma mensagem encontrada.</p>';
         } else {
           let htmlChat = '';
           mensagens.forEach(m => {
@@ -672,87 +671,27 @@
       }
     }
 
-    async function alternarTipoPerfilModal() {
-      const id = document.getElementById('edit-id').value;
-      const tabelaAtual = document.getElementById('edit-tabela').value;
-      const lista = tabelaAtual === 'motoristas' ? dadosGlobaisMotoristas : dadosGlobaisUsuarios;
-      const user = lista.find(item => item.id == id);
-      if (!user) return;
-
-      if (tabelaAtual === 'motoristas') {
-        const novoPassageiro = {
-          nome: user.nome,
-          telefone: user.telefone,
-          cpf: user.cpf,
-          endereco: user.endereco || '',
-          senha: user.senha,
-          foto_url: user.foto_url || '',
-          tipo: 'passageiro',
-          status: 'aprovado',
-          ultima_verificacao_facial: new Date().toISOString()
-        };
-
-        const { error: errIns } = await supabaseClient.from('usuarios').insert([novoPassageiro]);
-        if (errIns) {
-          mostrarAlertaModal("Erro ao converter: " + errIns.message, "erro");
-          return;
-        }
-
-        await supabaseClient.from('corridas').delete().eq('motorista_id', id);
-        await supabaseClient.from('motoristas').delete().eq('id', id);
-
-        mostrarAlertaModal("Convertido para Passageiro com sucesso!", "sucesso");
-        setTimeout(() => { fecharModalEdicao(); carregarDadosAdmin(); }, 1200);
-      } else {
-        const novoMotorista = {
-          nome: user.nome,
-          telefone: user.telefone,
-          cpf: user.cpf,
-          endereco: user.endereco || '',
-          senha: user.senha,
-          foto_url: user.foto_url || '',
-          tipo: 'motorista',
-          status: 'aprovado',
-          veiculo_modelo: "Não informado",
-          veiculo_placa: "SEM-0000",
-          online: false,
-          ultima_verificacao_facial: new Date().toISOString()
-        };
-
-        const { error: errIns } = await supabaseClient.from('motoristas').insert([novoMotorista]);
-        if (errIns) {
-          mostrarAlertaModal("Erro ao promover: " + errIns.message, "erro");
-          return;
-        }
-
-        await supabaseClient.from('corridas').delete().eq('passageiro_id', id);
-        await supabaseClient.from('usuarios').delete().eq('id', id);
-
-        mostrarAlertaModal("Promovido a Motorista com sucesso!", "sucesso");
-        setTimeout(() => { fecharModalEdicao(); carregarDadosAdmin(); }, 1200);
-      }
-    }
-
     async function salvarEdicaoUsuario(e) {
       e.preventDefault();
       const id = document.getElementById('edit-id').value;
-      const tabela = document.getElementById('edit-tabela').value;
       const senhaTemp = document.getElementById('edit-senha-temp').value.trim();
+      const statusEscolhido = document.getElementById('edit-status-valor').value;
 
       const atualizacao = {
         nome: document.getElementById('edit-nome').value,
         cpf: document.getElementById('edit-cpf').value,
         telefone: document.getElementById('edit-telefone').value,
-        endereco: document.getElementById('edit-endereco').value
+        endereco: document.getElementById('edit-endereco').value,
+        status: statusEscolhido
       };
 
       if (senhaTemp !== '') atualizacao.senha = senhaTemp;
-      if (tabela === 'motoristas') {
+      if (!document.getElementById('edit-bloco-veiculo').classList.contains('hidden')) {
         atualizacao.veiculo_modelo = document.getElementById('edit-veiculo-modelo').value;
         atualizacao.veiculo_placa = document.getElementById('edit-veiculo-placa').value.toUpperCase();
       }
 
-      const { error } = await supabaseClient.from(tabela).update(atualizacao).eq('id', id);
+      const { error } = await supabaseClient.from('usuarios').update(atualizacao).eq('id', id);
       if (error) {
         mostrarAlertaModal("Erro ao salvar: " + error.message, "erro");
       } else {
@@ -767,14 +706,14 @@
     function gerarSenhaTemporaria() {
       const senhaGerada = Math.floor(100000 + Math.random() * 900000).toString();
       document.getElementById('edit-senha-temp').value = senhaGerada;
-      mostrarAlertaModal("Senha temporária gerada com sucesso!", "sucesso");
+      mostrarAlertaModal("Senha temporária gerada!", "sucesso");
     }
 
     function copiarSenhaTemporaria() {
       const campo = document.getElementById('edit-senha-temp');
       if (!campo.value) gerarSenhaTemporaria();
       navigator.clipboard.writeText(campo.value);
-      mostrarAlertaModal("Senha copiada para a área de transferência!", "sucesso");
+      mostrarAlertaModal("Senha copiada!", "sucesso");
     }
 
     function abrirConfirmacaoExclusao() {
@@ -800,24 +739,11 @@
 
       erroEl.classList.add('hidden');
       const id = document.getElementById('edit-id').value;
-      const tabela = document.getElementById('edit-tabela').value;
 
       try {
-        const { data: corridasUsuario } = await supabaseClient
-          .from('corridas')
-          .select('id')
-          .or(`passageiro_id.eq.${id},motorista_id.eq.${id}`);
-
-        if (corridasUsuario && corridasUsuario.length > 0) {
-          const idsCorridas = corridasUsuario.map(c => c.id);
-          await supabaseClient.from('mensagens_chat').delete().in('corrida_id', idsCorridas);
-        }
-
-        await supabaseClient.from('corridas').delete().eq('passageiro_id', id);
-        await supabaseClient.from('corridas').delete().eq('motorista_id', id);
+        await supabaseClient.from('corridas').delete().or(`passageiro_id.eq.${id},motorista_id.eq.${id}`);
         await supabaseClient.from('chamados_suporte').delete().eq('usuario_id', id);
-
-        const { error } = await supabaseClient.from(tabela).delete().eq('id', id);
+        const { error } = await supabaseClient.from('usuarios').delete().eq('id', id);
         
         if (error) {
           mostrarAlertaModal("Erro ao excluir: " + error.message, "erro");
@@ -832,7 +758,7 @@
     }
 
     async function mudarStatusConta(id, tabela, novoStatus) {
-      const { error } = await supabaseClient.from(tabela).update({ status: novoStatus }).eq('id', id);
+      const { error } = await supabaseClient.from('usuarios').update({ status: novoStatus }).eq('id', id);
       if (error) alert("Erro ao atualizar status: " + error.message);
       else carregarDadosAdmin();
     }
