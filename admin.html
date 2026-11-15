@@ -147,6 +147,13 @@
           <button type="button" onclick="fecharModalEdicao()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl">Cancelar</button>
           <button type="submit" class="flex-1 bg-emerald-600 text-white font-bold py-2.5 rounded-xl">Salvar</button>
         </div>
+
+        <!-- BOTÃO DE EXCLUIR USUÁRIO -->
+        <div class="pt-3 border-t border-slate-800">
+          <button type="button" onclick="excluirUsuarioAtual()" class="w-full bg-red-950/40 hover:bg-red-900/40 text-red-400 border border-red-800 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-trash-can"></i> Excluir Usuário Permanentemente
+          </button>
+        </div>
       </form>
     </div>
   </div>
@@ -161,16 +168,14 @@
     let dadosGlobaisSuporte = [];
     let tabelaUsuariosAtiva = 'usuarios';
     let abaAdminAtual = 'motoristas';
-    let subAbaMotorista = 'offline'; // Inicia mostrando offline se houver cadastros pendentes/novos
+    let subAbaMotorista = 'offline';
     let subAbaSuporte = 'motoristas';
 
     async function carregarDadosAdmin() {
       try {
-        // Busca motoristas na tabela 'motoristas'
         const { data: motoristas, error: errMot } = await supabaseClient.from('motoristas').select('*');
         if (errMot) console.error("Erro ao buscar motoristas:", errMot);
 
-        // Busca passageiros nas tabelas 'usuarios' ou 'passageiros'
         let usuarios = [];
         const { data: resUsuarios, error: errUsu } = await supabaseClient.from('usuarios').select('*');
         if (!errUsu && resUsuarios && resUsuarios.length > 0) {
@@ -184,7 +189,6 @@
           }
         }
 
-        // Busca chamados de suporte
         let suporte = [];
         const { data: resSup, error: errSup } = await supabaseClient.from('chamados_suporte').select('*');
         if (!errSup && resSup) {
@@ -237,14 +241,12 @@
 
     function renderizarAdmin() {
       if (abaAdminAtual === 'motoristas') {
-        // Classifica com base no status ou propriedade online
         const onlineList = dadosGlobaisMotoristas.filter(m => m.online === true || m.status === 'aprovado');
         const offlineList = dadosGlobaisMotoristas.filter(m => m.online === false || m.online === null || m.status === 'pendente');
 
-        document.getElementById('count-online').innerText = dadosGlobaisMotoristas.length; // Exibe o total geral para facilitar visualização
+        document.getElementById('count-online').innerText = dadosGlobaisMotoristas.length;
         document.getElementById('count-offline').innerText = offlineList.length;
 
-        // Se não houver filtro restrito, exibe todos os motoristas cadastrados na listagem atual para evitar tela vazia
         const listaAlvo = subAbaMotorista === 'online' ? onlineList : dadosGlobaisMotoristas;
         const container = document.getElementById('lista-admin-motoristas');
 
@@ -376,6 +378,26 @@
       if (error) alert("Erro ao salvar: " + error.message);
       else {
         alert("Atualizado com sucesso!");
+        fecharModalEdicao();
+        carregarDadosAdmin();
+      }
+    }
+
+    // NOVA FUNÇÃO: Excluir usuário permanentemente do Supabase
+    async function excluirUsuarioAtual() {
+      const id = document.getElementById('edit-id').value;
+      const tabela = document.getElementById('edit-tabela').value;
+      const nomeUsuario = document.getElementById('edit-nome').value;
+
+      if (!confirm(`Tem certeza que deseja excluir permanentemente o usuário "${nomeUsuario}"? Todos os dados serão apagados.`)) {
+        return;
+      }
+
+      const { error } = await supabaseClient.from(tabela).delete().eq('id', id);
+      if (error) {
+        alert("Erro ao excluir usuário: " + error.message);
+      } else {
+        alert("Usuário excluído com sucesso!");
         fecharModalEdicao();
         carregarDadosAdmin();
       }
