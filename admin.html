@@ -19,7 +19,7 @@
         </div>
         <div>
           <h1 class="text-base font-extrabold text-white">Painel Administrativo</h1>
-          <p class="text-[11px] text-slate-400">Aprovação de Motoristas e Gestão</p>
+          <p class="text-[11px] text-slate-400">Aprovação de Motoristas e Gestão de Usuários</p>
         </div>
       </div>
       <div class="flex gap-2">
@@ -40,10 +40,10 @@
       </div>
     </div>
 
-    <!-- SEÇÃO 2: PASSAGEIROS -->
+    <!-- SEÇÃO 2: PASSAGEIROS / USUÁRIOS -->
     <div class="space-y-3 pt-4 border-t border-slate-800">
       <h2 class="text-sm font-extrabold text-emerald-400 flex items-center gap-2">
-        <i class="fa-solid fa-users"></i> Passageiros Cadastrados
+        <i class="fa-solid fa-users"></i> Passageiros e Usuários Gerais
       </h2>
       <div id="lista-admin-passageiros" class="space-y-3">
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Carregando passageiros...</div>
@@ -52,7 +52,7 @@
   </div>
 
   <script>
-    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
+    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';[cite: 6]
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -77,7 +77,7 @@
                     </span>
                   </div>
                   <p class="text-slate-400">Cel: ${m.telefone} • CPF: ${m.cpf}</p>
-                  <p class="text-slate-300 font-bold">Veículo: ${m.veiculo_modelo} (${m.veiculo_placa})</p>
+                  <p class="text-slate-300 font-bold">Veículo: ${m.veiculo_modelo || 'Não informado'} (${m.veiculo_placa || 'Sem placa'})</p>
                 </div>
               </div>
               <div class="flex gap-2 pt-2 border-t border-slate-800">
@@ -100,15 +100,17 @@
           divPas.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro cadastrado.</div>';
         } else {
           divPas.innerHTML = passageiros.map(p => `
-            <div class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 flex items-center gap-3">
-              <img src="${p.foto_url || 'https://ui-avatars.com/api/?name=Passageiro'}" class="w-12 h-12 rounded-full object-cover border border-emerald-500">
-              <div class="flex-1">
-                <div class="flex justify-between">
+            <div class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <img src="${p.foto_url || 'https://ui-avatars.com/api/?name=Passageiro'}" class="w-12 h-12 rounded-full object-cover border border-emerald-500">
+                <div>
                   <h3 class="font-bold text-white">${p.nome}</h3>
-                  <span class="text-[10px] text-emerald-400 font-bold"><i class="fa-solid fa-face-smile"></i> Selfie OK</span>
+                  <p class="text-slate-400">Cel: ${p.telefone} • CPF: ${p.cpf}</p>
                 </div>
-                <p class="text-slate-400">Cel: ${p.telefone} • CPF: ${p.cpf}</p>
               </div>
+              <button onclick="promoverParaMotorista('${p.id}', '${p.nome}', '${p.telefone}', '${p.cpf}', '${p.endereco || ''}', '${p.foto_url || ''}', '${p.senha}')" class="bg-amber-600/20 text-amber-400 hover:bg-amber-600 hover:text-white px-3 py-2 rounded-xl font-bold border border-amber-500/40 transition">
+                <i class="fa-solid fa-car-side mr-1"></i> Tornar Motorista
+              </button>
             </div>
           `).join('');
         }
@@ -119,9 +121,27 @@
 
     async function mudarStatusMotorista(id, novoStatus) {
       const { error } = await supabaseClient.from('motoristas').update({ status: novoStatus }).eq('id', id);
-      if (error) {
-        alert("Erro ao atualizar status: " + error.message);
-      } else {
+      if (error) alert("Erro: " + error.message);
+      else carregarDadosAdmin();
+    }
+
+    async function promoverParaMotorista(id, nome, telefone, cpf, endereco, foto_url, senha) {
+      if (!confirm(`Deseja promover ${nome} para a categoria de Motorista?`)) return;
+
+      const novoMotorista = {
+        nome, telefone, cpf, endereco, foto_url, senha,
+        tipo: 'motorista',
+        status: 'pendente', // Exige aprovação ou complemento de dados do carro
+        veiculo_modelo: '',
+        veiculo_placa: '',
+        data_cadastro: new Date().toLocaleDateString('pt-BR'),
+        ultima_verificacao_facial: new Date().toISOString()
+      };
+
+      const { error } = await supabaseClient.from('motoristas').insert([novoMotorista]);
+      if (error) alert("Erro ao promover: " + error.message);
+      else {
+        alert("Usuário promovido a motorista com sucesso! Agora ele preencherá os dados do veículo no primeiro acesso.");
         carregarDadosAdmin();
       }
     }

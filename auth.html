@@ -58,7 +58,7 @@
       </div>
 
       <input type="text" id="cad-nome" required placeholder="Nome Completo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-      <input type="text" id="cad-cpf" required placeholder="CPF" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
+      <input type="text" id="cad-cpf" required placeholder="CPF (Ex: 123.456.789-99)" oninput="mascaraCPF(this)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
       
       <div class="flex gap-2">
         <input type="tel" id="cad-celular" required placeholder="Celular" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
@@ -93,11 +93,26 @@
   </div>
 
   <script>
-    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
+    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';[cite: 6]
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let streamAtual = null, fotoBase64 = null, codigoSMSEnviado = null, smsVerificado = false, usuarioLogadoTemp = null;
+
+    function mascaraCPF(i) {
+      let v = i.value.replace(/\D/g, "");
+      if (v.length > 11) v = v.slice(0, 11);
+      v = v.replace(/(\d{3})(\d)/, "$1.$2");
+      v = v.replace(/(\d{3})(\d)/, "$1.$2");
+      v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+      i.value = v;
+    }
+
+    function validarCPF(cpf) {
+      cpf = cpf.replace(/[^\d]+/g, '');
+      if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+      return true;
+    }
 
     function alternarTela(m) {
       if (m === 'cadastro') {
@@ -175,58 +190,4 @@
       if (passou15Dias(data.ultima_verificacao_facial)) {
         usuarioLogadoTemp = data;
         document.getElementById('form-login').classList.add('hidden');
-        document.getElementById('box-revalidacao-selfie').classList.remove('hidden');
-        streamAtual = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-        document.getElementById('video-reval').srcObject = streamAtual;
-        return;
-      }
-
-      localStorage.setItem('passageiro_logado', JSON.stringify(data));
-      window.location.href = 'index.html';
-    }
-
-    async function confirmarRevalidacaoSelfie() {
-      const v = document.getElementById('video-reval');
-      const c = document.createElement('canvas');
-      c.width = v.videoWidth; c.height = v.videoHeight;
-      c.getContext('2d').drawImage(v, 0, 0);
-      const novaFoto = c.toDataURL('image/jpeg', 0.8);
-      if(streamAtual) streamAtual.getTracks().forEach(t => t.stop());
-
-      const agora = new Date().toISOString();
-      await supabaseClient.from('usuarios').update({ foto_url: novaFoto, ultima_verificacao_facial: agora }).eq('id', usuarioLogadoTemp.id);
-      
-      usuarioLogadoTemp.foto_url = novaFoto;
-      usuarioLogadoTemp.ultima_verificacao_facial = agora;
-      localStorage.setItem('passageiro_logado', JSON.stringify(usuarioLogadoTemp));
-      window.location.href = 'index.html';
-    }
-
-    async function realizarCadastro(e) {
-      e.preventDefault();
-      if (!fotoBase64) return alert("Tire a selfie.");
-      if (!smsVerificado) return alert("Valide o SMS.");
-
-      const novo = {
-        nome: document.getElementById('cad-nome').value,
-        cpf: document.getElementById('cad-cpf').value,
-        telefone: document.getElementById('cad-celular').value.trim(),
-        endereco: document.getElementById('cad-endereco').value,
-        senha: document.getElementById('cad-senha').value,
-        foto_url: fotoBase64,
-        tipo: 'passageiro',
-        data_cadastro: new Date().toLocaleDateString('pt-BR'),
-        ultima_verificacao_facial: new Date().toISOString()
-      };
-
-      const { data, error } = await supabaseClient.from('usuarios').insert([novo]).select().single();
-      if (error) {
-        alert("Erro ao cadastrar: " + error.message);
-      } else {
-        localStorage.setItem('passageiro_logado', JSON.stringify(data));
-        window.location.href = 'index.html';
-      }
-    }
-  </script>
-</body>
-</html>
+        document

@@ -27,14 +27,16 @@
       <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Entrar como Motorista</button>
     </form>
 
-    <!-- REVALIDAÇÃO FACIAL MOTORISTA -->
-    <div id="box-reval-mot" class="hidden space-y-3 text-center text-xs bg-slate-950 p-4 rounded-2xl border border-amber-500/40">
-      <p class="text-amber-400 font-bold"><i class="fa-solid fa-shield-halved mr-1"></i> Validação Facial (15 dias)</p>
-      <div class="w-24 h-24 mx-auto rounded-full overflow-hidden border-2 border-amber-500 bg-slate-900">
-        <video id="video-reval-mot" class="w-full h-full object-cover" autoplay playsinline></video>
+    <!-- COMPLEMENTAR DADOS DO VEÍCULO (Caso tenha sido promovido pelo Admin) -->
+    <form id="form-complemento-veiculo" class="hidden space-y-3 text-xs" onsubmit="salvarDadosVeiculo(event)">
+      <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-amber-300 text-center">
+        <p class="font-bold">Conta promovida a Motorista!</p>
+        <p class="text-[11px] text-slate-400 mt-0.5">Informe os dados do seu veículo para liberar as corridas.</p>
       </div>
-      <button type="button" onclick="confirmarRevalMot()" class="w-full bg-amber-600 text-white font-bold py-2.5 rounded-xl">Confirmar Selfie e Entrar</button>
-    </div>
+      <input type="text" id="comp-veiculo" required placeholder="Modelo do Veículo (Ex: Renault Logan)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
+      <input type="text" id="comp-placa" required placeholder="Placa (Ex: ABC-1234)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 uppercase text-slate-100">
+      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Salvar Veículo e Entrar</button>
+    </form>
 
     <!-- CADASTRO MOTORISTA -->
     <form id="form-cadastro-motorista" class="hidden space-y-3 text-xs" onsubmit="realizarCadastroMotorista(event)">
@@ -52,7 +54,7 @@
       </div>
 
       <input type="text" id="cad-mot-nome" required placeholder="Nome Completo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-      <input type="text" id="cad-mot-cpf" required placeholder="CPF" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
+      <input type="text" id="cad-mot-cpf" required placeholder="CPF (Ex: 123.456.789-99)" oninput="mascaraCPF(this)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
       
       <div class="flex gap-2">
         <input type="tel" id="cad-mot-celular" required placeholder="Celular" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
@@ -92,11 +94,26 @@
   </div>
 
   <script>
-    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
+    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';[cite: 6]
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    let streamMot = null, fotoMotBase64 = null, codigoSMSMot = null, smsMotOk = false, motTemp = null;
+    let streamMot = null, fotoMotBase64 = null, codigoSMSMot = null, smsMotOk = false, motoristaPendenteObj = null;
+
+    function mascaraCPF(i) {
+      let v = i.value.replace(/\D/g, "");
+      if (v.length > 11) v = v.slice(0, 11);
+      v = v.replace(/(\d{3})(\d)/, "$1.$2");
+      v = v.replace(/(\d{3})(\d)/, "$1.$2");
+      v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+      i.value = v;
+    }
+
+    function validarCPF(cpf) {
+      cpf = cpf.replace(/[^\d]+/g, '');
+      if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+      return true;
+    }
 
     function alternarTelaMot(m) {
       if (m === 'cadastro') {
@@ -155,11 +172,6 @@
       if(streamMot) streamMot.getTracks().forEach(t => t.stop());
     }
 
-    function passou15Dias(dataISO) {
-      if (!dataISO) return true;
-      return ((new Date() - new Date(dataISO)) / (1000 * 60 * 60 * 24)) >= 15;
-    }
-
     async function realizarLoginMotorista(e) {
       e.preventDefault();
       const cel = document.getElementById('login-celular-motorista').value.trim();
@@ -171,17 +183,17 @@
         return;
       }
 
-      if (data.status !== 'aprovado') {
-        alert("Seu cadastro de motorista ainda está AGUARDANDO APROVAÇÃO do administrador.");
+      // Se o motorista foi promovido pelo admin mas não tem veículo cadastrado ainda:
+      if (!data.veiculo_modelo || !data.veiculo_placa) {
+        motoristaPendenteObj = data;
+        document.getElementById('form-login-motorista').classList.add('hidden');
+        document.getElementById('form-complemento-veiculo').classList.remove('hidden');
+        document.getElementById('titulo-motorista').innerText = "Cadastrar Veículo";
         return;
       }
 
-      if (passou15Dias(data.ultima_verificacao_facial)) {
-        motTemp = data;
-        document.getElementById('form-login-motorista').classList.add('hidden');
-        document.getElementById('box-reval-mot').classList.remove('hidden');
-        streamMot = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-        document.getElementById('video-reval-mot').srcObject = streamMot;
+      if (data.status !== 'aprovado') {
+        alert("Seu cadastro de motorista está aguardando aprovação.");
         return;
       }
 
@@ -189,31 +201,41 @@
       window.location.href = 'motorista.html';
     }
 
-    async function confirmarRevalMot() {
-      const v = document.getElementById('video-reval-mot');
-      const c = document.createElement('canvas');
-      c.width = v.videoWidth; c.height = v.videoHeight;
-      c.getContext('2d').drawImage(v, 0, 0);
-      const novaFoto = c.toDataURL('image/jpeg', 0.8);
-      if(streamMot) streamMot.getTracks().forEach(t => t.stop());
+    async function salvarDadosVeiculo(e) {
+      e.preventDefault();
+      const veiculo = document.getElementById('comp-veiculo').value.trim();
+      const placa = document.getElementById('comp-placa').value.trim().toUpperCase();
 
-      const agora = new Date().toISOString();
-      await supabaseClient.from('motoristas').update({ foto_url: novaFoto, ultima_verificacao_facial: agora }).eq('id', motTemp.id);
-      
-      motTemp.foto_url = novaFoto;
-      motTemp.ultima_verificacao_facial = agora;
-      localStorage.setItem('motorista_logado', JSON.stringify(motTemp));
-      window.location.href = 'motorista.html';
+      const { error } = await supabaseClient.from('motoristas').update({
+        veiculo_modelo: veiculo,
+        veiculo_placa: placa,
+        status: 'aprovado'
+      }).eq('id', motoristaPendenteObj.id);
+
+      if (error) {
+        alert("Erro ao salvar veículo: " + error.message);
+      } else {
+        motoristaPendenteObj.veiculo_modelo = veiculo;
+        motoristaPendenteObj.veiculo_placa = placa;
+        motoristaPendenteObj.status = 'aprovado';
+        localStorage.setItem('motorista_logado', JSON.stringify(motoristaPendenteObj));
+        window.location.href = 'motorista.html';
+      }
     }
 
     async function realizarCadastroMotorista(e) {
       e.preventDefault();
+      const cpfVal = document.getElementById('cad-mot-cpf').value;
+      if (!validarCPF(cpfVal)) {
+        alert("Por favor, insira um CPF válido no padrão 123.456.789-99.");
+        return;
+      }
       if (!fotoMotBase64) return alert("Selfie obrigatória.");
       if (!smsMotOk) return alert("Valide o SMS.");
 
       const novo = {
         nome: document.getElementById('cad-mot-nome').value,
-        cpf: document.getElementById('cad-mot-cpf').value,
+        cpf: cpfVal,
         telefone: document.getElementById('cad-mot-celular').value.trim(),
         endereco: document.getElementById('cad-mot-endereco').value,
         veiculo_modelo: document.getElementById('cad-mot-veiculo').value,
@@ -230,7 +252,7 @@
       if (error) {
         alert("Erro: " + error.message);
       } else {
-        alert("Cadastro enviado! Aguarde a aprovação do administrador.");
+        alert("Cadastro enviado com sucesso! Aguarde a aprovação.");
         alternarTelaMot('login');
       }
     }
