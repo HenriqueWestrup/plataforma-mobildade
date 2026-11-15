@@ -1,38 +1,39 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="dark">
+<html lang="pt-BR" class="dark h-full">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Admin - Mobilidade Laguna</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-4 text-xs">
+<body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs">
 
-  <div class="max-w-2xl mx-auto space-y-6">
-    <!-- CABEÇALHO -->
-    <div class="bg-slate-900 border border-slate-800 p-4 rounded-3xl flex justify-between items-center shadow-lg">
-      <div class="flex items-center gap-3">
-        <div class="bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 p-2.5 rounded-2xl">
-          <i class="fa-solid fa-shield-halved text-lg"></i>
-        </div>
-        <div>
-          <h1 class="text-base font-extrabold text-white">Painel Administrativo</h1>
-          <p class="text-[11px] text-slate-400">Aprovação de Motoristas e Gestão de Usuários</p>
-        </div>
+  <!-- TOPO FIXO -->
+  <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 p-2 rounded-xl">
+        <i class="fa-solid fa-shield-halved text-base"></i>
       </div>
-      <div class="flex gap-2">
-        <button onclick="carregarDadosAdmin()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl font-bold border border-slate-700">
-          <i class="fa-solid fa-rotate"></i>
-        </button>
-        <a href="auth.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-xl font-bold border border-slate-700">Sair</a>
+      <div>
+        <h1 class="text-sm font-extrabold text-white">Painel Administrativo</h1>
+        <p class="text-[10px] text-slate-400">Gestão de Motoristas e Passageiros</p>
       </div>
     </div>
+    <div class="flex gap-2">
+      <button onclick="carregarDadosAdmin()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl font-bold border border-slate-700">
+        <i class="fa-solid fa-rotate"></i>
+      </button>
+      <a href="auth.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-xl font-bold border border-slate-700">Sair</a>
+    </div>
+  </header>
 
+  <!-- CONTEÚDO COM SCROLL -->
+  <main class="flex-1 overflow-y-auto p-4 space-y-6 pb-12">
     <!-- SEÇÃO 1: MOTORISTAS -->
     <div class="space-y-3">
-      <h2 class="text-sm font-extrabold text-amber-400 flex items-center gap-2">
+      <h2 class="text-xs font-extrabold text-amber-400 flex items-center gap-2 uppercase tracking-wide">
         <i class="fa-solid fa-car"></i> Cadastros de Motoristas
       </h2>
       <div id="lista-admin-motoristas" class="space-y-3">
@@ -40,53 +41,57 @@
       </div>
     </div>
 
-    <!-- SEÇÃO 2: PASSAGEIROS / USUÁRIOS -->
+    <!-- SEÇÃO 2: PASSAGEIROS -->
     <div class="space-y-3 pt-4 border-t border-slate-800">
-      <h2 class="text-sm font-extrabold text-emerald-400 flex items-center gap-2">
-        <i class="fa-solid fa-users"></i> Passageiros e Usuários Gerais
+      <h2 class="text-xs font-extrabold text-emerald-400 flex items-center gap-2 uppercase tracking-wide">
+        <i class="fa-solid fa-users"></i> Passageiros Cadastrados
       </h2>
       <div id="lista-admin-passageiros" class="space-y-3">
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Carregando passageiros...</div>
       </div>
     </div>
-  </div>
+  </main>
 
   <script>
-    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';[cite: 6]
+    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     async function carregarDadosAdmin() {
       try {
+        // Busca motoristas na tabela
         const { data: motoristas, error: errMot } = await supabaseClient.from('motoristas').select('*');
+        // Busca passageiros na tabela
         const { data: passageiros, error: errPas } = await supabaseClient.from('usuarios').select('*');
 
         const divMot = document.getElementById('lista-admin-motoristas');
-        if (errMot || !motoristas || motoristas.length === 0) {
+        if (errMot) {
+          divMot.innerHTML = `<div class="bg-red-950/40 p-4 rounded-2xl border border-red-800 text-red-400 text-center">Erro ao carregar motoristas: ${errMot.message}</div>`;
+        } else if (!motoristas || motoristas.length === 0) {
           divMot.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista cadastrado.</div>';
         } else {
           divMot.innerHTML = motoristas.map((m) => `
-            <div class="bg-slate-900 p-4 rounded-2xl border ${m.status === 'aprovado' ? 'border-emerald-500/40' : 'border-amber-500/40'} space-y-3">
+            <div class="bg-slate-900 p-4 rounded-2xl border ${m.status === 'aprovado' ? 'border-emerald-500/40' : 'border-amber-500/40'} space-y-3 shadow">
               <div class="flex items-center gap-3">
-                <img src="${m.foto_url || 'https://ui-avatars.com/api/?name=Motorista'}" class="w-14 h-14 rounded-full object-cover border-2 border-slate-700">
+                <img src="${m.foto_url || 'https://ui-avatars.com/api/?name=Motorista'}" class="w-12 h-12 rounded-full object-cover border-2 border-slate-700">
                 <div class="flex-1">
                   <div class="flex justify-between items-start">
-                    <h3 class="font-extrabold text-white text-sm">${m.nome}</h3>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${m.status === 'aprovado' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">
-                      ${m.status === 'aprovado' ? 'Aprovado' : 'Aguardando Aprovação'}
+                    <h3 class="font-extrabold text-white text-xs">${m.nome}</h3>
+                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${m.status === 'aprovado' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">
+                      ${m.status === 'aprovado' ? 'Aprovado' : 'Aguardando'}
                     </span>
                   </div>
-                  <p class="text-slate-400">Cel: ${m.telefone} • CPF: ${m.cpf}</p>
-                  <p class="text-slate-300 font-bold">Veículo: ${m.veiculo_modelo || 'Não informado'} (${m.veiculo_placa || 'Sem placa'})</p>
+                  <p class="text-slate-400 text-[11px]">Cel: ${m.telefone} • CPF: ${m.cpf}</p>
+                  <p class="text-slate-300 font-bold text-[11px]">Veículo: ${m.veiculo_modelo || 'Não informado'} (${m.veiculo_placa || 'Sem placa'})</p>
                 </div>
               </div>
               <div class="flex gap-2 pt-2 border-t border-slate-800">
                 ${m.status !== 'aprovado' ? `
-                  <button onclick="mudarStatusMotorista('${m.id}', 'aprovado')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl">
+                  <button onclick="mudarStatusMotorista('${m.id}', 'aprovado')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl transition">
                     <i class="fa-solid fa-check mr-1"></i> Aprovar Motorista
                   </button>
                 ` : `
-                  <button onclick="mudarStatusMotorista('${m.id}', 'pendente')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-2 rounded-xl">
+                  <button onclick="mudarStatusMotorista('${m.id}', 'pendente')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-2 rounded-xl transition">
                     Suspender Acesso
                   </button>
                 `}
@@ -96,32 +101,34 @@
         }
 
         const divPas = document.getElementById('lista-admin-passageiros');
-        if (errPas || !passageiros || passageiros.length === 0) {
+        if (errPas) {
+          divPas.innerHTML = `<div class="bg-red-950/40 p-4 rounded-2xl border border-red-800 text-red-400 text-center">Erro ao carregar passageiros: ${errPas.message}</div>`;
+        } else if (!passageiros || passageiros.length === 0) {
           divPas.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro cadastrado.</div>';
         } else {
           divPas.innerHTML = passageiros.map(p => `
-            <div class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between gap-3">
+            <div class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between gap-3 shadow">
               <div class="flex items-center gap-3">
-                <img src="${p.foto_url || 'https://ui-avatars.com/api/?name=Passageiro'}" class="w-12 h-12 rounded-full object-cover border border-emerald-500">
+                <img src="${p.foto_url || 'https://ui-avatars.com/api/?name=Passageiro'}" class="w-10 h-10 rounded-full object-cover border border-emerald-500">
                 <div>
-                  <h3 class="font-bold text-white">${p.nome}</h3>
-                  <p class="text-slate-400">Cel: ${p.telefone} • CPF: ${p.cpf}</p>
+                  <h3 class="font-bold text-white text-xs">${p.nome}</h3>
+                  <p class="text-slate-400 text-[11px]">Cel: ${p.telefone} • CPF: ${p.cpf}</p>
                 </div>
               </div>
               <button onclick="promoverParaMotorista('${p.id}', '${p.nome}', '${p.telefone}', '${p.cpf}', '${p.endereco || ''}', '${p.foto_url || ''}', '${p.senha}')" class="bg-amber-600/20 text-amber-400 hover:bg-amber-600 hover:text-white px-3 py-2 rounded-xl font-bold border border-amber-500/40 transition">
-                <i class="fa-solid fa-car-side mr-1"></i> Tornar Motorista
+                <i class="fa-solid fa-car-side mr-1"></i> Motorista
               </button>
             </div>
           `).join('');
         }
       } catch (e) {
-        console.error("Erro ao carregar admin:", e);
+        console.error("Erro geral no admin:", e);
       }
     }
 
     async function mudarStatusMotorista(id, novoStatus) {
       const { error } = await supabaseClient.from('motoristas').update({ status: novoStatus }).eq('id', id);
-      if (error) alert("Erro: " + error.message);
+      if (error) alert("Erro ao atualizar: " + error.message);
       else carregarDadosAdmin();
     }
 
@@ -131,7 +138,7 @@
       const novoMotorista = {
         nome, telefone, cpf, endereco, foto_url, senha,
         tipo: 'motorista',
-        status: 'pendente', // Exige aprovação ou complemento de dados do carro
+        status: 'pendente',
         veiculo_modelo: '',
         veiculo_placa: '',
         data_cadastro: new Date().toLocaleDateString('pt-BR'),
@@ -141,7 +148,7 @@
       const { error } = await supabaseClient.from('motoristas').insert([novoMotorista]);
       if (error) alert("Erro ao promover: " + error.message);
       else {
-        alert("Usuário promovido a motorista com sucesso! Agora ele preencherá os dados do veículo no primeiro acesso.");
+        alert("Usuário promovido com sucesso! No primeiro login como motorista, ele preencherá os dados do veículo.");
         carregarDadosAdmin();
       }
     }
