@@ -169,9 +169,23 @@
 
     async function carregarDadosAdmin() {
       try {
-        const { data: motoristas } = await supabaseClient.from('motoristas').select('*');
-        const { data: usuarios } = await supabaseClient.from('usuarios').select('*');
-        // Tabela opcional de suporte se criada no Supabase
+        // Busca motoristas
+        const { data: motoristas, error: errMot } = await supabaseClient.from('motoristas').select('*');
+        if (errMot) console.error("Erro motoristas:", errMot);
+
+        // Busca passageiros (tenta 'usuarios', se falhar ou vier vazio, tenta 'passageiros')
+        let usuarios = [];
+        const { data: resUsuarios, error: errUsu } = await supabaseClient.from('usuarios').select('*');
+        if (!errUsu && resUsuarios && resUsuarios.length > 0) {
+          usuarios = resUsuarios;
+        } else {
+          const { data: resPassageiros, error: errPas } = await supabaseClient.from('passageiros').select('*');
+          if (!errPas && resPassageiros) {
+            usuarios = resPassageiros;
+          }
+        }
+
+        // Tabela opcional de suporte
         const { data: suporte } = await supabaseClient.from('suporte').select('*').catch(() => ({ data: [] }));
 
         dadosGlobaisMotoristas = motoristas || [];
@@ -242,7 +256,7 @@
       } else if (abaAdminAtual === 'usuarios') {
         const container = document.getElementById('lista-admin-passageiros');
         if (dadosGlobaisUsuarios.length === 0) {
-          container.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro cadastrado.</div>';
+          container.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro cadastrado nas tabelas "usuarios" ou "passageiros".</div>';
         } else {
           container.innerHTML = dadosGlobaisUsuarios.map(u => gerarCardAdmin(u, 'usuarios')).join('');
         }
