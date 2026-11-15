@@ -183,6 +183,12 @@
         return;
       }
 
+      // Validação de Conta Bloqueada
+      if (data.status === 'bloqueado') {
+        alert("Conta temporariamente suspensa. Por favor, entre em contato com o suporte.");
+        return;
+      }
+
       // Se o motorista foi promovido pelo admin mas não tem veículo cadastrado ainda:
       if (!data.veiculo_modelo || !data.veiculo_placa) {
         motoristaPendenteObj = data;
@@ -198,7 +204,7 @@
       }
 
       localStorage.setItem('motorista_logado', JSON.stringify(data));
-      window.location.href = 'motorista.html';
+      window.location.href = 'index.html';
     }
 
     async function salvarDadosVeiculo(e) {
@@ -219,7 +225,7 @@
         motoristaPendenteObj.veiculo_placa = placa;
         motoristaPendenteObj.status = 'aprovado';
         localStorage.setItem('motorista_logado', JSON.stringify(motoristaPendenteObj));
-        window.location.href = 'motorista.html';
+        window.location.href = 'index.html';
       }
     }
 

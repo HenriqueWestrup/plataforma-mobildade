@@ -93,7 +93,7 @@
   </div>
 
   <script>
-    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';[cite: 6]
+    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -187,7 +187,73 @@
         return;
       }
 
+      // Validação de Conta Bloqueada
+      if (data.status === 'bloqueado') {
+        alert("Conta temporariamente suspensa. Por favor, entre em contato com o suporte.");
+        return;
+      }
+
       if (passou15Dias(data.ultima_verificacao_facial)) {
         usuarioLogadoTemp = data;
         document.getElementById('form-login').classList.add('hidden');
-        document
+        document.getElementById('box-revalidacao-selfie').classList.remove('hidden');
+        streamAtual = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        document.getElementById('video-reval').srcObject = streamAtual;
+        return;
+      }
+
+      localStorage.setItem('passageiro_logado', JSON.stringify(data));
+      window.location.href = 'index.html';
+    }
+
+    async function confirmarRevalidacaoSelfie() {
+      const v = document.getElementById('video-reval');
+      const c = document.createElement('canvas');
+      c.width = v.videoWidth; c.height = v.videoHeight;
+      c.getContext('2d').drawImage(v, 0, 0);
+      const novaFoto = c.toDataURL('image/jpeg', 0.8);
+      if(streamAtual) streamAtual.getTracks().forEach(t => t.stop());
+
+      const agora = new Date().toISOString();
+      await supabaseClient.from('usuarios').update({ foto_url: novaFoto, ultima_verificacao_facial: agora }).eq('id', usuarioLogadoTemp.id);
+      
+      usuarioLogadoTemp.foto_url = novaFoto;
+      usuarioLogadoTemp.ultima_verificacao_facial = agora;
+      localStorage.setItem('passageiro_logado', JSON.stringify(usuarioLogadoTemp));
+      window.location.href = 'index.html';
+    }
+
+    async function realizarCadastro(e) {
+      e.preventDefault();
+      const cpfVal = document.getElementById('cad-cpf').value;
+      if (!validarCPF(cpfVal)) {
+        alert("Por favor, insira um CPF válido no padrão 123.456.789-99.");
+        return;
+      }
+      if (!fotoBase64) return alert("Tire a selfie.");
+      if (!smsVerificado) return alert("Valide o SMS.");
+
+      const novo = {
+        nome: document.getElementById('cad-nome').value,
+        cpf: cpfVal,
+        telefone: document.getElementById('cad-celular').value.trim(),
+        endereco: document.getElementById('cad-endereco').value,
+        senha: document.getElementById('cad-senha').value,
+        foto_url: fotoBase64,
+        tipo: 'passageiro',
+        status: 'aprovado',
+        data_cadastro: new Date().toLocaleDateString('pt-BR'),
+        ultima_verificacao_facial: new Date().toISOString()
+      };
+
+      const { data, error } = await supabaseClient.from('usuarios').insert([novo]).select().single();
+      if (error) {
+        alert("Erro ao cadastrar: " + error.message);
+      } else {
+        localStorage.setItem('passageiro_logado', JSON.stringify(data));
+        window.location.href = 'index.html';
+      }
+    }
+  </script>
+</body>
+</html>

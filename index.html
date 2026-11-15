@@ -3,68 +3,344 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Mobilidade Laguna - Passageiro</title>
+  <title>Mobilidade Laguna</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0">
+<body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs">
 
-  <!-- TOPO -->
-  <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0">
-    <div class="flex items-center gap-2">
-      <div class="bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 p-2 rounded-xl">
-        <i class="fa-solid fa-car text-sm"></i>
-      </div>
-      <div>
-        <h1 class="text-sm font-extrabold text-white">Mobilidade Laguna</h1>
-        <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span> Online
-        </span>
+  <!-- TOPO COM MENU HAMBÚRGUER -->
+  <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0 z-40">
+    <div class="flex items-center gap-3">
+      <button onclick="toggleMenuLateral()" class="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800 border border-slate-700">
+        <i class="fa-solid fa-bars text-sm"></i>
+      </button>
+      <div class="flex items-center gap-2">
+        <div id="icone-tipo-topo" class="bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 p-2 rounded-xl">
+          <i class="fa-solid fa-car text-sm"></i>
+        </div>
+        <div>
+          <h1 class="text-sm font-extrabold text-white" id="titulo-app-topo">Mobilidade Laguna</h1>
+          <span id="status-conexao-topo" class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span> Online
+          </span>
+        </div>
       </div>
     </div>
   </header>
 
-  <!-- CONTEÚDO CENTRAL -->
+  <!-- GAVETA DO MENU LATERAL -->
+  <div id="menu-lateral" class="fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
+    <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+      <div class="flex items-center gap-3">
+        <img id="menu-foto" src="https://ui-avatars.com/api/?name=Usuario" class="w-10 h-10 rounded-full object-cover border border-emerald-500">
+        <div>
+          <h3 id="menu-nome" class="font-bold text-white text-xs">Carregando...</h3>
+          <p id="menu-tipo" class="text-[10px] text-slate-400">-</p>
+        </div>
+      </div>
+      <button onclick="toggleMenuLateral()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+
+    <div class="flex-1 p-3 space-y-2 overflow-y-auto">
+      <button onclick="mudarModulo('inicio')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
+        <i class="fa-solid fa-house text-emerald-400 w-5"></i> Início / Mapa
+      </button>
+      <button onclick="mudarModulo('historico')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
+        <i class="fa-solid fa-clock-rotate-left text-amber-400 w-5"></i> <span id="label-menu-historico">Histórico</span>
+      </button>
+      <button onclick="mudarModulo('perfil')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
+        <i class="fa-solid fa-user text-sky-400 w-5"></i> Meu Perfil
+      </button>
+    </div>
+
+    <div class="p-4 border-t border-slate-800">
+      <button onclick="sairConta()" class="w-full bg-red-950/40 text-red-400 font-bold py-2.5 rounded-xl border border-red-800 hover:bg-red-900/40 transition">
+        Sair da Conta
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTEÚDO CENTRAL MODULAR (SPA) -->
   <main class="flex-1 overflow-y-auto relative flex flex-col pb-24">
-    <div id="map" class="w-full h-64 shrink-0 bg-slate-900"></div>
     
-    <div class="p-4 space-y-3 flex-1">
-      <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-lg">
-        <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
-          <i class="fa-solid fa-location-dot text-emerald-400"></i>
-          <input type="text" placeholder="Local de embarque" class="bg-transparent w-full text-xs text-slate-100 focus:outline-none">
+    <!-- MÓDULO 1: INÍCIO -->
+    <div id="modulo-inicio" class="flex-1 flex flex-col relative h-full">
+      <div id="map" class="w-full h-72 shrink-0 bg-slate-900"></div>
+      
+      <div class="p-4 space-y-3 flex-1 bg-slate-950">
+        
+        <!-- AVISO DE CONTA SUSPENSA / BLOQUEADA -->
+        <div id="aviso-bloqueio-painel" class="hidden bg-red-950/60 border border-red-500/50 p-5 rounded-2xl text-center space-y-3 shadow-xl">
+          <div class="w-12 h-12 mx-auto rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 text-lg">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <h3 class="font-extrabold text-white text-sm">Conta Temporariamente Suspendida</h3>
+          <p class="text-slate-300 text-[11px]">O acesso aos recursos operacionais e mapas foi restrito pelo administrador. Entre em contato com a central de suporte para regularização.</p>
+          <button onclick="abrirSuporteChat()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition text-xs flex items-center justify-center gap-2">
+            <i class="fa-solid fa-headset"></i> Chamar Suporte Central
+          </button>
         </div>
-        <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
-          <i class="fa-solid fa-location-pin text-amber-400"></i>
-          <input type="text" placeholder="Para onde vamos?" class="bg-transparent w-full text-xs text-slate-100 focus:outline-none">
+
+        <!-- BUSCA PASSAGEIRO (Visível apenas se não bloqueado) -->
+        <div id="bloco-passageiro-busca" class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-lg">
+          <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <i class="fa-solid fa-location-dot text-emerald-400"></i>
+            <input type="text" placeholder="Local de embarque" class="bg-transparent w-full text-xs text-slate-100 focus:outline-none">
+          </div>
+          <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <i class="fa-solid fa-location-pin text-amber-400"></i>
+            <input type="text" placeholder="Para onde vamos?" class="bg-transparent w-full text-xs text-slate-100 focus:outline-none">
+          </div>
+          <div class="flex justify-between items-center pt-2 text-xs">
+            <span class="text-slate-400">Estimativa (PIX)</span>
+            <span class="text-emerald-400 font-extrabold text-sm">R$ 14,90</span>
+          </div>
+          <button class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition text-xs">
+            Chamar Motorista
+          </button>
         </div>
-        <div class="flex justify-between items-center pt-2 text-xs">
-          <span class="text-slate-400">Estimativa (PIX)</span>
-          <span class="text-emerald-400 font-extrabold text-sm">R$ 14,90</span>
+
+        <!-- STATUS MOTORISTA (Visível apenas se não bloqueado) -->
+        <div id="bloco-motorista-status" class="hidden bg-slate-900 border border-slate-800 p-5 rounded-2xl text-center space-y-3 shadow-lg">
+          <p class="text-slate-300 font-bold">Aguardando solicitações de corrida na região...</p>
+          <div class="w-12 h-12 mx-auto rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center animate-pulse text-emerald-400">
+            <i class="fa-solid fa-radar text-lg"></i>
+          </div>
         </div>
-        <button class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition text-xs">
-          Chamar Motorista
-        </button>
+
       </div>
     </div>
+
+    <!-- MÓDULO 2: HISTÓRICO / GANHOS -->
+    <div id="modulo-historico" class="hidden flex-1 p-4 space-y-4">
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
+        <h2 id="titulo-historico" class="font-extrabold text-white text-sm flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-amber-400"></i> Histórico de Viagens
+        </h2>
+        <div id="conteudo-tabela-historico" class="space-y-2 text-slate-400 text-center py-4">
+          Nenhuma viagem registrada recentemente.
+        </div>
+        <div class="pt-3 border-t border-slate-800 text-center">
+          <button onclick="abrirSuporteChat()" class="text-xs text-amber-400 font-bold hover:underline flex items-center justify-center gap-1.5 mx-auto">
+            <i class="fa-solid fa-headset"></i> Precisa de ajuda com uma corrida? Contate o Suporte
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MÓDULO 3: PERFIL -->
+    <div id="modulo-perfil" class="hidden flex-1 p-4 space-y-4">
+      <div class="bg-slate-900 p-5 rounded-3xl space-y-4 border border-slate-800 text-center shadow-lg">
+        <div class="relative w-24 h-24 mx-auto">
+          <img id="perfil-foto" src="" class="w-24 h-24 rounded-full object-cover border-4 border-emerald-500 shadow" />
+          <span id="perfil-selo-tipo" class="hidden absolute bottom-0 right-0 bg-emerald-600 text-white p-1 rounded-full text-[10px]">
+            <i class="fa-solid fa-car"></i>
+          </span>
+        </div>
+        <div>
+          <h3 class="text-base font-extrabold text-white" id="perfil-nome">-</h3>
+          <span id="perfil-badge" class="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300">-</span>
+          <p class="text-xs text-amber-500 font-bold mt-1"><i class="fa-solid fa-star"></i> <span id="perfil-nota">5.0</span></p>
+        </div>
+        <div class="space-y-2 text-slate-300 text-left bg-slate-950 p-3.5 rounded-2xl border border-slate-800 text-xs">
+          <p><strong>Telefone:</strong> <span id="perfil-tel">-</span></p>
+          <p><strong>CPF:</strong> <span id="perfil-cpf">-</span></p>
+          <p><strong>Membro desde:</strong> <span id="perfil-data" class="text-emerald-400 font-semibold">-</span></p>
+          <div id="perfil-bloco-veiculo" class="hidden space-y-1.5 border-t border-slate-800 pt-2 mt-2">
+            <p><strong>Veículo:</strong> <span id="perfil-veiculo">-</span></p>
+            <p><strong>Placa:</strong> <span id="perfil-placa" class="uppercase font-bold text-emerald-400">-</span></p>
+          </div>
+          <div class="border-t border-slate-800 pt-2 mt-2">
+            <div class="flex justify-between items-center">
+              <strong>Endereço:</strong>
+              <button onclick="editarEnderecoPerfil()" class="text-[10px] text-emerald-400 hover:underline font-bold">Editar</button>
+            </div>
+            <p id="perfil-end" class="text-slate-400 mt-0.5">-</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR FIXA -->
-  <nav class="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-800 py-3 px-6 flex justify-around items-center z-50">
-    <a href="index.html" class="text-emerald-400 flex flex-col items-center gap-1">
-      <i class="fa-solid fa-house text-base"></i>
-      <span class="text-[10px]">Início</span>
-    </a>
-    <a href="corridas.html" class="text-slate-400 hover:text-slate-200 flex flex-col items-center gap-1">
-      <i class="fa-solid fa-clock-rotate-left text-base"></i>
-      <span class="text-[10px]">Histórico</span>
-    </a>
-    <a href="perfil.html" class="text-slate-400 hover:text-slate-200 flex flex-col items-center gap-1">
-      <i class="fa-solid fa-user text-base"></i>
-      <span class="text-[10px]">Perfil</span>
-    </a>
-  </nav>
+  <!-- BOTÃO POWER CENTRAL -->
+  <div class="absolute bottom-4 left-0 right-0 flex flex-col items-center justify-center z-40 pointer-events-none">
+    <div id="alerta-bloqueio-container" class="mb-2 transition-all duration-300 opacity-0 pointer-events-none">
+      <div class="bg-red-950/90 border border-red-500 text-red-200 px-4 py-2 rounded-xl text-[11px] font-bold shadow-2xl flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> Conta suspensa. Contate o suporte.
+      </div>
+    </div>
+    <button id="btn-power" onclick="acionarBotaoPower()" class="pointer-events-auto w-14 h-14 rounded-full bg-slate-900 border-2 border-slate-700 shadow-2xl flex items-center justify-center text-slate-300 hover:text-white transition transform active:scale-95">
+      <i class="fa-solid fa-power-off text-lg"></i>
+    </button>
+  </div>
 
+  <script>
+    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let usuarioAtual = null;
+    let tabelaAtual = 'usuarios';
+    let appLigado = false;
+    let usuarioBloqueado = false;
+
+    async function inicializarApp() {
+      const motoristaStorage = localStorage.getItem('motorista_logado');
+      const passageiroStorage = localStorage.getItem('passageiro_logado');
+
+      if (motoristaStorage) {
+        usuarioAtual = JSON.parse(motoristaStorage);
+        tabelaAtual = 'motoristas';
+      } else if (passageiroStorage) {
+        usuarioAtual = JSON.parse(passageiroStorage);
+        tabelaAtual = 'usuarios';
+      } else {
+        window.location.href = 'auth.html';
+        return;
+      }
+
+      // Verificar status atualizado no Supabase (Bloqueio em tempo real)
+      const { data, error } = await supabaseClient.from(tabelaAtual).select('*').eq('id', usuarioAtual.id).single();
+      if (!error && data) {
+        usuarioAtual = data;
+        usuarioBloqueado = (data.status === 'bloqueado');
+      }
+
+      renderizarInterfaceUsuario();
+    }
+
+    function renderizarInterfaceUsuario() {
+      // Menu lateral
+      document.getElementById('menu-foto').src = usuarioAtual.foto_url || 'https://ui-avatars.com/api/?name=Usuario';
+      document.getElementById('menu-nome').innerText = usuarioAtual.nome || 'Usuário';
+
+      const blocoPassageiro = document.getElementById('bloco-passageiro-busca');
+      const blocoMotorista = document.getElementById('bloco-motorista-status');
+      const avisoBloqueio = document.getElementById('aviso-bloqueio-painel');
+
+      if (usuarioBloqueado) {
+        avisoBloqueio.classList.remove('hidden');
+        blocoPassageiro.classList.add('hidden');
+        blocoMotorista.classList.add('hidden');
+      } else {
+        avisoBloqueio.classList.add('hidden');
+        if (tabelaAtual === 'motoristas') {
+          blocoPassageiro.classList.add('hidden');
+          blocoMotorista.classList.remove('hidden');
+        } else {
+          blocoPassageiro.classList.remove('hidden');
+          blocoMotorista.classList.add('hidden');
+        }
+      }
+
+      if (tabelaAtual === 'motoristas') {
+        document.getElementById('menu-tipo').innerText = "Motorista Parceiro";
+        document.getElementById('titulo-app-topo').innerText = "Mobilidade Laguna (Motorista)";
+        document.getElementById('label-menu-historico').innerText = "Histórico de Ganhos";
+      } else {
+        document.getElementById('menu-tipo').innerText = "Passageiro";
+        document.getElementById('titulo-app-topo').innerText = "Mobilidade Laguna";
+        document.getElementById('label-menu-historico').innerText = "Histórico de Viagens";
+      }
+
+      // Preencher Perfil
+      document.getElementById('perfil-foto').src = usuarioAtual.foto_url || 'https://ui-avatars.com/api/?name=Usuario';
+      document.getElementById('perfil-nome').innerText = usuarioAtual.nome || '-';
+      document.getElementById('perfil-tel').innerText = usuarioAtual.telefone || '-';
+      document.getElementById('perfil-cpf').innerText = usuarioAtual.cpf || '-';
+      document.getElementById('perfil-data').innerText = usuarioAtual.data_cadastro || 'Recente';
+      document.getElementById('perfil-end').innerText = usuarioAtual.endereco || '-';
+
+      if (tabelaAtual === 'motoristas') {
+        document.getElementById('perfil-badge').innerText = "Motorista Parceiro";
+        document.getElementById('perfil-selo-tipo').classList.remove('hidden');
+        document.getElementById('perfil-bloco-veiculo').classList.remove('hidden');
+        document.getElementById('perfil-veiculo').innerText = usuarioAtual.veiculo_modelo || '-';
+        document.getElementById('perfil-placa').innerText = usuarioAtual.veiculo_placa || '-';
+      } else {
+        document.getElementById('perfil-badge').innerText = "Passageiro";
+        document.getElementById('perfil-selo-tipo').classList.add('hidden');
+        document.getElementById('perfil-bloco-veiculo').classList.add('hidden');
+      }
+    }
+
+    function toggleMenuLateral() {
+      const menu = document.getElementById('menu-lateral');
+      menu.classList.toggle('-translate-x-full');
+    }
+
+    function mudarModulo(modulo) {
+      toggleMenuLateral();
+      document.getElementById('modulo-inicio').classList.add('hidden');
+      document.getElementById('modulo-historico').classList.add('hidden');
+      document.getElementById('modulo-perfil').classList.add('hidden');
+
+      if (modulo === 'inicio') document.getElementById('modulo-inicio').classList.remove('hidden');
+      if (modulo === 'historico') {
+        document.getElementById('modulo-historico').classList.remove('hidden');
+        if (tabelaAtual === 'motoristas') {
+          document.getElementById('titulo-historico').innerHTML = '<i class="fa-solid fa-wallet text-amber-400"></i> Histórico de Ganhos e Corridas';
+          document.getElementById('conteudo-tabela-historico').innerHTML = '<p class="text-emerald-400 font-bold">Total ganho na semana: R$ 0,00</p><p class="text-xs text-slate-500 mt-1">Nenhuma corrida finalizada no período.</p>';
+        }
+      }
+      if (modulo === 'perfil') document.getElementById('modulo-perfil').classList.remove('hidden');
+    }
+
+    function abrirSuporteChat() {
+      alert("Abrindo chat com a Central de Suporte. Em breve você será atendido!");
+    }
+
+    async function acionarBotaoPower() {
+      const btn = document.getElementById('btn-power');
+      const alerta = document.getElementById('alerta-bloqueio-container');
+
+      const { data } = await supabaseClient.from(tabelaAtual).select('status').eq('id', usuarioAtual.id).single();
+      if (data && data.status === 'bloqueado') {
+        usuarioBloqueado = true;
+      }
+
+      if (usuarioBloqueado) {
+        btn.classList.add('bg-red-600', 'border-red-400', 'text-white', 'animate-bounce');
+        alerta.classList.remove('opacity-0');
+        
+        setTimeout(() => {
+          btn.classList.remove('bg-red-600', 'border-red-400', 'text-white', 'animate-bounce');
+          alerta.classList.add('opacity-0');
+        }, 3000);
+        return;
+      }
+
+      appLigado = !appLigado;
+      if (appLigado) {
+        btn.classList.add('bg-emerald-600', 'border-emerald-400', 'text-white');
+        btn.classList.remove('bg-slate-900', 'border-slate-700');
+        setTimeout(() => {
+          btn.classList.add('opacity-0', 'pointer-events-none');
+        }, 1000);
+      } else {
+        btn.classList.remove('opacity-0', 'pointer-events-none', 'bg-emerald-600', 'border-emerald-400', 'text-white');
+        btn.classList.add('bg-slate-900', 'border-slate-700', 'text-slate-300');
+      }
+    }
+
+    function editarEnderecoPerfil() {
+      const novoEnd = prompt("Digite o novo endereço:", document.getElementById('perfil-end').innerText);
+      if (!novoEnd || !novoEnd.trim()) return;
+      usuarioAtual.endereco = novoEnd.trim();
+      localStorage.setItem(tabelaAtual === 'motoristas' ? 'motorista_logado' : 'passageiro_logado', JSON.stringify(usuarioAtual));
+      document.getElementById('perfil-end').innerText = usuarioAtual.endereco;
+    }
+
+    function sairConta() {
+      localStorage.removeItem('passageiro_logado');
+      localStorage.removeItem('motorista_logado');
+      window.location.href = 'auth.html';
+    }
+
+    window.onload = inicializarApp;
+  </script>
 </body>
 </html>
