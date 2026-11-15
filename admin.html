@@ -238,6 +238,7 @@
           <label class="text-slate-300 font-medium">Nova Senha Mestre</label>
           <input type="password" id="mestre-nova" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
         </div>
+        <p id="msg-senha-mestre" class="text-emerald-400 text-[11px] font-semibold hidden text-center">Senha mestre alterada com sucesso!</p>
         <div class="flex gap-2 pt-2">
           <button type="button" onclick="fecharModalSenhaMestre()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl">Cancelar</button>
           <button type="button" onclick="salvarNovaSenhaMestre()" class="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl">Atualizar</button>
@@ -297,6 +298,7 @@
     function abrirModalSenhaMestre() {
       document.getElementById('mestre-atual').value = '';
       document.getElementById('mestre-nova').value = '';
+      document.getElementById('msg-senha-mestre').classList.add('hidden');
       document.getElementById('modal-senha-mestre').classList.remove('hidden');
     }
 
@@ -307,18 +309,29 @@
     function salvarNovaSenhaMestre() {
       const atual = document.getElementById('mestre-atual').value;
       const nova = document.getElementById('mestre-nova').value.trim();
+      const msgEl = document.getElementById('msg-senha-mestre');
 
       if (atual !== obterSenhaMestre()) {
-        alert("Senha mestre atual incorreta!");
+        msgEl.innerText = "Senha mestre atual incorreta!";
+        msgEl.className = "text-red-400 text-[11px] font-semibold text-center";
+        msgEl.classList.remove('hidden');
         return;
       }
       if (nova.length < 4) {
-        alert("A nova senha deve ter pelo menos 4 caracteres.");
+        msgEl.innerText = "A nova senha deve ter pelo menos 4 caracteres.";
+        msgEl.className = "text-red-400 text-[11px] font-semibold text-center";
+        msgEl.classList.remove('hidden');
         return;
       }
+      
       localStorage.setItem('admin_master_pass', nova);
-      alert("Senha mestre atualizada com sucesso!");
-      fecharModalSenhaMestre();
+      msgEl.innerText = "Senha mestre atualizada com sucesso!";
+      msgEl.className = "text-emerald-400 text-[11px] font-semibold text-center";
+      msgEl.classList.remove('hidden');
+
+      setTimeout(() => {
+        fecharModalSenhaMestre();
+      }, 1500);
     }
 
     async function carregarDadosAdmin() {
@@ -545,7 +558,6 @@
       document.getElementById('modal-confirmar-exclusao').classList.add('hidden');
     }
 
-    // EXCLUSÃO EM CASCATA COM LIMPEZA DE CHAVES ESTRANGEIRAS
     async function executarExclusaoComSenha() {
       const senhaDigitada = document.getElementById('input-senha-mestre-exclusao').value;
       const erroEl = document.getElementById('erro-senha-exclusao');
@@ -560,7 +572,6 @@
       const tabela = document.getElementById('edit-tabela').value;
 
       try {
-        // 1. Busca e deleta mensagens de chat atreladas às corridas do usuário
         const { data: corridasUsuario } = await supabaseClient
           .from('corridas')
           .select('id')
@@ -571,14 +582,10 @@
           await supabaseClient.from('mensagens_chat').delete().in('corrida_id', idsCorridas);
         }
 
-        // 2. Remove registros dependentes na tabela 'corridas'
         await supabaseClient.from('corridas').delete().eq('passageiro_id', id);
         await supabaseClient.from('corridas').delete().eq('motorista_id', id);
-
-        // 3. Remove chamados de suporte vinculados
         await supabaseClient.from('chamados_suporte').delete().eq('usuario_id', id);
 
-        // 4. Exclui o usuário da tabela principal
         const { error } = await supabaseClient.from(tabela).delete().eq('id', id);
         
         if (error) {
