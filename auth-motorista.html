@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mobilidade Laguna - Login Motorista</title>
+  <title>Mobilidade Laguna - Portal do Motorista</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -24,24 +24,24 @@
 
   <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-6">
     
-    <!-- TÍTULO -->
+    <!-- CABEÇALHO -->
     <div class="text-center space-y-1">
-      <div class="inline-block bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 p-3 rounded-2xl mb-2">
+      <div class="inline-block bg-amber-600/20 border border-amber-500/30 text-amber-400 p-3 rounded-2xl mb-2">
         <i class="fa-solid fa-car text-xl"></i>
       </div>
-      <h1 class="text-lg font-extrabold text-white">Portal do Motorista</h1>
-      <p class="text-xs text-slate-400">Acesse sua conta para iniciar as corridas</p>
+      <h1 id="titulo-motorista" class="text-lg font-extrabold text-white">Portal do Motorista</h1>
+      <p id="subtitulo-motorista" class="text-xs text-slate-400">Entre com seu celular e senha para rodar</p>
     </div>
 
-    <!-- FORMULÁRIO -->
-    <form id="form-auth-motorista" class="space-y-4 text-xs" onsubmit="realizarLoginMotorista(event)">
+    <!-- ==================== LOGIN MOTORISTA ==================== -->
+    <form id="form-login-motorista" class="space-y-4 text-xs" onsubmit="realizarLoginMotorista(event)">
       <div class="space-y-1">
-        <label class="text-slate-300 font-medium">E-mail ou CPF</label>
+        <label class="text-slate-300 font-medium">Número de Celular</label>
         <div class="relative">
           <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
-            <i class="fa-solid fa-id-card"></i>
+            <i class="fa-solid fa-phone"></i>
           </span>
-          <input type="text" id="login-motorista" required placeholder="motorista@email.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 pl-9 text-slate-100 focus:outline-none focus:border-emerald-500 transition">
+          <input type="tel" id="login-celular-motorista" required placeholder="(48) 9 9999-9999" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 pl-9 text-slate-100 focus:outline-none focus:border-amber-500 transition">
         </div>
       </div>
 
@@ -51,28 +51,232 @@
           <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
             <i class="fa-solid fa-lock"></i>
           </span>
-          <input type="password" id="senha-motorista" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 pl-9 text-slate-100 focus:outline-none focus:border-emerald-500 transition">
+          <input type="password" id="login-senha-motorista" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 pl-9 text-slate-100 focus:outline-none focus:border-amber-500 transition">
         </div>
       </div>
 
-      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
+      <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
         Entrar como Motorista
       </button>
     </form>
 
-    <div class="text-center text-[11px] text-slate-500 space-y-2">
-      <div>Ainda não é parceiro? <a href="#" class="text-emerald-400 font-bold hover:underline">Cadastrar Veículo</a></div>
-      <div><a href="auth.html" class="text-slate-400 hover:text-slate-200 underline">Acessar como Passageiro</a></div>
+    <!-- ==================== CADASTRO MOTORISTA ==================== -->
+    <form id="form-cadastro-motorista" class="hidden space-y-3 text-xs" onsubmit="realizarCadastroMotorista(event)">
+      
+      <!-- CAPTURA DE SELFIE (RECONHECIMENTO FACIAL) -->
+      <div class="flex flex-col items-center space-y-2 pb-2 border-b border-slate-800">
+        <div class="relative w-20 h-20 rounded-full bg-slate-950 border-2 border-dashed border-amber-500/60 flex items-center justify-center overflow-hidden">
+          <img id="preview-selfie-mot" class="hidden w-full h-full object-cover" />
+          <video id="camera-stream-mot" class="hidden w-full h-full object-cover" autoplay playsinline></video>
+          <i id="icone-camera-mot" class="fa-solid fa-camera text-slate-500 text-xl"></i>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" id="btn-abrir-cam-mot" onclick="iniciarCameraMot()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-1 rounded-lg text-[11px] font-bold border border-slate-700 transition">
+            <i class="fa-solid fa-camera mr-1"></i> Foto Facial (Obrigatório)
+          </button>
+          <button type="button" id="btn-capturar-cam-mot" onclick="capturarSelfieMot()" class="hidden bg-amber-600 hover:bg-amber-500 text-white px-3 py-1 rounded-lg text-[11px] font-bold transition">
+            <i class="fa-solid fa-check mr-1"></i> Capturar
+          </button>
+        </div>
+        <canvas id="canvas-selfie-mot" class="hidden"></canvas>
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-slate-300 font-medium">Nome Completo</label>
+        <input type="text" id="cad-mot-nome" required placeholder="Nome do motorista" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">CPF</label>
+          <input type="text" id="cad-mot-cpf" required placeholder="000.000.000-00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
+        </div>
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Celular</label>
+          <input type="tel" id="cad-mot-celular" required placeholder="(48) 9 9999-9999" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
+        </div>
+      </div>
+
+      <!-- ENDEREÇO DO MOTORISTA COM BOTÃO DE GEOLOCALIZAÇÃO -->
+      <div class="space-y-1">
+        <div class="flex justify-between items-center">
+          <label class="text-slate-300 font-medium">Endereço Residencial</label>
+          <button type="button" onclick="obterEnderecoMotorista()" class="text-[10px] bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 px-2 py-0.5 rounded-md border border-amber-500/30 font-bold transition">
+            <i class="fa-solid fa-location-crosshairs mr-1"></i> Meu Endereço
+          </button>
+        </div>
+        <input type="text" id="cad-mot-endereco" required placeholder="Rua, número e bairro" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Modelo do Veículo</label>
+          <input type="text" id="cad-mot-veiculo" required placeholder="Ex: Renault Logan" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
+        </div>
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Placa</label>
+          <input type="text" id="cad-mot-placa" required placeholder="ABC1D23" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 uppercase focus:outline-none focus:border-amber-500">
+        </div>
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-slate-300 font-medium">Senha</label>
+        <input type="password" id="cad-mot-senha" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
+      </div>
+
+      <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition mt-2">
+        Concluir Cadastro de Motorista
+      </button>
+    </form>
+
+    <!-- ALTERNAR TELAS -->
+    <div class="text-center text-[11px] text-slate-500 space-y-2 pt-2 border-t border-slate-800">
+      <div id="texto-alt-mot">
+        Ainda não é parceiro? <button type="button" onclick="alternarTelaMot('cadastro')" class="text-amber-400 font-bold hover:underline">Cadastre seu veículo</button>
+      </div>
+      <div>
+        <a href="auth.html" class="text-slate-400 hover:text-slate-200 underline">Acessar como Passageiro</a>
+      </div>
     </div>
 
   </div>
 
   <script>
-    function realizarLoginMotorista(evento) {
-      evento.preventDefault();
-      const login = document.getElementById('login-motorista').value;
-      // Lógica de autenticação de motorista no Supabase
-      console.log("Autenticando motorista:", login);
+    let streamMot = null;
+    let fotoMotBase64 = null;
+
+    function alternarTelaMot(modo) {
+      const fLogin = document.getElementById('form-login-motorista');
+      const fCad = document.getElementById('form-cadastro-motorista');
+      const tit = document.getElementById('titulo-motorista');
+      const sub = document.getElementById('subtitulo-motorista');
+      const txtAlt = document.getElementById('texto-alt-mot');
+
+      if (modo === 'cadastro') {
+        fLogin.classList.add('hidden');
+        fCad.classList.remove('hidden');
+        tit.innerText = "Cadastro de Motorista";
+        sub.innerText = "Preencha para começar a faturar";
+        txtAlt.innerHTML = 'Já é cadastrado? <button type="button" onclick="alternarTelaMot(\'login\')" class="text-amber-400 font-bold hover:underline">Fazer Login</button>';
+      } else {
+        pararCameraMot();
+        fCad.classList.add('hidden');
+        fLogin.classList.remove('hidden');
+        tit.innerText = "Portal do Motorista";
+        sub.innerText = "Entre com seu celular e senha para rodar";
+        txtAlt.innerHTML = 'Ainda não é parceiro? <button type="button" onclick="alternarTelaMot(\'cadastro\')" class="text-amber-400 font-bold hover:underline">Cadastre seu veículo</button>';
+      }
+    }
+
+    function obterEnderecoMotorista() {
+      const campoEndereco = document.getElementById('cad-mot-endereco');
+      if (!navigator.geolocation) {
+        alert("Geolocalização não suportada pelo seu navegador.");
+        return;
+      }
+
+      campoEndereco.value = "Buscando localização GPS...";
+      navigator.geolocation.getCurrentPosition(async (posicao) => {
+        const lat = posicao.coords.latitude;
+        const lon = posicao.coords.longitude;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+          const dados = await res.json();
+          const rua = dados.address.road || '';
+          const bairro = dados.address.suburb || dados.address.neighbourhood || '';
+          const cidade = dados.address.city || dados.address.town || 'Laguna';
+          campoEndereco.value = `${rua}${bairro ? ', ' + bairro : ''} - ${cidade}`;
+        } catch (e) {
+          campoEndereco.value = `Lat: ${lat.toFixed(5)}, Lng: ${lon.toFixed(5)}`;
+        }
+      }, () => {
+        campoEndereco.value = "";
+        alert("Não foi possível acessar o GPS. Verifique as permissões do navegador.");
+      });
+    }
+
+    async function iniciarCameraMot() {
+      try {
+        streamMot = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        const video = document.getElementById('camera-stream-mot');
+        video.srcObject = streamMot;
+        video.classList.remove('hidden');
+        document.getElementById('icone-camera-mot').classList.add('hidden');
+        document.getElementById('preview-selfie-mot').classList.add('hidden');
+        document.getElementById('btn-abrir-cam-mot').classList.add('hidden');
+        document.getElementById('btn-capturar-cam-mot').classList.remove('hidden');
+      } catch (err) {
+        alert("Erro ao acessar a câmera.");
+      }
+    }
+
+    function capturarSelfieMot() {
+      const video = document.getElementById('camera-stream-mot');
+      const canvas = document.getElementById('canvas-selfie-mot');
+      const preview = document.getElementById('preview-selfie-mot');
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+
+      fotoMotBase64 = canvas.toDataURL('image/jpeg', 0.8);
+      preview.src = fotoMotBase64;
+      preview.classList.remove('hidden');
+      video.classList.add('hidden');
+
+      document.getElementById('btn-capturar-cam-mot').classList.add('hidden');
+      document.getElementById('btn-abrir-cam-mot').innerHTML = '<i class="fa-solid fa-rotate-right mr-1"></i> Refazer';
+      document.getElementById('btn-abrir-cam-mot').classList.remove('hidden');
+
+      pararCameraMot();
+    }
+
+    function pararCameraMot() {
+      if (streamMot) {
+        streamMot.getTracks().forEach(t => t.stop());
+        streamMot = null;
+      }
+    }
+
+    function verificarPrazoSelfieMot(motorista) {
+      if (!motorista.ultima_verificacao_facial) return true;
+      const ultimaData = new Date(motorista.ultima_verificacao_facial);
+      const hoje = new Date();
+      const diferencaDias = (hoje - ultimaData) / (1000 * 60 * 60 * 24);
+      return diferencaDias >= 15;
+    }
+
+    function realizarLoginMotorista(event) {
+      event.preventDefault();
+      const celular = document.getElementById('login-celular-motorista').value;
+      const salvo = JSON.parse(localStorage.getItem('motorista_logado') || '{}');
+
+      if (salvo.telefone === celular && verificarPrazoSelfieMot(salvo)) {
+        alert("Passaram-se 15 dias desde sua última validação facial. Atualize sua selfie para rodar.");
+      }
+
+      window.location.href = 'motorista.html';
+    }
+
+    function realizarCadastroMotorista(event) {
+      event.preventDefault();
+      if (!fotoMotBase64) {
+        alert("A foto facial (selfie) é obrigatória para motoristas.");
+        return;
+      }
+      const novoMotorista = {
+        id: Date.now().toString(),
+        nome: document.getElementById('cad-mot-nome').value,
+        cpf: document.getElementById('cad-mot-cpf').value,
+        telefone: document.getElementById('cad-mot-celular').value,
+        endereco: document.getElementById('cad-mot-endereco').value,
+        veiculo_modelo: document.getElementById('cad-mot-veiculo').value,
+        veiculo_placa: document.getElementById('cad-mot-placa').value,
+        foto_url: fotoMotBase64,
+        tipo: 'motorista',
+        ultima_verificacao_facial: new Date().toISOString()
+      };
+      localStorage.setItem('motorista_logado', JSON.stringify(novoMotorista));
       window.location.href = 'motorista.html';
     }
   </script>

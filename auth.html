@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mobilidade Laguna - Login Passageiro</title>
+  <title>Mobilidade Laguna - Passageiro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -24,24 +24,24 @@
 
   <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-6">
     
-    <!-- TÍTULO -->
+    <!-- CABEÇALHO -->
     <div class="text-center space-y-1">
       <div class="inline-block bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 p-3 rounded-2xl mb-2">
         <i class="fa-solid fa-user text-xl"></i>
       </div>
-      <h1 class="text-lg font-extrabold text-white">Área do Passageiro</h1>
-      <p class="text-xs text-slate-400">Entre na sua conta para solicitar viagens</p>
+      <h1 id="titulo-tela" class="text-lg font-extrabold text-white">Área do Passageiro</h1>
+      <p id="subtitulo-tela" class="text-xs text-slate-400">Entre com seu celular e senha para viajar</p>
     </div>
 
-    <!-- FORMULÁRIO -->
-    <form id="form-auth" class="space-y-4 text-xs" onsubmit="realizarLogin(event)">
+    <!-- ==================== FORMULÁRIO DE LOGIN ==================== -->
+    <form id="form-login" class="space-y-4 text-xs" onsubmit="realizarLogin(event)">
       <div class="space-y-1">
-        <label class="text-slate-300 font-medium">E-mail</label>
+        <label class="text-slate-300 font-medium">Número de Celular</label>
         <div class="relative">
           <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
-            <i class="fa-solid fa-envelope"></i>
+            <i class="fa-solid fa-phone"></i>
           </span>
-          <input type="email" id="email" required placeholder="seu@email.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 pl-9 text-slate-100 focus:outline-none focus:border-emerald-500 transition">
+          <input type="tel" id="login-celular" required placeholder="(48) 9 9999-9999" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 pl-9 text-slate-100 focus:outline-none focus:border-emerald-500 transition">
         </div>
       </div>
 
@@ -51,7 +51,7 @@
           <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
             <i class="fa-solid fa-lock"></i>
           </span>
-          <input type="password" id="senha" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 pl-9 text-slate-100 focus:outline-none focus:border-emerald-500 transition">
+          <input type="password" id="login-senha" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 pl-9 text-slate-100 focus:outline-none focus:border-emerald-500 transition">
         </div>
       </div>
 
@@ -60,18 +60,217 @@
       </button>
     </form>
 
-    <div class="text-center text-[11px] text-slate-500">
-      Não tem uma conta? <a href="#" class="text-emerald-400 font-bold hover:underline">Cadastre-se</a>
+    <!-- ==================== FORMULÁRIO DE CADASTRO ==================== -->
+    <form id="form-cadastro" class="hidden space-y-3 text-xs" onsubmit="realizarCadastro(event)">
+      
+      <!-- CAPTURA DE SELFIE / RECONHECIMENTO FACIAL -->
+      <div class="flex flex-col items-center space-y-2 pb-2 border-b border-slate-800">
+        <div class="relative w-20 h-20 rounded-full bg-slate-950 border-2 border-dashed border-emerald-500/60 flex items-center justify-center overflow-hidden">
+          <img id="preview-selfie" class="hidden w-full h-full object-cover" />
+          <video id="camera-stream" class="hidden w-full h-full object-cover" autoplay playsinline></video>
+          <i id="icone-camera" class="fa-solid fa-camera text-slate-500 text-xl"></i>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" id="btn-abrir-camera" onclick="iniciarCamera()" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-3 py-1 rounded-lg text-[11px] font-bold border border-slate-700 transition">
+            <i class="fa-solid fa-camera mr-1"></i> Tirar Selfie
+          </button>
+          <button type="button" id="btn-capturar-foto" onclick="capturarSelfie()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-lg text-[11px] font-bold transition">
+            <i class="fa-solid fa-check mr-1"></i> Confirmar Foto
+          </button>
+        </div>
+        <canvas id="canvas-selfie" class="hidden"></canvas>
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-slate-300 font-medium">Nome Completo</label>
+        <input type="text" id="cad-nome" required placeholder="Ex: João da Silva" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">CPF</label>
+          <input type="text" id="cad-cpf" required placeholder="000.000.000-00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+        </div>
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Celular</label>
+          <input type="tel" id="cad-celular" required placeholder="(48) 9 9999-9999" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+        </div>
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-slate-300 font-medium">E-mail</label>
+        <input type="email" id="cad-email" required placeholder="seu@email.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+      </div>
+
+      <!-- ENDEREÇO COM BOTÃO DE GEOLOCALIZAÇÃO -->
+      <div class="space-y-1">
+        <div class="flex justify-between items-center">
+          <label class="text-slate-300 font-medium">Endereço</label>
+          <button type="button" onclick="obterMeuEndereco()" class="text-[10px] bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-2 py-0.5 rounded-md border border-emerald-500/30 font-bold transition">
+            <i class="fa-solid fa-location-crosshairs mr-1"></i> Meu Endereço
+          </button>
+        </div>
+        <input type="text" id="cad-endereco" required placeholder="Rua, número e bairro" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-slate-300 font-medium">Criar Senha</label>
+        <input type="password" id="cad-senha" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+      </div>
+
+      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition mt-2">
+        Finalizar Cadastro
+      </button>
+    </form>
+
+    <!-- ALTERNAR ENTRE LOGIN E CADASTRO -->
+    <div class="text-center text-[11px] text-slate-500 space-y-2 pt-2 border-t border-slate-800">
+      <div id="texto-alternar">
+        Não tem uma conta? <button type="button" onclick="alternarTela('cadastro')" class="text-emerald-400 font-bold hover:underline">Cadastre-se</button>
+      </div>
+      <div>
+        <a href="auth-motorista.html" class="text-slate-400 hover:text-slate-200 underline">Sou Motorista Parceiro</a>
+      </div>
     </div>
 
   </div>
 
   <script>
+    let streamAtual = null;
+    let fotoBase64 = null;
+
+    function alternarTela(modo) {
+      const formLogin = document.getElementById('form-login');
+      const formCadastro = document.getElementById('form-cadastro');
+      const titulo = document.getElementById('titulo-tela');
+      const subtitulo = document.getElementById('subtitulo-tela');
+      const textoAlternar = document.getElementById('texto-alternar');
+
+      if (modo === 'cadastro') {
+        formLogin.classList.add('hidden');
+        formCadastro.classList.remove('hidden');
+        titulo.innerText = "Criar Conta";
+        subtitulo.innerText = "Preencha seus dados para começar";
+        textoAlternar.innerHTML = 'Já possui conta? <button type="button" onclick="alternarTela(\'login\')" class="text-emerald-400 font-bold hover:underline">Fazer Login</button>';
+      } else {
+        pararCamera();
+        formCadastro.classList.add('hidden');
+        formLogin.classList.remove('hidden');
+        titulo.innerText = "Área do Passageiro";
+        subtitulo.innerText = "Entre com seu celular e senha para viajar";
+        textoAlternar.innerHTML = 'Não tem uma conta? <button type="button" onclick="alternarTela(\'cadastro\')" class="text-emerald-400 font-bold hover:underline">Cadastre-se</button>';
+      }
+    }
+
+    function obterMeuEndereco() {
+      const campoEndereco = document.getElementById('cad-endereco');
+      if (!navigator.geolocation) {
+        alert("Geolocalização não suportada pelo seu navegador.");
+        return;
+      }
+
+      campoEndereco.value = "Buscando localização GPS...";
+      navigator.geolocation.getCurrentPosition(async (posicao) => {
+        const lat = posicao.coords.latitude;
+        const lon = posicao.coords.longitude;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+          const dados = await res.json();
+          const rua = dados.address.road || '';
+          const bairro = dados.address.suburb || dados.address.neighbourhood || '';
+          const cidade = dados.address.city || dados.address.town || 'Laguna';
+          campoEndereco.value = `${rua}${bairro ? ', ' + bairro : ''} - ${cidade}`;
+        } catch (e) {
+          campoEndereco.value = `Lat: ${lat.toFixed(5)}, Lng: ${lon.toFixed(5)}`;
+        }
+      }, () => {
+        campoEndereco.value = "";
+        alert("Não foi possível acessar o GPS. Verifique as permissões do navegador.");
+      });
+    }
+
+    async function iniciarCamera() {
+      try {
+        streamAtual = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        const video = document.getElementById('camera-stream');
+        video.srcObject = streamAtual;
+        video.classList.remove('hidden');
+        document.getElementById('icone-camera').classList.add('hidden');
+        document.getElementById('preview-selfie').classList.add('hidden');
+        document.getElementById('btn-abrir-camera').classList.add('hidden');
+        document.getElementById('btn-capturar-foto').classList.remove('hidden');
+      } catch (err) {
+        alert("Permissão de câmera negada ou câmera não encontrada.");
+      }
+    }
+
+    function capturarSelfie() {
+      const video = document.getElementById('camera-stream');
+      const canvas = document.getElementById('canvas-selfie');
+      const preview = document.getElementById('preview-selfie');
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      
+      fotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
+      preview.src = fotoBase64;
+      preview.classList.remove('hidden');
+      video.classList.add('hidden');
+
+      document.getElementById('btn-capturar-foto').classList.add('hidden');
+      document.getElementById('btn-abrir-camera').innerHTML = '<i class="fa-solid fa-rotate-right mr-1"></i> Refazer';
+      document.getElementById('btn-abrir-camera').classList.remove('hidden');
+
+      pararCamera();
+    }
+
+    function pararCamera() {
+      if (streamAtual) {
+        streamAtual.getTracks().forEach(track => track.stop());
+        streamAtual = null;
+      }
+    }
+
+    function verificarPrazoSelfie(usuario) {
+      if (!usuario.ultima_verificacao_facial) return true;
+      const ultimaData = new Date(usuario.ultima_verificacao_facial);
+      const hoje = new Date();
+      const diferencaDias = (hoje - ultimaData) / (1000 * 60 * 60 * 24);
+      return diferencaDias >= 15;
+    }
+
     function realizarLogin(evento) {
       evento.preventDefault();
-      const email = document.getElementById('email').value;
-      // Lógica de autenticação com o Supabase
-      console.log("Tentando logar com:", email);
+      const celular = document.getElementById('login-celular').value;
+      const salvo = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
+      
+      if (salvo.telefone === celular && verificarPrazoSelfie(salvo)) {
+        alert("Passaram-se 15 dias desde sua última verificação facial. Por favor, atualize sua selfie.");
+      }
+
+      window.location.href = 'index.html';
+    }
+
+    function realizarCadastro(evento) {
+      evento.preventDefault();
+      if (!fotoBase64) {
+        alert("Por favor, tire uma selfie rápida para validar sua conta.");
+        return;
+      }
+      const novoUsuario = {
+        id: Date.now().toString(),
+        nome: document.getElementById('cad-nome').value,
+        cpf: document.getElementById('cad-cpf').value,
+        telefone: document.getElementById('cad-celular').value,
+        email: document.getElementById('cad-email').value,
+        endereco: document.getElementById('cad-endereco').value,
+        foto_url: fotoBase64,
+        tipo: 'passageiro',
+        ultima_verificacao_facial: new Date().toISOString()
+      };
+      localStorage.setItem('passageiro_logado', JSON.stringify(novoUsuario));
+      window.location.href = 'index.html';
     }
   </script>
 </body>
