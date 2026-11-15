@@ -174,11 +174,9 @@
 
     async function carregarDadosAdmin() {
       try {
-        // 1. Busca motoristas
         const { data: motoristas, error: errMot } = await supabaseClient.from('motoristas').select('*');
         if (errMot) console.error("Erro motoristas:", errMot);
 
-        // 2. Busca passageiros (tenta 'usuarios', se falhar ou vier vazio, tenta 'passageiros')
         let usuarios = [];
         const { data: resUsuarios, error: errUsu } = await supabaseClient.from('usuarios').select('*');
         if (!errUsu && resUsuarios && resUsuarios.length > 0) {
@@ -192,7 +190,6 @@
           }
         }
 
-        // 3. Busca suporte (tenta 'chamados_suporte' conforme identificado no print, com fallback para 'suporte')
         let suporte = [];
         const { data: resSup, error: errSup } = await supabaseClient.from('chamados_suporte').select('*');
         if (!errSup && resSup) {
@@ -275,11 +272,6 @@
         }
       } else if (abaAdminAtual === 'suporte') {
         const container = document.getElementById('lista-admin-suporte');
-        const suporteFiltrado = dadosGlobaisSuporte.filter(s => {
-          if (subAbaSuporte === 'motoristas') return s.tipo === 'motoristas' || s.origem === 'motorista';
-          return s.tipo === 'passageiros' || s.origem === 'passageiro' || !s.tipo;
-        });
-
         if (dadosGlobaisSuporte.length === 0) {
           container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum chamado de suporte pendente.</div>`;
         } else {
@@ -405,6 +397,7 @@
       else carregarDadosAdmin();
     }
 
+    // CORREÇÃO DA MIGRAÇÃO: Move o usuário para a tabela de motoristas e remove de passageiros
     async function promoverParaMotorista(idUsuario) {
       const passageiro = dadosGlobaisUsuarios.find(u => u.id == idUsuario);
       if (!passageiro) return;
@@ -420,15 +413,21 @@
         status: 'pendente',
         veiculo_modelo: '',
         veiculo_placa: '',
+        online: false,
         ultima_verificacao_facial: new Date().toISOString()
       };
 
-      const { error } = await supabaseClient.from('motoristas').insert([novoMotorista]);
-      if (error) alert("Erro ao promover: " + error.message);
-      else {
-        alert("Promovido a motorista com sucesso!");
-        carregarDadosAdmin();
+      const { error: errInsert } = await supabaseClient.from('motoristas').insert([novoMotorista]);
+      if (errInsert) {
+        alert("Erro ao promover: " + errInsert.message);
+        return;
       }
+
+      // Remove da tabela antiga de passageiros para evitar duplicidade
+      await supabaseClient.from(tabelaUsuariosAtiva).delete().eq('id', idUsuario);
+
+      alert("Promovido a motorista com sucesso! O registro foi migrado para a categoria de motoristas.");
+      carregarDadosAdmin();
     }
 
     async function resolverSuporte(idChamado) {
