@@ -16,83 +16,21 @@
       <div class="inline-block bg-amber-600/20 border border-amber-500/30 text-amber-400 p-3 rounded-2xl mb-1">
         <i class="fa-solid fa-car text-xl"></i>
       </div>
-      <h1 id="titulo-motorista" class="text-lg font-extrabold text-white">Portal do Motorista</h1>
-      <p id="subtitulo-motorista" class="text-xs text-slate-400">Entre com celular e senha para trabalhar</p>
+      <h1 class="text-lg font-extrabold text-white">Portal do Motorista</h1>
+      <p class="text-xs text-slate-400">Entre com celular e senha para trabalhar</p>
     </div>
 
     <!-- LOGIN -->
-    <form id="form-login-motorista" class="space-y-4 text-xs" onsubmit="realizarLoginMotorista(event)">
+    <form class="space-y-4 text-xs" onsubmit="realizarLoginMotorista(event)">
       <input type="tel" id="login-celular-motorista" required placeholder="Celular" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100">
       <input type="password" id="login-senha-motorista" required placeholder="Senha" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100">
       <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Entrar como Motorista</button>
     </form>
 
-    <!-- COMPLEMENTAR DADOS DO VEÍCULO -->
-    <form id="form-complemento-veiculo" class="hidden space-y-3 text-xs" onsubmit="salvarDadosVeiculo(event)">
-      <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-amber-300 text-center">
-        <p class="font-bold">Conta promovida a Motorista!</p>
-        <p class="text-[11px] text-slate-400 mt-0.5">Informe os dados do seu veículo para liberar as corridas.</p>
-      </div>
-      <input type="text" id="comp-veiculo" required placeholder="Modelo do Veículo (Ex: Renault Logan)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-      <input type="text" id="comp-placa" required placeholder="Placa (Ex: ABC-1234)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 uppercase text-slate-100">
-      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Salvar Veículo e Entrar</button>
-    </form>
-
-    <!-- CADASTRO MOTORISTA -->
-    <form id="form-cadastro-motorista" class="hidden space-y-3 text-xs" onsubmit="realizarCadastroMotorista(event)">
-      <div class="flex flex-col items-center space-y-2 pb-2 border-b border-slate-800">
-        <div class="relative w-20 h-20 rounded-full bg-slate-950 border-2 border-dashed border-amber-500/60 flex items-center justify-center overflow-hidden">
-          <img id="preview-selfie-mot" class="hidden w-full h-full object-cover" />
-          <video id="camera-stream-mot" class="hidden w-full h-full object-cover" autoplay playsinline></video>
-          <i id="icone-camera-mot" class="fa-solid fa-camera text-slate-500 text-xl"></i>
-        </div>
-        <div class="flex gap-2">
-          <button type="button" id="btn-abrir-cam-mot" onclick="iniciarCameraMot()" class="bg-slate-800 text-amber-400 px-3 py-1 rounded-lg text-[11px] font-bold border border-slate-700">Selfie Obrigatória</button>
-          <button type="button" id="btn-capturar-cam-mot" onclick="capturarSelfieMot()" class="hidden bg-amber-600 text-white px-3 py-1 rounded-lg text-[11px] font-bold">Confirmar</button>
-        </div>
-        <canvas id="canvas-selfie-mot" class="hidden"></canvas>
-      </div>
-
-      <input type="text" id="cad-mot-nome" required placeholder="Nome Completo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-      <input type="text" id="cad-mot-cpf" required placeholder="CPF (Ex: 123.456.789-99)" oninput="mascaraCPF(this)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-      
-      <div class="flex gap-2">
-        <input type="tel" id="cad-mot-celular" required placeholder="Celular" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-        <button type="button" onclick="enviarSMSMot()" class="bg-amber-600/20 text-amber-400 border border-amber-500/40 px-3 rounded-xl font-bold text-[11px]">SMS</button>
-      </div>
-
-      <div id="box-sms-mot" class="hidden space-y-1 bg-slate-950 p-2.5 rounded-xl border border-amber-500/30">
-        <input type="text" id="input-sms-mot" maxlength="4" placeholder="Código SMS" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-center font-bold text-white">
-        <button type="button" onclick="validarSMSMot()" class="w-full bg-amber-600 text-white py-1 rounded font-bold text-[10px] mt-1">Validar</button>
-        <p id="status-sms-mot" class="text-[10px] text-slate-400 text-center"></p>
-      </div>
-
-      <div class="flex justify-between items-center">
-        <input type="text" id="cad-mot-endereco" required placeholder="Endereço Residencial" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-        <button type="button" onclick="obterEnderecoMotorista()" class="ml-1 text-[10px] bg-amber-600/20 text-amber-400 px-2 py-2 rounded-xl border border-amber-500/30 font-bold whitespace-nowrap"><i class="fa-solid fa-location-crosshairs"></i> GPS</button>
-      </div>
-
-      <div class="grid grid-cols-2 gap-2">
-        <input type="text" id="cad-mot-veiculo" required placeholder="Veículo (Ex: Logan)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-        <input type="text" id="cad-mot-placa" required placeholder="Placa" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 uppercase text-slate-100">
-      </div>
-
-      <input type="password" id="cad-mot-senha" required placeholder="Senha" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-
-      <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition mt-2">Enviar para Aprovação</button>
-      
-      <div class="text-center pt-2">
-        <button type="button" onclick="alternarTelaMot('login')" class="text-slate-400 hover:text-white text-[11px] underline">Já tem uma conta? Faça login</button>
-      </div>
-    </form>
-
     <div class="text-center text-[11px] text-slate-500 space-y-2 pt-2 border-t border-slate-800">
-      <div id="texto-alt-mot">
-        Ainda não é parceiro? <button type="button" onclick="alternarTelaMot('cadastro')" class="text-amber-400 font-bold hover:underline">Cadastre seu veículo</button>
-      </div>
       <div class="flex justify-center gap-4">
-        <a href="auth.html" class="text-slate-400 hover:text-slate-200 underline">Passageiro</a>
-        <a href="admin.html" class="text-slate-500 hover:text-slate-300 underline">Admin</a>
+        <a href="auth.html" class="text-emerald-400 hover:underline">Passageiro</a>
+        <a href="admin.html" class="text-slate-400 hover:underline">Admin</a>
       </div>
     </div>
   </div>
@@ -101,82 +39,6 @@
     const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';[cite: 6]
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    let streamMot = null, fotoMotBase64 = null, codigoSMSMot = null, smsMotOk = false, motoristaPendenteObj = null;
-
-    function mascaraCPF(i) {
-      let v = i.value.replace(/\D/g, "");
-      if (v.length > 11) v = v.slice(0, 11);
-      v = v.replace(/(\d{3})(\d)/, "$1.$2");
-      v = v.replace(/(\d{3})(\d)/, "$1.$2");
-      v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-      i.value = v;
-    }
-
-    function validarCPF(cpf) {
-      cpf = cpf.replace(/[^\d]+/g, '');
-      if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
-      return true;
-    }
-
-    function alternarTelaMot(m) {
-      if (m === 'cadastro') {
-        document.getElementById('form-login-motorista').classList.add('hidden');
-        document.getElementById('texto-alt-mot').classList.add('hidden');
-        document.getElementById('form-cadastro-motorista').classList.remove('hidden');
-        document.getElementById('titulo-motorista').innerText = "Cadastro de Motorista";
-      } else {
-        document.getElementById('form-cadastro-motorista').classList.add('hidden');
-        document.getElementById('texto-alt-mot').classList.remove('hidden');
-        document.getElementById('form-login-motorista').classList.remove('hidden');
-        document.getElementById('titulo-motorista').innerText = "Portal do Motorista";
-      }
-    }
-
-    function enviarSMSMot() {
-      codigoSMSMot = Math.floor(1000 + Math.random() * 9000).toString();
-      document.getElementById('box-sms-mot').classList.remove('hidden');
-      document.getElementById('status-sms-mot').innerText = `Código SMS teste: ${codigoSMSMot}`;
-    }
-
-    function validarSMSMot() {
-      if (document.getElementById('input-sms-mot').value.trim() === codigoSMSMot) {
-        smsMotOk = true;
-        document.getElementById('status-sms-mot').innerHTML = '<span class="text-emerald-400 font-bold">Celular confirmado!</span>';
-      } else { alert("Código incorreto."); }
-    }
-
-    function obterEnderecoMotorista() {
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
-          const d = await res.json();
-          document.getElementById('cad-mot-endereco').value = `${d.address.road || ''}, ${d.address.suburb || ''} - ${d.address.city || 'Laguna'}`;
-        } catch { document.getElementById('cad-mot-endereco').value = `${pos.coords.latitude}, ${pos.coords.longitude}`; }
-      });
-    }
-
-    async function iniciarCameraMot() {
-      streamMot = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-      const v = document.getElementById('camera-stream-mot');
-      v.srcObject = streamMot;
-      v.classList.remove('hidden');
-      document.getElementById('icone-camera-mot').classList.add('hidden');
-      document.getElementById('btn-abrir-cam-mot').classList.add('hidden');
-      document.getElementById('btn-capturar-cam-mot').classList.remove('hidden');
-    }
-
-    function capturarSelfieMot() {
-      const v = document.getElementById('camera-stream-mot');
-      const c = document.getElementById('canvas-selfie-mot');
-      c.width = v.videoWidth; c.height = v.videoHeight;
-      c.getContext('2d').drawImage(v, 0, 0);
-      fotoMotBase64 = c.toDataURL('image/jpeg', 0.8);
-      document.getElementById('preview-selfie-mot').src = fotoMotBase64;
-      document.getElementById('preview-selfie-mot').classList.remove('hidden');
-      v.classList.add('hidden');
-      if(streamMot) streamMot.getTracks().forEach(t => t.stop());
-    }
 
     async function realizarLoginMotorista(e) {
       e.preventDefault();
@@ -190,80 +52,15 @@
       }
 
       if (data.status === 'bloqueado') {
-        alert("Conta temporariamente suspensa. Por favor, entre em contato com o suporte.");
+        alert("Conta temporariamente suspensa.");
         return;
       }
 
-      if (!data.veiculo_modelo || !data.veiculo_placa) {
-        motoristaPendenteObj = data;
-        document.getElementById('form-login-motorista').classList.add('hidden');
-        document.getElementById('form-complemento-veiculo').classList.remove('hidden');
-        document.getElementById('titulo-motorista').innerText = "Cadastrar Veículo";
-        return;
-      }
-
-      if (data.status !== 'aprovado') {
-        alert("Seu cadastro de motorista está aguardando aprovação.");
-        return;
-      }
-
+      // Limpa sessão de passageiro para evitar conflito
+      localStorage.removeItem('passageiro_logado');
+      data.tipo = 'motorista';
       localStorage.setItem('motorista_logado', JSON.stringify(data));
       window.location.href = 'index.html';
-    }
-
-    async function salvarDadosVeiculo(e) {
-      e.preventDefault();
-      const veiculo = document.getElementById('comp-veiculo').value.trim();
-      const placa = document.getElementById('comp-placa').value.trim().toUpperCase();
-
-      const { error } = await supabaseClient.from('motoristas').update({
-        veiculo_modelo: veiculo,
-        veiculo_placa: placa,
-        status: 'aprovado'
-      }).eq('id', motoristaPendenteObj.id);
-
-      if (error) {
-        alert("Erro ao salvar veículo: " + error.message);
-      } else {
-        motoristaPendenteObj.veiculo_modelo = veiculo;
-        motoristaPendenteObj.veiculo_placa = placa;
-        motoristaPendenteObj.status = 'aprovado';
-        localStorage.setItem('motorista_logado', JSON.stringify(motoristaPendenteObj));
-        window.location.href = 'index.html';
-      }
-    }
-
-    async function realizarCadastroMotorista(e) {
-      e.preventDefault();
-      const cpfVal = document.getElementById('cad-mot-cpf').value;
-      if (!validarCPF(cpfVal)) {
-        alert("Por favor, insira um CPF válido no padrão 123.456.789-99.");
-        return;
-      }
-      if (!fotoMotBase64) return alert("Selfie obrigatória.");
-      if (!smsMotOk) return alert("Valide o SMS.");
-
-      const novo = {
-        nome: document.getElementById('cad-mot-nome').value,
-        cpf: cpfVal,
-        telefone: document.getElementById('cad-mot-celular').value.trim(),
-        endereco: document.getElementById('cad-mot-endereco').value,
-        veiculo_modelo: document.getElementById('cad-mot-veiculo').value,
-        veiculo_placa: document.getElementById('cad-mot-placa').value.toUpperCase(),
-        senha: document.getElementById('cad-mot-senha').value,
-        foto_url: fotoMotBase64,
-        tipo: 'motorista',
-        status: 'pendente',
-        ultima_verificacao_facial: new Date().toISOString()
-      };
-
-      const { error } = await supabaseClient.from('motoristas').insert([novo]);
-      if (error) {
-        alert("Erro: " + error.message);
-      } else {
-        alert("Cadastro enviado com sucesso! Aguarde a aprovação.");
-        alternarTelaMot('login');
-      }
     }
   </script>
 </body>

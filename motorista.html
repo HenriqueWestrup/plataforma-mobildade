@@ -26,12 +26,12 @@
   <!-- CABEÇALHO DO MOTORISTA -->
   <header class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center shadow-md z-10">
     <div class="flex items-center space-x-2">
-      <div class="bg-emerald-600 p-2 rounded-xl text-white shadow">
+      <div class="bg-amber-600 p-2 rounded-xl text-white shadow">
         <i class="fa-solid fa-car"></i>
       </div>
       <div>
         <h1 class="font-extrabold text-sm tracking-wide text-white">Mobilidade Laguna</h1>
-        <p class="text-[10px] text-emerald-400 font-medium">Painel Motorista</p>
+        <p class="text-[10px] text-amber-400 font-medium">Painel Motorista</p>
       </div>
     </div>
     
@@ -40,7 +40,7 @@
       <span id="indicador-status" class="w-2.5 h-2.5 rounded-full bg-slate-500 animate-pulse"></span>
       <span id="texto-status" class="text-[10px] font-bold text-slate-400">Offline</span>
       <input type="checkbox" id="toggle-online" onchange="alternarStatusMotorista(this)" class="sr-only">
-      <label for="toggle-online" class="cursor-pointer ml-1 text-xs text-emerald-400 font-bold">Alternar</label>
+      <label for="toggle-online" class="cursor-pointer ml-1 text-xs text-amber-400 font-bold">Alternar</label>
     </div>
   </header>
 
@@ -51,15 +51,15 @@
 
   <!-- MENU DE NAVEGAÇÃO INFERIOR DO MOTORISTA -->
   <nav class="bg-slate-900 border-t border-slate-800 py-2.5 px-6 flex justify-around items-center z-10 shadow-lg">
-    <button onclick="carregarAbaMotorista('radar-motorista.html', this)" class="nav-motorista-btn flex flex-col items-center text-emerald-400 transition">
+    <button onclick="carregarAbaMotorista('radar-motorista.html', this)" class="nav-motorista-btn flex flex-col items-center text-amber-400 transition">
       <i class="fa-solid fa-radar text-lg"></i>
       <span class="text-[10px] font-bold mt-1">Radar</span>
     </button>
-    <button onclick="carregarAbaMotorista('historico-motorista.html', this)" class="nav-motorista-btn flex flex-col items-center text-slate-400 hover:text-emerald-400 transition">
+    <button onclick="carregarAbaMotorista('historico-motorista.html', this)" class="nav-motorista-btn flex flex-col items-center text-slate-400 hover:text-amber-400 transition">
       <i class="fa-solid fa-chart-line text-lg"></i>
       <span class="text-[10px] font-bold mt-1">Ganhos</span>
     </button>
-    <button onclick="carregarAbaMotorista('perfil.html', this)" class="nav-motorista-btn flex flex-col items-center text-slate-400 hover:text-emerald-400 transition">
+    <button onclick="carregarAbaMotorista('perfil.html', this)" class="nav-motorista-btn flex flex-col items-center text-slate-400 hover:text-amber-400 transition">
       <i class="fa-solid fa-user text-lg"></i>
       <span class="text-[10px] font-bold mt-1">Perfil</span>
     </button>
@@ -70,12 +70,12 @@
   <script>
     async function carregarAbaMotorista(arquivo, elementoBotao) {
       document.querySelectorAll('.nav-motorista-btn').forEach(btn => {
-        btn.classList.remove('text-emerald-400');
+        btn.classList.remove('text-amber-400');
         btn.classList.add('text-slate-400');
       });
       if(elementoBotao) {
         elementoBotao.classList.remove('text-slate-400');
-        elementoBotao.classList.add('text-emerald-400');
+        elementoBotao.classList.add('text-amber-400');
       }
 
       try {
@@ -113,6 +113,12 @@
     }
 
     window.onload = () => {
+      // Verifica se o motorista está logado, senão manda para o login de motorista
+      const motoristaLogado = localStorage.getItem('motorista_logado');
+      if (!motoristaLogado) {
+        window.location.href = 'auth-motorista.html';
+        return;
+      }
       carregarAbaMotorista('radar-motorista.html', document.querySelector('.nav-motorista-btn'));
     };
   </script>
