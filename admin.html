@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mobilidade Laguna - Painel Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            darkbg: '#0f172a',
+            darkcard: '#1e293b'
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+
+  <!-- CABEÇALHO ADMIN -->
+  <header class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center shadow-md">
+    <div class="flex items-center space-x-2">
+      <div class="bg-amber-600 p-2 rounded-xl text-white shadow">
+        <i class="fa-solid fa-gauge-high"></i>
+      </div>
+      <div>
+        <h1 class="font-extrabold text-sm tracking-wide text-white">Mobilidade Laguna</h1>
+        <p class="text-[10px] text-amber-400 font-medium">Painel Administrativo</p>
+      </div>
+    </div>
+    <button onclick="carregarDadosAdmin()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-700 transition">
+      <i class="fa-solid fa-rotate mr-1"></i> Atualizar
+    </button>
+  </header>
+
+  <!-- CONTEÚDO ADMIN -->
+  <main class="flex-1 p-4 max-w-4xl mx-auto w-full space-y-4 text-xs">
+    
+    <!-- CARDS DE RESUMO -->
+    <div class="grid grid-cols-2 gap-3">
+      <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-slate-400">Total Usuários</p>
+          <h3 id="total-usuarios" class="text-lg font-extrabold text-white mt-0.5">0</h3>
+        </div>
+        <div class="bg-sky-500/20 text-sky-400 p-3 rounded-xl">
+          <i class="fa-solid fa-users text-base"></i>
+        </div>
+      </div>
+      <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-slate-400">Corridas Registradas</p>
+          <h3 id="total-corridas" class="text-lg font-extrabold text-white mt-0.5">0</h3>
+        </div>
+        <div class="bg-emerald-500/20 text-emerald-400 p-3 rounded-xl">
+          <i class="fa-solid fa-route text-base"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABELA DE GERENCIAMENTO -->
+    <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-sm">
+      <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+        <h3 class="font-extrabold text-white"><i class="fa-solid fa-list-check text-amber-500 mr-1.5"></i> Cadastros Recentes</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-950/50 text-slate-400 border-b border-slate-800 text-[10px]">
+              <th class="p-3">Nome</th>
+              <th class="p-3">Telefone</th>
+              <th class="p-3">Tipo</th>
+              <th class="p-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-usuarios-corpo" class="divide-y divide-slate-800/60 text-slate-300">
+            <tr>
+              <td colspan="4" class="p-4 text-center text-slate-500">Carregando dados...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    async function carregarDadosAdmin() {
+      // Função pronta para integrar com o Supabase e puxar os dados reais da tabela de usuários
+      console.log("Atualizando painel administrativo...");
+    }
+
+    window.onload = () => {
+      carregarDadosAdmin();
+    };
+  </script>
+</body>
+</html>

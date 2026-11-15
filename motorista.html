@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mobilidade Laguna - Motorista</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            darkbg: '#0f172a',
+            darkcard: '#1e293b'
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body class="bg-slate-950 text-slate-100 h-screen flex flex-col justify-between overflow-hidden">
+
+  <!-- CABEÇALHO DO MOTORISTA -->
+  <header class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center shadow-md z-10">
+    <div class="flex items-center space-x-2">
+      <div class="bg-emerald-600 p-2 rounded-xl text-white shadow">
+        <i class="fa-solid fa-car"></i>
+      </div>
+      <div>
+        <h1 class="font-extrabold text-sm tracking-wide text-white">Mobilidade Laguna</h1>
+        <p class="text-[10px] text-emerald-400 font-medium">Painel Motorista</p>
+      </div>
+    </div>
+    
+    <!-- CHAVE DE STATUS (ONLINE / OFFLINE) -->
+    <div class="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-full border border-slate-800">
+      <span id="indicador-status" class="w-2.5 h-2.5 rounded-full bg-slate-500 animate-pulse"></span>
+      <span id="texto-status" class="text-[10px] font-bold text-slate-400">Offline</span>
+      <input type="checkbox" id="toggle-online" onchange="alternarStatusMotorista(this)" class="sr-only">
+      <label for="toggle-online" class="cursor-pointer ml-1 text-xs text-emerald-400 font-bold">Alternar</label>
+    </div>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL (Módulos injetados via abas) -->
+  <main id="app-motorista-container" class="flex-1 flex flex-col relative overflow-hidden bg-slate-950">
+    <!-- Conteúdo inicial carrega o radar do motorista -->
+  </main>
+
+  <!-- MENU DE NAVEGAÇÃO INFERIOR DO MOTORISTA -->
+  <nav class="bg-slate-900 border-t border-slate-800 py-2.5 px-6 flex justify-around items-center z-10 shadow-lg">
+    <button onclick="carregarAbaMotorista('radar-motorista.html', this)" class="nav-motorista-btn flex flex-col items-center text-emerald-400 transition">
+      <i class="fa-solid fa-radar text-lg"></i>
+      <span class="text-[10px] font-bold mt-1">Radar</span>
+    </button>
+    <button onclick="carregarAbaMotorista('historico-motorista.html', this)" class="nav-motorista-btn flex flex-col items-center text-slate-400 hover:text-emerald-400 transition">
+      <i class="fa-solid fa-chart-line text-lg"></i>
+      <span class="text-[10px] font-bold mt-1">Ganhos</span>
+    </button>
+    <button onclick="carregarAbaMotorista('perfil.html', this)" class="nav-motorista-btn flex flex-col items-center text-slate-400 hover:text-emerald-400 transition">
+      <i class="fa-solid fa-user text-lg"></i>
+      <span class="text-[10px] font-bold mt-1">Perfil</span>
+    </button>
+  </nav>
+
+  <!-- SCRIPTS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    async function carregarAbaMotorista(arquivo, elementoBotao) {
+      document.querySelectorAll('.nav-motorista-btn').forEach(btn => {
+        btn.classList.remove('text-emerald-400');
+        btn.classList.add('text-slate-400');
+      });
+      if(elementoBotao) {
+        elementoBotao.classList.remove('text-slate-400');
+        elementoBotao.classList.add('text-emerald-400');
+      }
+
+      try {
+        const resposta = await fetch(arquivo);
+        if (!resposta.ok) throw new Error('Erro ao carregar o módulo do motorista.');
+        const html = await resposta.text();
+        document.getElementById('app-motorista-container').innerHTML = html;
+
+        if (arquivo === 'radar-motorista.html' && typeof inicializarRadar === 'function') {
+          inicializarRadar();
+        }
+        if (arquivo === 'historico-motorista.html' && typeof carregarHistoricoMotorista === 'function') {
+          carregarHistoricoMotorista();
+        }
+        if (arquivo === 'perfil.html' && typeof carregarModuloPerfil === 'function') {
+          carregarModuloPerfil();
+        }
+      } catch (erro) {
+        console.error(erro);
+      }
+    }
+
+    function alternarStatusMotorista(checkbox) {
+      const ind = document.getElementById('indicador-status');
+      const txt = document.getElementById('texto-status');
+      if (checkbox.checked) {
+        ind.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+        txt.innerText = "Online";
+        txt.className = "text-[10px] font-bold text-emerald-400";
+      } else {
+        ind.className = "w-2.5 h-2.5 rounded-full bg-slate-500";
+        txt.innerText = "Offline";
+        txt.className = "text-[10px] font-bold text-slate-400";
+      }
+    }
+
+    window.onload = () => {
+      carregarAbaMotorista('radar-motorista.html', document.querySelector('.nav-motorista-btn'));
+    };
+  </script>
+</body>
+</html>

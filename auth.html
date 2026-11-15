@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mobilidade Laguna - Login Passageiro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            darkbg: '#0f172a',
+            darkcard: '#1e293b'
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-center items-center p-4">
+
+  <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-6">
+    
+    <!-- TÍTULO -->
+    <div class="text-center space-y-1">
+      <div class="inline-block bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 p-3 rounded-2xl mb-2">
+        <i class="fa-solid fa-user text-xl"></i>
+      </div>
+      <h1 class="text-lg font-extrabold text-white">Área do Passageiro</h1>
+      <p class="text-xs text-slate-400">Entre na sua conta para solicitar viagens</p>
+    </div>
+
+    <!-- FORMULÁRIO -->
+    <form id="form-auth" class="space-y-4 text-xs" onsubmit="realizarLogin(event)">
+      <div class="space-y-1">
+        <label class="text-slate-300 font-medium">E-mail</label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
+            <i class="fa-solid fa-envelope"></i>
+          </span>
+          <input type="email" id="email" required placeholder="seu@email.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 pl-9 text-slate-100 focus:outline-none focus:border-emerald-500 transition">
+        </div>
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-slate-300 font-medium">Senha</label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
+            <i class="fa-solid fa-lock"></i>
+          </span>
+          <input type="password" id="senha" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 pl-9 text-slate-100 focus:outline-none focus:border-emerald-500 transition">
+        </div>
+      </div>
+
+      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
+        Entrar na Conta
+      </button>
+    </form>
+
+    <div class="text-center text-[11px] text-slate-500">
+      Não tem uma conta? <a href="#" class="text-emerald-400 font-bold hover:underline">Cadastre-se</a>
+    </div>
+
+  </div>
+
+  <script>
+    function realizarLogin(evento) {
+      evento.preventDefault();
+      const email = document.getElementById('email').value;
+      // Lógica de autenticação com o Supabase
+      console.log("Tentando logar com:", email);
+    }
+  </script>
+</body>
+</html>

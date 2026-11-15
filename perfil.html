@@ -1,0 +1,74 @@
+<div class="p-5 flex-1 overflow-y-auto space-y-4 bg-slate-950 text-xs">
+  <div class="bg-slate-900 p-5 rounded-3xl space-y-4 border border-slate-800 text-center shadow-sm">
+    <div class="relative w-24 h-24 mx-auto">
+      <img id="perfil-foto" src="" class="w-24 h-24 rounded-full object-cover border-4 border-emerald-500 shadow" />
+      <!-- Selo distintivo de motorista -->
+      <span id="selo-tipo-usuario" class="hidden absolute bottom-0 right-0 bg-emerald-600 text-white p-1 rounded-full text-[10px] shadow" title="Perfil de Motorista">
+        <i class="fa-solid fa-car"></i>
+      </span>
+    </div>
+
+    <div>
+      <h3 class="text-base font-extrabold text-white" id="perfil-nome">-</h3>
+      <!-- Badge de texto indicando o tipo de perfil -->
+      <span id="badge-tipo-texto" class="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300">Carregando...</span>
+      <p class="text-xs text-amber-500 font-bold mt-1"><i class="fa-solid fa-star"></i> <span id="perfil-nota">5.0</span></p>
+    </div>
+
+    <div class="space-y-1.5 text-slate-300 text-left bg-slate-950 p-3 rounded-2xl border border-slate-800">
+      <p><strong>Telefone:</strong> <span id="perfil-tel">-</span></p>
+      <p><strong>CPF:</strong> <span id="perfil-cpf">-</span></p>
+      
+      <!-- Bloco exclusivo do veículo (aparece apenas para motoristas) -->
+      <div id="bloco-veiculo" class="hidden space-y-1.5 border-t border-slate-800 pt-1.5 mt-1.5">
+        <p><strong>Veículo:</strong> <span id="perfil-veiculo">-</span></p>
+        <p><strong>Placa:</strong> <span id="perfil-placa" class="uppercase font-bold text-emerald-400">-</span></p>
+      </div>
+
+      <p><strong>Endereço:</strong> <span id="perfil-end">-</span></p>
+    </div>
+
+    <button onclick="sairContaUnificada()" class="w-full bg-red-950/40 text-red-400 font-bold py-2.5 rounded-xl border border-red-800 hover:bg-red-900/40 transition">
+      Sair da Conta
+    </button>
+  </div>
+</div>
+
+<script>
+  function carregarModuloPerfil() {
+    const dadosUsuario = window.motoristaAtual || window.usuarioAtual || JSON.parse(localStorage.getItem('motorista_logado') || localStorage.getItem('passageiro_logado') || '{}');
+    
+    if (!dadosUsuario || !dadosUsuario.id) return;
+
+    document.getElementById('perfil-foto').src = dadosUsuario.foto_url || 'https://ui-avatars.com/api/?name=Usuario&background=1e293b&color=cbd5e1';
+    document.getElementById('perfil-nome').innerText = dadosUsuario.nome || '-';
+    document.getElementById('perfil-nota').innerText = Number(dadosUsuario.nota_media || 5.0).toFixed(2);
+    document.getElementById('perfil-tel').innerText = dadosUsuario.telefone || '-';
+    document.getElementById('perfil-cpf').innerText = dadosUsuario.cpf || '-';
+    document.getElementById('perfil-end').innerText = dadosUsuario.endereco || '-';
+
+    const badgeTexto = document.getElementById('badge-tipo-texto');
+    const seloIcone = document.getElementById('selo-tipo-usuario');
+
+    if (dadosUsuario.tipo === 'motorista' || dadosUsuario.veiculo_placa) {
+      badgeTexto.innerText = "Motorista Parceiro";
+      badgeTexto.className = "inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+      seloIcone.classList.remove('hidden');
+
+      document.getElementById('bloco-veiculo').classList.remove('hidden');
+      document.getElementById('perfil-veiculo').innerText = dadosUsuario.veiculo_modelo || '-';
+      document.getElementById('perfil-placa').innerText = dadosUsuario.veiculo_placa || '-';
+    } else {
+      badgeTexto.innerText = "Passageiro";
+      badgeTexto.className = "inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500/20 text-sky-400 border border-sky-500/30";
+      seloIcone.classList.add('hidden');
+      document.getElementById('bloco-veiculo').classList.add('hidden');
+    }
+  }
+
+  function sairContaUnificada() {
+    localStorage.removeItem('passageiro_logado');
+    localStorage.removeItem('motorista_logado');
+    location.href = 'auth.html';
+  }
+</script>
