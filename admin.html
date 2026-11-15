@@ -3,101 +3,128 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mobilidade Laguna - Painel Admin</title>
+  <title>Admin - Mobilidade Laguna</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            darkbg: '#0f172a',
-            darkcard: '#1e293b'
-          }
-        }
-      }
-    }
-  </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 text-xs">
 
-  <!-- CABEÇALHO ADMIN -->
-  <header class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center shadow-md">
-    <div class="flex items-center space-x-2">
-      <div class="bg-amber-600 p-2 rounded-xl text-white shadow">
-        <i class="fa-solid fa-gauge-high"></i>
-      </div>
-      <div>
-        <h1 class="font-extrabold text-sm tracking-wide text-white">Mobilidade Laguna</h1>
-        <p class="text-[10px] text-amber-400 font-medium">Painel Administrativo</p>
-      </div>
-    </div>
-    <button onclick="carregarDadosAdmin()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-700 transition">
-      <i class="fa-solid fa-rotate mr-1"></i> Atualizar
-    </button>
-  </header>
-
-  <!-- CONTEÚDO ADMIN -->
-  <main class="flex-1 p-4 max-w-4xl mx-auto w-full space-y-4 text-xs">
-    
-    <!-- CARDS DE RESUMO -->
-    <div class="grid grid-cols-2 gap-3">
-      <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-sm flex items-center justify-between">
+  <div class="max-w-2xl mx-auto space-y-6">
+    <!-- CABEÇALHO -->
+    <div class="bg-slate-900 border border-slate-800 p-4 rounded-3xl flex justify-between items-center shadow-lg">
+      <div class="flex items-center gap-3">
+        <div class="bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 p-2.5 rounded-2xl">
+          <i class="fa-solid fa-shield-halved text-lg"></i>
+        </div>
         <div>
-          <p class="text-slate-400">Total Usuários</p>
-          <h3 id="total-usuarios" class="text-lg font-extrabold text-white mt-0.5">0</h3>
-        </div>
-        <div class="bg-sky-500/20 text-sky-400 p-3 rounded-xl">
-          <i class="fa-solid fa-users text-base"></i>
+          <h1 class="text-base font-extrabold text-white">Painel Administrativo</h1>
+          <p class="text-[11px] text-slate-400">Aprovação de Motoristas e Gestão</p>
         </div>
       </div>
-      <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-sm flex items-center justify-between">
-        <div>
-          <p class="text-slate-400">Corridas Registradas</p>
-          <h3 id="total-corridas" class="text-lg font-extrabold text-white mt-0.5">0</h3>
-        </div>
-        <div class="bg-emerald-500/20 text-emerald-400 p-3 rounded-xl">
-          <i class="fa-solid fa-route text-base"></i>
-        </div>
+      <div class="flex gap-2">
+        <button onclick="carregarDadosAdmin()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl font-bold border border-slate-700">
+          <i class="fa-solid fa-rotate"></i>
+        </button>
+        <a href="auth.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-xl font-bold border border-slate-700">Sair</a>
       </div>
     </div>
 
-    <!-- TABELA DE GERENCIAMENTO -->
-    <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-sm">
-      <div class="p-4 border-b border-slate-800 flex justify-between items-center">
-        <h3 class="font-extrabold text-white"><i class="fa-solid fa-list-check text-amber-500 mr-1.5"></i> Cadastros Recentes</h3>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-slate-950/50 text-slate-400 border-b border-slate-800 text-[10px]">
-              <th class="p-3">Nome</th>
-              <th class="p-3">Telefone</th>
-              <th class="p-3">Tipo</th>
-              <th class="p-3">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="tabela-usuarios-corpo" class="divide-y divide-slate-800/60 text-slate-300">
-            <tr>
-              <td colspan="4" class="p-4 text-center text-slate-500">Carregando dados...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <!-- SEÇÃO 1: MOTORISTAS (APROVAÇÃO OBRIGATÓRIA) -->
+    <div class="space-y-3">
+      <h2 class="text-sm font-extrabold text-amber-400 flex items-center gap-2">
+        <i class="fa-solid fa-car"></i> Cadastros de Motoristas
+      </h2>
+      <div id="lista-admin-motoristas" class="space-y-3"></div>
     </div>
 
-  </main>
+    <!-- SEÇÃO 2: PASSAGEIROS (LIBERAÇÃO AUTOMÁTICA VIA SELFIE) -->
+    <div class="space-y-3 pt-4 border-t border-slate-800">
+      <h2 class="text-sm font-extrabold text-emerald-400 flex items-center gap-2">
+        <i class="fa-solid fa-users"></i> Passageiros Ativos (Acesso Automático)
+      </h2>
+      <div id="lista-admin-passageiros" class="space-y-3"></div>
+    </div>
+  </div>
 
   <script>
-    async function carregarDadosAdmin() {
-      // Função pronta para integrar com o Supabase e puxar os dados reais da tabela de usuários
-      console.log("Atualizando painel administrativo...");
+    function carregarDadosAdmin() {
+      const motoristas = JSON.parse(localStorage.getItem('lista_motoristas') || '[]');
+      const passageiros = JSON.parse(localStorage.getItem('lista_passageiros') || '[]');
+
+      const divMot = document.getElementById('lista-admin-motoristas');
+      if (motoristas.length === 0) {
+        divMot.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista cadastrado ainda.</div>';
+      } else {
+        divMot.innerHTML = motoristas.map((m, idx) => `
+          <div class="bg-slate-900 p-4 rounded-2xl border ${m.status === 'aprovado' ? 'border-emerald-500/40' : 'border-amber-500/40'} space-y-3">
+            <div class="flex items-center gap-3">
+              <img src="${m.foto_url}" class="w-14 h-14 rounded-full object-cover border-2 border-slate-700">
+              <div class="flex-1">
+                <div class="flex justify-between items-start">
+                  <h3 class="font-extrabold text-white text-sm">${m.nome}</h3>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${m.status === 'aprovado' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">
+                    ${m.status === 'aprovado' ? 'Aprovado' : 'Aguardando Aprovação'}
+                  </span>
+                </div>
+                <p class="text-slate-400">Cel: ${m.telefone} • CPF: ${m.cpf}</p>
+                <p class="text-slate-300 font-bold">Veículo: ${m.veiculo_modelo} (${m.veiculo_placa})</p>
+                <p class="text-[10px] text-slate-500 mt-0.5">Cadastrado em: ${m.data_cadastro || '-'}</p>
+              </div>
+            </div>
+            <div class="flex gap-2 pt-2 border-t border-slate-800">
+              ${m.status !== 'aprovado' ? `
+                <button onclick="alterarStatusMotorista(${idx}, 'aprovado')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl">
+                  <i class="fa-solid fa-check mr-1"></i> Aprovar Motorista
+                </button>
+              ` : `
+                <button onclick="alterarStatusMotorista(${idx}, 'pendente')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-2 rounded-xl">
+                  Suspender Acesso
+                </button>
+              `}
+              <button onclick="excluirMotorista(${idx})" class="bg-red-950/50 text-red-400 border border-red-800 px-3 rounded-xl font-bold">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      const divPas = document.getElementById('lista-admin-passageiros');
+      if (passageiros.length === 0) {
+        divPas.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro cadastrado ainda.</div>';
+      } else {
+        divPas.innerHTML = passageiros.map(p => `
+          <div class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 flex items-center gap-3">
+            <img src="${p.foto_url}" class="w-12 h-12 rounded-full object-cover border border-emerald-500">
+            <div class="flex-1">
+              <div class="flex justify-between">
+                <h3 class="font-bold text-white">${p.nome}</h3>
+                <span class="text-[10px] text-emerald-400 font-bold"><i class="fa-solid fa-face-smile"></i> Selfie OK</span>
+              </div>
+              <p class="text-slate-400">Cel: ${p.telefone} • CPF: ${p.cpf}</p>
+              <p class="text-[10px] text-slate-500">Cadastrado em: ${p.data_cadastro || '-'}</p>
+            </div>
+          </div>
+        `).join('');
+      }
     }
 
-    window.onload = () => {
+    function alterarStatusMotorista(index, novoStatus) {
+      const motoristas = JSON.parse(localStorage.getItem('lista_motoristas') || '[]');
+      motoristas[index].status = novoStatus;
+      localStorage.setItem('lista_motoristas', JSON.stringify(motoristas));
       carregarDadosAdmin();
-    };
+    }
+
+    function excluirMotorista(index) {
+      if (!confirm("Remover este cadastro?")) return;
+      const motoristas = JSON.parse(localStorage.getItem('lista_motoristas') || '[]');
+      motoristas.splice(index, 1);
+      localStorage.setItem('lista_motoristas', JSON.stringify(motoristas));
+      carregarDadosAdmin();
+    }
+
+    window.onload = carregarDadosAdmin;
   </script>
 </body>
 </html>
