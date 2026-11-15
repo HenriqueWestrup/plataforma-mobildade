@@ -244,7 +244,7 @@
         const onlineList = dadosGlobaisMotoristas.filter(m => m.online === true || m.status === 'aprovado');
         const offlineList = dadosGlobaisMotoristas.filter(m => m.online === false || m.online === null || m.status === 'pendente');
 
-        document.getElementById('count-online').innerText = dadosGlobaisMotoristas.length;
+        document.getElementById('count-online').innerText = onlineList.length;
         document.getElementById('count-offline').innerText = offlineList.length;
 
         const listaAlvo = subAbaMotorista === 'online' ? onlineList : dadosGlobaisMotoristas;
@@ -383,23 +383,39 @@
       }
     }
 
-    // NOVA FUNÇÃO: Excluir usuário permanentemente do Supabase
+    // EXCLUSÃO EM CASCATA: Remove dependências (corridas e suporte) antes de excluir o usuário
     async function excluirUsuarioAtual() {
       const id = document.getElementById('edit-id').value;
       const tabela = document.getElementById('edit-tabela').value;
       const nomeUsuario = document.getElementById('edit-nome').value;
 
-      if (!confirm(`Tem certeza que deseja excluir permanentemente o usuário "${nomeUsuario}"? Todos os dados serão apagados.`)) {
+      if (!confirm(`Tem certeza que deseja excluir permanentemente o usuário "${nomeUsuario}" e todo o seu histórico vinculado?`)) {
         return;
       }
 
-      const { error } = await supabaseClient.from(tabela).delete().eq('id', id);
-      if (error) {
-        alert("Erro ao excluir usuário: " + error.message);
-      } else {
-        alert("Usuário excluído com sucesso!");
-        fecharModalEdicao();
-        carregarDadosAdmin();
+      try {
+        // 1. Remove dependências na tabela de corridas (evita violação de foreign key constraint)
+        if (tabela === 'usuarios' || tabela === 'passageiros') {
+          await supabaseClient.from('corridas').delete().eq('passageiro_id', id);
+        } else if (tabela === 'motoristas') {
+          await supabaseClient.from('corridas').delete().eq('motorista_id', id);
+        }
+
+        // 2. Remove chamados de suporte vinculados
+        await supabaseClient.from('chamados_suporte').delete().eq('usuario_id', id);
+
+        // 3. Exclui o usuário da tabela principal
+        const { error } = await supabaseClient.from(tabela).delete().eq('id', id);
+        
+        if (error) {
+          alert("Erro ao excluir usuário: " + error.message);
+        } else {
+          alert("Usuário e histórico excluídos com sucesso!");
+          fecharModalEdicao();
+          carregarDadosAdmin();
+        }
+      } catch (err) {
+        alert("Erro inesperado ao excluir: " + err.message);
       }
     }
 
@@ -434,6 +450,8 @@
         return;
       }
 
+      // Remove dependências e o registro antigo para evitar duplicidade ou erros de chave estrangeira
+      await supabaseClient.from('corridas').delete().eq('passageiro_id', idUsuario);
       await supabaseClient.from(tabelaUsuariosAtiva).delete().eq('id', idUsuario);
 
       alert("Promovido a motorista com sucesso!");
