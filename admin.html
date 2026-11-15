@@ -10,6 +10,40 @@
 </head>
 <body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs">
 
+  <!-- TELA DE LOGIN MESTRE ADMIN -->
+  <div id="tela-login-admin" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-6 space-y-5 shadow-2xl">
+      <div class="text-center space-y-2">
+        <div class="w-14 h-14 bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto">
+          <i class="fa-solid fa-shield-halved text-2xl"></i>
+        </div>
+        <h2 class="text-base font-extrabold text-white">Acesso Administrativo</h2>
+        <p class="text-[11px] text-slate-400">Insira as credenciais de Administrador Mestre</p>
+      </div>
+
+      <form onsubmit="autenticarAdmin(event)" class="space-y-3 text-xs">
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Usuário Admin</label>
+          <input type="text" id="login-admin-user" required placeholder="admin" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-100 focus:border-emerald-500 outline-none">
+        </div>
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Senha Mestre</label>
+          <input type="password" id="login-admin-pass" required placeholder="••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-100 focus:border-emerald-500 outline-none">
+        </div>
+        <p id="login-admin-erro" class="text-red-400 text-[11px] font-semibold hidden text-center">Usuário ou senha mestre incorretos.</p>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-950/50">
+          Entrar no Painel
+        </button>
+      </form>
+
+      <div class="pt-2 border-t border-slate-800 text-center">
+        <a href="index.html" class="text-[11px] text-slate-400 hover:text-emerald-400 transition">
+          <i class="fa-solid fa-arrow-left mr-1"></i> Voltar para o Aplicativo
+        </a>
+      </div>
+    </div>
+  </div>
+
   <!-- TOPO FIXO -->
   <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0">
     <div class="flex items-center gap-3">
@@ -22,10 +56,13 @@
       </div>
     </div>
     <div class="flex gap-2">
-      <button onclick="carregarDadosAdmin()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl font-bold border border-slate-700">
+      <button onclick="abrirModalSenhaMestre()" title="Alterar Senha Mestre" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-2 rounded-xl font-bold border border-slate-700">
+        <i class="fa-solid fa-key"></i>
+      </button>
+      <button onclick="carregarDadosAdmin()" title="Atualizar Dados" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl font-bold border border-slate-700">
         <i class="fa-solid fa-rotate"></i>
       </button>
-      <a href="auth.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-xl font-bold border border-slate-700">Sair</a>
+      <button onclick="sairAdmin()" class="bg-slate-800 hover:bg-red-950/50 text-slate-300 hover:text-red-400 px-3 py-2 rounded-xl font-bold border border-slate-700">Sair</button>
     </div>
   </header>
 
@@ -78,7 +115,7 @@
   </main>
 
   <!-- MODAL DE EDIÇÃO -->
-  <div id="modal-edicao" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div id="modal-edicao" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
@@ -148,13 +185,64 @@
           <button type="submit" class="flex-1 bg-emerald-600 text-white font-bold py-2.5 rounded-xl">Salvar</button>
         </div>
 
-        <!-- BOTÃO DE EXCLUIR USUÁRIO -->
+        <!-- BOTÃO DE EXCLUIR USUÁRIO COM CONFIRMAÇÃO DE SENHA MESTRE -->
         <div class="pt-3 border-t border-slate-800">
-          <button type="button" onclick="excluirUsuarioAtual()" class="w-full bg-red-950/40 hover:bg-red-900/40 text-red-400 border border-red-800 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+          <button type="button" onclick="abrirConfirmacaoExclusao()" class="w-full bg-red-950/40 hover:bg-red-900/40 text-red-400 border border-red-800 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
             <i class="fa-solid fa-trash-can"></i> Excluir Usuário Permanentemente
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO COM SENHA MESTRE -->
+  <div id="modal-confirmar-exclusao" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-red-500/40 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
+      <div class="text-center space-y-2">
+        <div class="w-12 h-12 bg-red-600/20 border border-red-500/40 text-red-400 rounded-2xl flex items-center justify-center mx-auto">
+          <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+        </div>
+        <h3 class="text-sm font-extrabold text-white">Confirmar Exclusão Definitiva</h3>
+        <p class="text-[11px] text-slate-400">
+          Você está prestes a apagar <strong id="nome-usuario-exclusao" class="text-red-400">-</strong> e todo o histórico vinculado. Digite a <strong>Senha Mestre Admin</strong> para confirmar:
+        </p>
+      </div>
+
+      <div class="space-y-2">
+        <input type="password" id="input-senha-mestre-exclusao" placeholder="Senha Mestre Admin" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-center text-slate-100 focus:border-red-500 outline-none">
+        <p id="erro-senha-exclusao" class="text-red-400 text-[10px] font-semibold hidden text-center">Senha mestre incorreta!</p>
+      </div>
+
+      <div class="flex gap-2">
+        <button type="button" onclick="fecharConfirmacaoExclusao()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl">Cancelar</button>
+        <button type="button" onclick="executarExclusaoComSenha()" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl">Confirmar Exclusão</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PARA ALTERAR SENHA MESTRE -->
+  <div id="modal-senha-mestre" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
+          <i class="fa-solid fa-key text-amber-400"></i> Configurar Senha Mestre
+        </h3>
+        <button onclick="fecharModalSenhaMestre()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Senha Mestre Atual</label>
+          <input type="password" id="mestre-atual" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
+        </div>
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Nova Senha Mestre</label>
+          <input type="password" id="mestre-nova" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
+        </div>
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="fecharModalSenhaMestre()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl">Cancelar</button>
+          <button type="button" onclick="salvarNovaSenhaMestre()" class="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl">Atualizar</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -163,13 +251,75 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    const ADMIN_USER_PADRAO = 'admin';
+    function obterSenhaMestre() {
+      return localStorage.getItem('admin_master_pass') || 'admin123';
+    }
+
     let dadosGlobaisMotoristas = [];
     let dadosGlobaisUsuarios = [];
     let dadosGlobaisSuporte = [];
     let tabelaUsuariosAtiva = 'usuarios';
     let abaAdminAtual = 'motoristas';
     let subAbaMotorista = 'offline';
-    let subAbaSuporte = 'motoristas';
+
+    function verificarSessaoAdmin() {
+      const logado = sessionStorage.getItem('admin_autenticado');
+      if (logado === 'true') {
+        document.getElementById('tela-login-admin').classList.add('hidden');
+        carregarDadosAdmin();
+      } else {
+        document.getElementById('tela-login-admin').classList.remove('hidden');
+      }
+    }
+
+    function autenticarAdmin(e) {
+      e.preventDefault();
+      const user = document.getElementById('login-admin-user').value.trim().toLowerCase();
+      const pass = document.getElementById('login-admin-pass').value;
+      const erroEl = document.getElementById('login-admin-erro');
+
+      if ((user === ADMIN_USER_PADRAO || user === 'admin@laguna.com') && pass === obterSenhaMestre()) {
+        sessionStorage.setItem('admin_autenticado', 'true');
+        erroEl.classList.add('hidden');
+        document.getElementById('tela-login-admin').classList.add('hidden');
+        carregarDadosAdmin();
+      } else {
+        erroEl.classList.remove('hidden');
+      }
+    }
+
+    function sairAdmin() {
+      sessionStorage.removeItem('admin_autenticado');
+      window.location.href = 'auth.html';
+    }
+
+    function abrirModalSenhaMestre() {
+      document.getElementById('mestre-atual').value = '';
+      document.getElementById('mestre-nova').value = '';
+      document.getElementById('modal-senha-mestre').classList.remove('hidden');
+    }
+
+    function fecharModalSenhaMestre() {
+      document.getElementById('modal-senha-mestre').classList.add('hidden');
+    }
+
+    function salvarNovaSenhaMestre() {
+      const atual = document.getElementById('mestre-atual').value;
+      const nova = document.getElementById('mestre-nova').value.trim();
+
+      if (atual !== obterSenhaMestre()) {
+        alert("Senha mestre atual incorreta!");
+        return;
+      }
+      if (nova.length < 4) {
+        alert("A nova senha deve ter pelo menos 4 caracteres.");
+        return;
+      }
+      localStorage.setItem('admin_master_pass', nova);
+      alert("Senha mestre atualizada com sucesso!");
+      fecharModalSenhaMestre();
+    }
 
     async function carregarDadosAdmin() {
       try {
@@ -247,11 +397,11 @@
         document.getElementById('count-online').innerText = onlineList.length;
         document.getElementById('count-offline').innerText = offlineList.length;
 
-        const listaAlvo = subAbaMotorista === 'online' ? onlineList : dadosGlobaisMotoristas;
+        const listaAlvo = subAbaMotorista === 'online' ? onlineList : offlineList;
         const container = document.getElementById('lista-admin-motoristas');
 
         if (listaAlvo.length === 0) {
-          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista cadastrado na tabela 'motoristas' do Supabase.</div>`;
+          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista ${subAbaMotorista} encontrado.</div>`;
         } else {
           container.innerHTML = listaAlvo.map(m => gerarCardAdmin(m, 'motoristas')).join('');
         }
@@ -383,34 +533,59 @@
       }
     }
 
-    // EXCLUSÃO EM CASCATA: Remove dependências (corridas e suporte) antes de excluir o usuário
-    async function excluirUsuarioAtual() {
-      const id = document.getElementById('edit-id').value;
-      const tabela = document.getElementById('edit-tabela').value;
+    function abrirConfirmacaoExclusao() {
       const nomeUsuario = document.getElementById('edit-nome').value;
+      document.getElementById('nome-usuario-exclusao').innerText = nomeUsuario;
+      document.getElementById('input-senha-mestre-exclusao').value = '';
+      document.getElementById('erro-senha-exclusao').classList.add('hidden');
+      document.getElementById('modal-confirmar-exclusao').classList.remove('hidden');
+    }
 
-      if (!confirm(`Tem certeza que deseja excluir permanentemente o usuário "${nomeUsuario}" e todo o seu histórico vinculado?`)) {
+    function fecharConfirmacaoExclusao() {
+      document.getElementById('modal-confirmar-exclusao').classList.add('hidden');
+    }
+
+    // EXCLUSÃO EM CASCATA COM LIMPEZA DE CHAVES ESTRANGEIRAS
+    async function executarExclusaoComSenha() {
+      const senhaDigitada = document.getElementById('input-senha-mestre-exclusao').value;
+      const erroEl = document.getElementById('erro-senha-exclusao');
+
+      if (senhaDigitada !== obterSenhaMestre()) {
+        erroEl.classList.remove('hidden');
         return;
       }
 
+      erroEl.classList.add('hidden');
+      const id = document.getElementById('edit-id').value;
+      const tabela = document.getElementById('edit-tabela').value;
+
       try {
-        // 1. Remove dependências na tabela de corridas (evita violação de foreign key constraint)
-        if (tabela === 'usuarios' || tabela === 'passageiros') {
-          await supabaseClient.from('corridas').delete().eq('passageiro_id', id);
-        } else if (tabela === 'motoristas') {
-          await supabaseClient.from('corridas').delete().eq('motorista_id', id);
+        // 1. Busca e deleta mensagens de chat atreladas às corridas do usuário
+        const { data: corridasUsuario } = await supabaseClient
+          .from('corridas')
+          .select('id')
+          .or(`passageiro_id.eq.${id},motorista_id.eq.${id}`);
+
+        if (corridasUsuario && corridasUsuario.length > 0) {
+          const idsCorridas = corridasUsuario.map(c => c.id);
+          await supabaseClient.from('mensagens_chat').delete().in('corrida_id', idsCorridas);
         }
 
-        // 2. Remove chamados de suporte vinculados
+        // 2. Remove registros dependentes na tabela 'corridas'
+        await supabaseClient.from('corridas').delete().eq('passageiro_id', id);
+        await supabaseClient.from('corridas').delete().eq('motorista_id', id);
+
+        // 3. Remove chamados de suporte vinculados
         await supabaseClient.from('chamados_suporte').delete().eq('usuario_id', id);
 
-        // 3. Exclui o usuário da tabela principal
+        // 4. Exclui o usuário da tabela principal
         const { error } = await supabaseClient.from(tabela).delete().eq('id', id);
         
         if (error) {
           alert("Erro ao excluir usuário: " + error.message);
         } else {
-          alert("Usuário e histórico excluídos com sucesso!");
+          alert("Usuário e todo o seu histórico foram excluídos permanentemente!");
+          fecharConfirmacaoExclusao();
           fecharModalEdicao();
           carregarDadosAdmin();
         }
@@ -450,7 +625,6 @@
         return;
       }
 
-      // Remove dependências e o registro antigo para evitar duplicidade ou erros de chave estrangeira
       await supabaseClient.from('corridas').delete().eq('passageiro_id', idUsuario);
       await supabaseClient.from(tabelaUsuariosAtiva).delete().eq('id', idUsuario);
 
@@ -463,7 +637,7 @@
       carregarDadosAdmin();
     }
 
-    window.onload = carregarDadosAdmin;
+    window.onload = verificarSessaoAdmin;
   </script>
 </body>
 </html>
