@@ -79,6 +79,10 @@
       <input type="password" id="cad-senha" required placeholder="Senha de Acesso" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
 
       <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition mt-2">Concluir Cadastro</button>
+      
+      <div class="text-center pt-2">
+        <button type="button" onclick="alternarTela('login')" class="text-slate-400 hover:text-white text-[11px] underline">Já tem uma conta? Faça login</button>
+      </div>
     </form>
 
     <div class="text-center text-[11px] text-slate-500 space-y-2 pt-2 border-t border-slate-800">
@@ -117,10 +121,12 @@
     function alternarTela(m) {
       if (m === 'cadastro') {
         document.getElementById('form-login').classList.add('hidden');
+        document.getElementById('texto-alternar').classList.add('hidden');
         document.getElementById('form-cadastro').classList.remove('hidden');
         document.getElementById('titulo-tela').innerText = "Criar Conta";
       } else {
         document.getElementById('form-cadastro').classList.add('hidden');
+        document.getElementById('texto-alternar').classList.remove('hidden');
         document.getElementById('form-login').classList.remove('hidden');
         document.getElementById('titulo-tela').innerText = "Área do Passageiro";
       }
@@ -187,7 +193,6 @@
         return;
       }
 
-      // Validação de Conta Bloqueada
       if (data.status === 'bloqueado') {
         alert("Conta temporariamente suspensa. Por favor, entre em contato com o suporte.");
         return;
@@ -242,7 +247,6 @@
         foto_url: fotoBase64,
         tipo: 'passageiro',
         status: 'aprovado',
-        data_cadastro: new Date().toLocaleDateString('pt-BR'),
         ultima_verificacao_facial: new Date().toISOString()
       };
 

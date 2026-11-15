@@ -27,7 +27,7 @@
       <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Entrar como Motorista</button>
     </form>
 
-    <!-- COMPLEMENTAR DADOS DO VEÍCULO (Caso tenha sido promovido pelo Admin) -->
+    <!-- COMPLEMENTAR DADOS DO VEÍCULO -->
     <form id="form-complemento-veiculo" class="hidden space-y-3 text-xs" onsubmit="salvarDadosVeiculo(event)">
       <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-amber-300 text-center">
         <p class="font-bold">Conta promovida a Motorista!</p>
@@ -80,6 +80,10 @@
       <input type="password" id="cad-mot-senha" required placeholder="Senha" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
 
       <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition mt-2">Enviar para Aprovação</button>
+      
+      <div class="text-center pt-2">
+        <button type="button" onclick="alternarTelaMot('login')" class="text-slate-400 hover:text-white text-[11px] underline">Já tem uma conta? Faça login</button>
+      </div>
     </form>
 
     <div class="text-center text-[11px] text-slate-500 space-y-2 pt-2 border-t border-slate-800">
@@ -118,10 +122,12 @@
     function alternarTelaMot(m) {
       if (m === 'cadastro') {
         document.getElementById('form-login-motorista').classList.add('hidden');
+        document.getElementById('texto-alt-mot').classList.add('hidden');
         document.getElementById('form-cadastro-motorista').classList.remove('hidden');
         document.getElementById('titulo-motorista').innerText = "Cadastro de Motorista";
       } else {
         document.getElementById('form-cadastro-motorista').classList.add('hidden');
+        document.getElementById('texto-alt-mot').classList.remove('hidden');
         document.getElementById('form-login-motorista').classList.remove('hidden');
         document.getElementById('titulo-motorista').innerText = "Portal do Motorista";
       }
@@ -183,13 +189,11 @@
         return;
       }
 
-      // Validação de Conta Bloqueada
       if (data.status === 'bloqueado') {
         alert("Conta temporariamente suspensa. Por favor, entre em contato com o suporte.");
         return;
       }
 
-      // Se o motorista foi promovido pelo admin mas não tem veículo cadastrado ainda:
       if (!data.veiculo_modelo || !data.veiculo_placa) {
         motoristaPendenteObj = data;
         document.getElementById('form-login-motorista').classList.add('hidden');
@@ -250,7 +254,6 @@
         foto_url: fotoMotBase64,
         tipo: 'motorista',
         status: 'pendente',
-        data_cadastro: new Date().toLocaleDateString('pt-BR'),
         ultima_verificacao_facial: new Date().toISOString()
       };
 
