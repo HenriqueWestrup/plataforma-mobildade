@@ -127,6 +127,24 @@
           <input type="text" id="edit-endereco" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
         </div>
 
+        <!-- GERADOR DE SENHA TEMPORÁRIA -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-800 bg-slate-950/60 p-3 rounded-2xl border border-amber-500/20">
+          <label class="text-amber-400 font-bold flex items-center justify-between">
+            <span><i class="fa-solid fa-key mr-1"></i> Senha Temporária de Acesso</span>
+            <span class="text-[9px] text-slate-400 font-normal">(Deixe vazio para manter a atual)</span>
+          </label>
+          <div class="flex gap-1.5">
+            <input type="text" id="edit-senha-temp" placeholder="Clique em Gerar..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold tracking-wider text-center">
+            <button type="button" onclick="gerarSenhaTemporaria()" class="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white border border-amber-500/40 px-3 py-2 rounded-xl font-bold transition whitespace-nowrap">
+              <i class="fa-solid fa-dice mr-1"></i> Gerar
+            </button>
+            <button type="button" onclick="copiarSenhaTemporaria()" title="Copiar senha para enviar ao usuário" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl font-bold transition">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+          </div>
+          <p id="feedback-copia-senha" class="text-[10px] text-emerald-400 hidden font-semibold text-right">Senha copiada! Lembre-se de clicar em Salvar.</p>
+        </div>
+
         <div id="edit-bloco-veiculo" class="space-y-2 pt-2 border-t border-slate-800 hidden">
           <div class="space-y-1">
             <label class="text-slate-300 font-medium">Veículo</label>
@@ -163,6 +181,7 @@
     let dadosGlobaisMotoristas = [];
     let dadosGlobaisUsuarios = [];
     let dadosGlobaisSuporte = [];
+    let tabelaUsuariosAtiva = 'usuarios';
     let abaAdminAtual = 'motoristas';
     let subAbaMotorista = 'online';
     let subAbaSuporte = 'motoristas';
@@ -178,10 +197,12 @@
         const { data: resUsuarios, error: errUsu } = await supabaseClient.from('usuarios').select('*');
         if (!errUsu && resUsuarios && resUsuarios.length > 0) {
           usuarios = resUsuarios;
+          tabelaUsuariosAtiva = 'usuarios';
         } else {
           const { data: resPassageiros, error: errPas } = await supabaseClient.from('passageiros').select('*');
           if (!errPas && resPassageiros) {
             usuarios = resPassageiros;
+            tabelaUsuariosAtiva = 'passageiros';
           }
         }
 
@@ -258,7 +279,7 @@
         if (dadosGlobaisUsuarios.length === 0) {
           container.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro cadastrado nas tabelas "usuarios" ou "passageiros".</div>';
         } else {
-          container.innerHTML = dadosGlobaisUsuarios.map(u => gerarCardAdmin(u, 'usuarios')).join('');
+          container.innerHTML = dadosGlobaisUsuarios.map(u => gerarCardAdmin(u, tabelaUsuariosAtiva)).join('');
         }
       } else if (abaAdminAtual === 'suporte') {
         const container = document.getElementById('lista-admin-suporte');
@@ -275,7 +296,7 @@
               </div>
               <p class="text-slate-300 text-[11px]">${s.mensagem || 'Solicitação de suporte aberta.'}</p>
               <div class="flex gap-2 pt-2 border-t border-slate-800">
-                <button onclick="abrirModalEdicao('${s.usuario_id}', '${subAbaSuporte === 'motoristas' ? 'motoristas' : 'usuarios'}')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 py-1.5 rounded-xl font-bold">Ver Perfil</button>
+                <button onclick="abrirModalEdicao('${s.usuario_id}', '${subAbaSuporte === 'motoristas' ? 'motoristas' : tabelaUsuariosAtiva}')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 py-1.5 rounded-xl font-bold">Ver Perfil</button>
                 <button onclick="resolverSuporte('${s.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded-xl font-bold">Resolver</button>
               </div>
             </div>
@@ -312,6 +333,22 @@
       `;
     }
 
+    function gerarSenhaTemporaria() {
+      const senhaGerada = Math.floor(100000 + Math.random() * 900000).toString();
+      document.getElementById('edit-senha-temp').value = senhaGerada;
+      document.getElementById('feedback-copia-senha').classList.add('hidden');
+    }
+
+    function copiarSenhaTemporaria() {
+      const campo = document.getElementById('edit-senha-temp');
+      if (!campo.value) {
+        gerarSenhaTemporaria();
+      }
+      navigator.clipboard.writeText(campo.value);
+      const feedback = document.getElementById('feedback-copia-senha');
+      feedback.classList.remove('hidden');
+    }
+
     async function abrirModalEdicao(id, tabela) {
       const lista = tabela === 'motoristas' ? dadosGlobaisMotoristas : dadosGlobaisUsuarios;
       const user = lista.find(item => item.id == id);
@@ -323,6 +360,8 @@
       document.getElementById('edit-cpf').value = user.cpf || '';
       document.getElementById('edit-telefone').value = user.telefone || '';
       document.getElementById('edit-endereco').value = user.endereco || '';
+      document.getElementById('edit-senha-temp').value = '';
+      document.getElementById('feedback-copia-senha').classList.add('hidden');
       document.getElementById('edit-foto-preview').src = user.foto_url || 'https://ui-avatars.com/api/?name=Usuario';
       document.getElementById('edit-tipo-badge').innerText = tabela === 'motoristas' ? 'Motorista Parceiro' : 'Passageiro';
 
@@ -347,6 +386,7 @@
       e.preventDefault();
       const id = document.getElementById('edit-id').value;
       const tabela = document.getElementById('edit-tabela').value;
+      const senhaTemp = document.getElementById('edit-senha-temp').value.trim();
 
       const atualizacao = {
         nome: document.getElementById('edit-nome').value,
@@ -354,6 +394,10 @@
         telefone: document.getElementById('edit-telefone').value,
         endereco: document.getElementById('edit-endereco').value
       };
+
+      if (senhaTemp !== '') {
+        atualizacao.senha = senhaTemp;
+      }
 
       if (tabela === 'motoristas') {
         atualizacao.veiculo_modelo = document.getElementById('edit-veiculo-modelo').value;
@@ -363,7 +407,7 @@
       const { error } = await supabaseClient.from(tabela).update(atualizacao).eq('id', id);
       if (error) alert("Erro ao salvar: " + error.message);
       else {
-        alert("Atualizado com sucesso!");
+        alert(senhaTemp !== '' ? `Atualizado com sucesso! Nova senha temporária definida: ${senhaTemp}` : "Atualizado com sucesso!");
         fecharModalEdicao();
         carregarDadosAdmin();
       }
