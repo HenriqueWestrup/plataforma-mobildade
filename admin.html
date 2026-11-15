@@ -69,10 +69,10 @@
   <!-- ABAS PRINCIPAIS DO ADMIN -->
   <div class="bg-slate-900 border-b border-slate-800 px-4 py-2 flex gap-2 shrink-0">
     <button onclick="mudarAbaAdmin('motoristas')" id="btn-aba-motoristas" class="flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-emerald-600 text-white transition">
-      <i class="fa-solid fa-car mr-1"></i> Motoristas
+      <i class="fa-solid fa-car mr-1"></i> Motoristas (<span id="count-aba-motoristas">0</span>)
     </button>
     <button onclick="mudarAbaAdmin('usuarios')" id="btn-aba-usuarios" class="flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-slate-800 text-slate-400 transition">
-      <i class="fa-solid fa-users mr-1"></i> Passageiros
+      <i class="fa-solid fa-users mr-1"></i> Passageiros (<span id="count-aba-passageiros">0</span>)
     </button>
     <button onclick="mudarAbaAdmin('suporte')" id="btn-aba-suporte" class="relative flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-slate-800 text-slate-400 transition">
       <i class="fa-solid fa-headset mr-1"></i> Suporte
@@ -86,11 +86,11 @@
     <!-- SEÇÃO 1: MOTORISTAS -->
     <div id="secao-motoristas" class="space-y-3">
       <div class="flex gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
-        <button onclick="mudarSubAbaMotorista('online')" id="sub-btn-online" class="flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-emerald-600/20 text-emerald-400 border border-emerald-500/30">
-          <i class="fa-solid fa-circle text-[8px] mr-1 animate-pulse"></i> Online (<span id="count-online">0</span>)
+        <button onclick="mudarSubAbaMotorista('todos')" id="sub-btn-todos" class="flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-emerald-600/20 text-emerald-400 border border-emerald-500/30">
+          Todos (<span id="count-mot-todos">0</span>)
         </button>
-        <button onclick="mudarSubAbaMotorista('offline')" id="sub-btn-offline" class="flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-400">
-          <i class="fa-solid fa-moon text-[9px] mr-1"></i> Offline (<span id="count-offline">0</span>)
+        <button onclick="mudarSubAbaMotorista('online')" id="sub-btn-online" class="flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-400">
+          Online (<span id="count-mot-online">0</span>)
         </button>
       </div>
       <div id="lista-admin-motoristas" class="space-y-3">
@@ -114,12 +114,19 @@
 
   </main>
 
-  <!-- MODAL DE EDIÇÃO -->
+  <!-- MODAL DE EDIÇÃO AVANÇADA COM BARRA DE NOTIFICAÇÃO INTERNA -->
   <div id="modal-edicao" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      
+      <!-- BARRA DE NOTIFICAÇÃO INTERNA DO MODAL -->
+      <div id="modal-alerta-toast" class="hidden p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all shadow-md">
+        <i id="modal-alerta-icone" class="fa-solid text-sm"></i>
+        <span id="modal-alerta-texto" class="flex-1">Mensagem de aviso aqui</span>
+      </div>
+
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
-          <i class="fa-solid fa-user-pen text-emerald-400"></i> Gestão de Perfil e Senha
+          <i class="fa-solid fa-user-pen text-emerald-400"></i> Gestão de Perfil, Histórico e Viagens
         </h3>
         <button onclick="fecharModalEdicao()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
       </div>
@@ -127,6 +134,20 @@
       <form id="form-editar-usuario" onsubmit="salvarEdicaoUsuario(event)" class="space-y-3 text-xs">
         <input type="hidden" id="edit-id">
         <input type="hidden" id="edit-tabela">
+
+        <!-- ID DO USUÁRIO EXIBIDO NO EDITOR -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center">
+          <div>
+            <span class="text-[10px] text-slate-400 block">ID Único no Banco:</span>
+            <span id="edit-id-display" class="font-mono text-emerald-400 font-bold select-all text-[11px]">-</span>
+          </div>
+          <div id="container-tipo-perfil" class="text-right">
+            <!-- Botão de alternar entre Passageiro / Motorista -->
+            <button type="button" id="btn-alternar-tipo" onclick="alternarTipoPerfilModal()" class="bg-amber-600/20 hover:bg-amber-600/40 text-amber-400 border border-amber-500/40 px-3 py-1.5 rounded-xl font-bold transition">
+              <i class="fa-solid fa-exchange-alt mr-1"></i> <span id="txt-btn-alternar">Tornar Motorista</span>
+            </button>
+          </div>
+        </div>
 
         <div class="flex items-center gap-3 pb-2 border-b border-slate-800">
           <img id="edit-foto-preview" class="w-14 h-14 rounded-full object-cover border border-emerald-500">
@@ -136,40 +157,30 @@
           </div>
         </div>
 
-        <div class="space-y-1">
-          <label class="text-slate-300 font-medium">Nome Completo</label>
-          <input type="text" id="edit-nome" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-        </div>
-
-        <div class="space-y-1">
-          <label class="text-slate-300 font-medium">CPF</label>
-          <input type="text" id="edit-cpf" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-        </div>
-
-        <div class="space-y-1">
-          <label class="text-slate-300 font-medium">Celular</label>
-          <input type="text" id="edit-telefone" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-        </div>
-
-        <div class="space-y-1">
-          <label class="text-slate-300 font-medium">Endereço</label>
-          <input type="text" id="edit-endereco" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-        </div>
-
-        <div class="space-y-1.5 pt-2 border-t border-slate-800 bg-slate-950/60 p-3 rounded-2xl border border-amber-500/20">
-          <label class="text-amber-400 font-bold flex items-center justify-between">
-            <span><i class="fa-solid fa-key mr-1"></i> Senha Temporária</span>
-            <span class="text-[9px] text-slate-400 font-normal">(Opcional)</span>
-          </label>
-          <div class="flex gap-1.5">
-            <input type="text" id="edit-senha-temp" placeholder="Gerar..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold tracking-wider text-center">
-            <button type="button" onclick="gerarSenhaTemporaria()" class="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white border border-amber-500/40 px-3 py-2 rounded-xl font-bold transition">Gerar</button>
-            <button type="button" onclick="copiarSenhaTemporaria()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl font-bold"><i class="fa-solid fa-copy"></i></button>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Nome Completo</label>
+            <input type="text" id="edit-nome" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
           </div>
-          <p id="feedback-copia-senha" class="text-[10px] text-emerald-400 hidden font-semibold text-right">Senha copiada!</p>
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">CPF</label>
+            <input type="text" id="edit-cpf" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
+          </div>
         </div>
 
-        <div id="edit-bloco-veiculo" class="space-y-2 pt-2 border-t border-slate-800 hidden">
+        <div class="grid grid-cols-2 gap-2">
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Celular</label>
+            <input type="text" id="edit-telefone" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
+          </div>
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Endereço</label>
+            <input type="text" id="edit-endereco" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
+          </div>
+        </div>
+
+        <!-- Bloco Veículo (caso seja motorista) -->
+        <div id="edit-bloco-veiculo" class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 hidden">
           <div class="space-y-1">
             <label class="text-slate-300 font-medium">Veículo</label>
             <input type="text" id="edit-veiculo-modelo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
@@ -180,12 +191,36 @@
           </div>
         </div>
 
-        <div class="flex gap-2 pt-2">
-          <button type="button" onclick="fecharModalEdicao()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl">Cancelar</button>
-          <button type="submit" class="flex-1 bg-emerald-600 text-white font-bold py-2.5 rounded-xl">Salvar</button>
+        <!-- HISTÓRICO DE VIAGENS, GANHOS E CHAT -->
+        <div class="pt-3 border-t border-slate-800 space-y-3">
+          <h4 class="font-extrabold text-white text-xs flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-line text-amber-400"></i> Histórico de Viagens, Ganhos & Mensagens (Chat)
+          </h4>
+
+          <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 max-h-48 overflow-y-auto" id="detalhes-historico-usuario">
+            <p class="text-slate-500 text-center py-2">Carregando histórico e ganhos...</p>
+          </div>
         </div>
 
-        <!-- BOTÃO DE EXCLUIR USUÁRIO COM CONFIRMAÇÃO DE SENHA MESTRE -->
+        <!-- Senha Temporária -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-800 bg-slate-950/60 p-3 rounded-2xl border border-amber-500/20">
+          <label class="text-amber-400 font-bold flex items-center justify-between">
+            <span><i class="fa-solid fa-key mr-1"></i> Senha Temporária</span>
+            <span class="text-[9px] text-slate-400 font-normal">(Opcional)</span>
+          </label>
+          <div class="flex gap-1.5">
+            <input type="text" id="edit-senha-temp" placeholder="Gerar..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold tracking-wider text-center">
+            <button type="button" onclick="gerarSenhaTemporaria()" class="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white border border-amber-500/40 px-3 py-2 rounded-xl font-bold transition">Gerar</button>
+            <button type="button" onclick="copiarSenhaTemporaria()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl font-bold"><i class="fa-solid fa-copy"></i></button>
+          </div>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="fecharModalEdicao()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl">Cancelar</button>
+          <button type="submit" class="flex-1 bg-emerald-600 text-white font-bold py-2.5 rounded-xl">Salvar Alterações</button>
+        </div>
+
+        <!-- BOTÃO DE EXCLUIR USUÁRIO -->
         <div class="pt-3 border-t border-slate-800">
           <button type="button" onclick="abrirConfirmacaoExclusao()" class="w-full bg-red-950/40 hover:bg-red-900/40 text-red-400 border border-red-800 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
             <i class="fa-solid fa-trash-can"></i> Excluir Usuário Permanentemente
@@ -195,7 +230,7 @@
     </div>
   </div>
 
-  <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO COM SENHA MESTRE -->
+  <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO -->
   <div id="modal-confirmar-exclusao" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-red-500/40 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
       <div class="text-center space-y-2">
@@ -204,7 +239,7 @@
         </div>
         <h3 class="text-sm font-extrabold text-white">Confirmar Exclusão Definitiva</h3>
         <p class="text-[11px] text-slate-400">
-          Você está prestes a apagar <strong id="nome-usuario-exclusao" class="text-red-400">-</strong> e todo o histórico vinculado. Digite a <strong>Senha Mestre Admin</strong> para confirmar:
+          Você está prestes a apagar <strong id="nome-usuario-exclusao" class="text-red-400">-</strong> e todo o histórico vinculado. Digite a <strong>Senha Mestre Admin</strong>:
         </p>
       </div>
 
@@ -220,7 +255,7 @@
     </div>
   </div>
 
-  <!-- MODAL PARA ALTERAR SENHA MESTRE -->
+  <!-- MODAL ALTERAR SENHA MESTRE -->
   <div id="modal-senha-mestre" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -238,7 +273,7 @@
           <label class="text-slate-300 font-medium">Nova Senha Mestre</label>
           <input type="password" id="mestre-nova" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
         </div>
-        <p id="msg-senha-mestre" class="text-emerald-400 text-[11px] font-semibold hidden text-center">Senha mestre alterada com sucesso!</p>
+        <p id="msg-senha-mestre" class="text-emerald-400 text-[11px] font-semibold hidden text-center">Senha alterada com sucesso!</p>
         <div class="flex gap-2 pt-2">
           <button type="button" onclick="fecharModalSenhaMestre()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl">Cancelar</button>
           <button type="button" onclick="salvarNovaSenhaMestre()" class="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl">Atualizar</button>
@@ -260,9 +295,31 @@
     let dadosGlobaisMotoristas = [];
     let dadosGlobaisUsuarios = [];
     let dadosGlobaisSuporte = [];
-    let tabelaUsuariosAtiva = 'usuarios';
     let abaAdminAtual = 'motoristas';
-    let subAbaMotorista = 'offline';
+    let subAbaMotorista = 'todos';
+
+    // FUNÇÃO PARA EXIBIR NOTIFICAÇÃO ESTILO TOAST DENTRO DO PRÓPRIO MODAL
+    function mostrarAlertaModal(mensagem, tipo = 'sucesso') {
+      const toast = document.getElementById('modal-alerta-toast');
+      const texto = document.getElementById('modal-alerta-texto');
+      const icone = document.getElementById('modal-alerta-icone');
+
+      texto.innerText = mensagem;
+      toast.classList.remove('hidden');
+
+      if (tipo === 'sucesso') {
+        toast.className = "p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all shadow-md bg-emerald-950/80 border border-emerald-500/50 text-emerald-300";
+        icone.className = "fa-solid fa-circle-check text-emerald-400 text-sm";
+      } else {
+        toast.className = "p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all shadow-md bg-red-950/80 border border-red-500/50 text-red-300";
+        icone.className = "fa-solid fa-triangle-exclamation text-red-400 text-sm";
+      }
+
+      // Oculta automaticamente após 4 segundos
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 4000);
+    }
 
     function verificarSessaoAdmin() {
       const logado = sessionStorage.getItem('admin_autenticado');
@@ -328,42 +385,21 @@
       msgEl.innerText = "Senha mestre atualizada com sucesso!";
       msgEl.className = "text-emerald-400 text-[11px] font-semibold text-center";
       msgEl.classList.remove('hidden');
-
-      setTimeout(() => {
-        fecharModalSenhaMestre();
-      }, 1500);
+      setTimeout(() => fecharModalSenhaMestre(), 1500);
     }
 
     async function carregarDadosAdmin() {
       try {
-        const { data: motoristas, error: errMot } = await supabaseClient.from('motoristas').select('*');
-        if (errMot) console.error("Erro ao buscar motoristas:", errMot);
-
-        let usuarios = [];
-        const { data: resUsuarios, error: errUsu } = await supabaseClient.from('usuarios').select('*');
-        if (!errUsu && resUsuarios && resUsuarios.length > 0) {
-          usuarios = resUsuarios;
-          tabelaUsuariosAtiva = 'usuarios';
-        } else {
-          const { data: resPassageiros, error: errPas } = await supabaseClient.from('passageiros').select('*');
-          if (!errPas && resPassageiros) {
-            usuarios = resPassageiros;
-            tabelaUsuariosAtiva = 'passageiros';
-          }
-        }
-
-        let suporte = [];
-        const { data: resSup, error: errSup } = await supabaseClient.from('chamados_suporte').select('*');
-        if (!errSup && resSup) {
-          suporte = resSup;
-        } else {
-          const { data: resSupAntiga } = await supabaseClient.from('suporte').select('*').catch(() => ({ data: [] }));
-          suporte = resSupAntiga || [];
-        }
+        const { data: motoristas } = await supabaseClient.from('motoristas').select('*');
+        const { data: usuarios } = await supabaseClient.from('usuarios').select('*');
+        const { data: suporte } = await supabaseClient.from('chamados_suporte').select('*');
 
         dadosGlobaisMotoristas = motoristas || [];
         dadosGlobaisUsuarios = usuarios || [];
         dadosGlobaisSuporte = suporte || [];
+
+        document.getElementById('count-aba-motoristas').innerText = dadosGlobaisMotoristas.length;
+        document.getElementById('count-aba-passageiros').innerText = dadosGlobaisUsuarios.length;
 
         atualizarContadorSuporte();
         renderizarAdmin();
@@ -397,33 +433,31 @@
 
     function mudarSubAbaMotorista(sub) {
       subAbaMotorista = sub;
+      document.getElementById('sub-btn-todos').className = sub === 'todos' ? 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-400';
       document.getElementById('sub-btn-online').className = sub === 'online' ? 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-400';
-      document.getElementById('sub-btn-offline').className = sub === 'offline' ? 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-400';
       renderizarAdmin();
     }
 
     function renderizarAdmin() {
       if (abaAdminAtual === 'motoristas') {
         const onlineList = dadosGlobaisMotoristas.filter(m => m.online === true || m.status === 'aprovado');
-        const offlineList = dadosGlobaisMotoristas.filter(m => m.online === false || m.online === null || m.status === 'pendente');
+        document.getElementById('count-mot-todos').innerText = dadosGlobaisMotoristas.length;
+        document.getElementById('count-mot-online').innerText = onlineList.length;
 
-        document.getElementById('count-online').innerText = onlineList.length;
-        document.getElementById('count-offline').innerText = offlineList.length;
-
-        const listaAlvo = subAbaMotorista === 'online' ? onlineList : offlineList;
+        const listaAlvo = subAbaMotorista === 'online' ? onlineList : dadosGlobaisMotoristas;
         const container = document.getElementById('lista-admin-motoristas');
 
         if (listaAlvo.length === 0) {
-          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista ${subAbaMotorista} encontrado.</div>`;
+          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista encontrado.</div>`;
         } else {
           container.innerHTML = listaAlvo.map(m => gerarCardAdmin(m, 'motoristas')).join('');
         }
       } else if (abaAdminAtual === 'usuarios') {
         const container = document.getElementById('lista-admin-passageiros');
         if (dadosGlobaisUsuarios.length === 0) {
-          container.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro cadastrado no banco.</div>';
+          container.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro cadastrado.</div>';
         } else {
-          container.innerHTML = dadosGlobaisUsuarios.map(u => gerarCardAdmin(u, tabelaUsuariosAtiva)).join('');
+          container.innerHTML = dadosGlobaisUsuarios.map(u => gerarCardAdmin(u, 'usuarios')).join('');
         }
       } else if (abaAdminAtual === 'suporte') {
         const container = document.getElementById('lista-admin-suporte');
@@ -436,7 +470,7 @@
                 <h3 class="font-extrabold text-white text-xs">${s.usuario_nome || s.nome_usuario || 'Usuário'}</h3>
                 <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-400">${s.status || 'Pendente'}</span>
               </div>
-              <p class="text-slate-300 text-[11px]">${s.mensagem || s.descricao || 'Solicitação de suporte aberta.'}</p>
+              <p class="text-slate-300 text-[11px]">${s.mensagem || s.descricao || 'Solicitação aberta.'}</p>
               <div class="flex gap-2 pt-2 border-t border-slate-800">
                 <button onclick="resolverSuporte('${s.id}')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded-xl font-bold">Marcar como Resolvido</button>
               </div>
@@ -448,7 +482,7 @@
 
     function gerarCardAdmin(user, tabela) {
       const isBloqueado = user.status === 'bloqueado';
-      const isMotorista = tabela === 'motoristas' || user.tipo === 'motorista';
+      const isMotorista = tabela === 'motoristas';
       let badge = isBloqueado ? '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-500/20 text-red-400">Bloqueado</span>' : '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400">Ativo</span>';
 
       return `
@@ -465,25 +499,11 @@
             </div>
           </div>
           <div class="flex gap-2 pt-2 border-t border-slate-800 text-[11px]">
-            <button onclick="abrirModalEdicao('${user.id}', '${tabela}')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 rounded-xl">Editar Dados</button>
-            ${!isMotorista ? `<button onclick="promoverParaMotorista('${user.id}')" class="bg-amber-600/20 text-amber-400 px-3 py-2 rounded-xl font-bold border border-amber-500/40">Virar Motorista</button>` : ''}
+            <button onclick="abrirModalEdicao('${user.id}', '${tabela}')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 rounded-xl">Editar Perfil / Ver Histórico</button>
             ${isBloqueado ? `<button onclick="mudarStatusConta('${user.id}', '${tabela}', 'aprovado')" class="bg-emerald-600/20 text-emerald-400 px-3 py-2 rounded-xl font-bold">Desbloquear</button>` : `<button onclick="mudarStatusConta('${user.id}', '${tabela}', 'bloqueado')" class="bg-red-600/20 text-red-400 px-3 py-2 rounded-xl font-bold">Bloquear</button>`}
           </div>
         </div>
       `;
-    }
-
-    function gerarSenhaTemporaria() {
-      const senhaGerada = Math.floor(100000 + Math.random() * 900000).toString();
-      document.getElementById('edit-senha-temp').value = senhaGerada;
-      document.getElementById('feedback-copia-senha').classList.add('hidden');
-    }
-
-    function copiarSenhaTemporaria() {
-      const campo = document.getElementById('edit-senha-temp');
-      if (!campo.value) gerarSenhaTemporaria();
-      navigator.clipboard.writeText(campo.value);
-      document.getElementById('feedback-copia-senha').classList.remove('hidden');
     }
 
     async function abrirModalEdicao(id, tabela) {
@@ -491,31 +511,170 @@
       const user = lista.find(item => item.id == id);
       if (!user) return;
 
+      document.getElementById('modal-alerta-toast').classList.add('hidden');
       document.getElementById('edit-id').value = user.id;
+      document.getElementById('edit-id-display').innerText = user.id;
       document.getElementById('edit-tabela').value = tabela;
       document.getElementById('edit-nome').value = user.nome || '';
       document.getElementById('edit-cpf').value = user.cpf || '';
       document.getElementById('edit-telefone').value = user.telefone || '';
       document.getElementById('edit-endereco').value = user.endereco || '';
       document.getElementById('edit-senha-temp').value = '';
-      document.getElementById('feedback-copia-senha').classList.add('hidden');
       document.getElementById('edit-foto-preview').src = user.foto_url || 'https://ui-avatars.com/api/?name=Usuario';
-      document.getElementById('edit-tipo-badge').innerText = tabela === 'motoristas' ? 'Motorista' : 'Passageiro';
-
+      
+      const badgeTipo = document.getElementById('edit-tipo-badge');
+      const txtBtnAlternar = document.getElementById('txt-btn-alternar');
       const blocoVeiculo = document.getElementById('edit-bloco-veiculo');
+
       if (tabela === 'motoristas') {
+        badgeTipo.innerText = "Motorista";
+        txtBtnAlternar.innerText = "Tornar Passageiro";
         blocoVeiculo.classList.remove('hidden');
         document.getElementById('edit-veiculo-modelo').value = user.veiculo_modelo || '';
         document.getElementById('edit-veiculo-placa').value = user.veiculo_placa || '';
       } else {
+        badgeTipo.innerText = "Passageiro";
+        txtBtnAlternar.innerText = "Tornar Motorista";
         blocoVeiculo.classList.add('hidden');
       }
 
       document.getElementById('modal-edicao').classList.remove('hidden');
+      carregarHistoricoEGanhosModal(id, tabela);
     }
 
     function fecharModalEdicao() {
       document.getElementById('modal-edicao').classList.add('hidden');
+    }
+
+    async function carregarHistoricoEGanhosModal(id, tabela) {
+      const container = document.getElementById('detalhes-historico-usuario');
+      container.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Buscando viagens, ganhos e mensagens...</p>';
+
+      try {
+        const colunaBusca = tabela === 'motoristas' ? 'motorista_id' : 'passageiro_id';
+        const { data: corridas } = await supabaseClient
+          .from('corridas')
+          .select('*')
+          .eq(colunaBusca, id)
+          .order('id', { ascending: false });
+
+        if (!corridas || corridas.length === 0) {
+          container.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma corrida ou ganho registrado.</p>';
+          return;
+        }
+
+        const idsCorridas = corridas.map(c => c.id);
+        let mensagens = [];
+        if (idsCorridas.length > 0) {
+          const { data: msgs } = await supabaseClient
+            .from('mensagens_chat')
+            .select('*')
+            .in('corrida_id', idsCorridas);
+          mensagens = msgs || [];
+        }
+
+        let html = '';
+        let totalGanhos = 0;
+
+        corridas.forEach(c => {
+          const valor = Number(c.valor || c.preco || 15.0);
+          if (tabela === 'motoristas') totalGanhos += valor;
+
+          html += `
+            <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 space-y-1">
+              <div class="flex justify-between items-center text-[10px] text-slate-400">
+                <span>Viagem #${c.id} • ${c.status || 'Concluída'}</span>
+                <span class="text-emerald-400 font-bold">R$ ${valor.toFixed(2)}</span>
+              </div>
+              <p class="text-slate-300 truncate"><strong>De:</strong> ${c.origem || 'N/D'}</p>
+              <p class="text-slate-300 truncate"><strong>Para:</strong> ${c.destino || 'N/D'}</p>
+            </div>
+          `;
+        });
+
+        if (tabela === 'motoristas') {
+          html = `<div class="bg-emerald-950/40 p-2 rounded-xl border border-emerald-500/30 text-emerald-300 text-center font-bold mb-2">
+                    Total de Ganhos: R$ ${totalGanhos.toFixed(2)}
+                  </div>` + html;
+        }
+
+        if (mensagens.length > 0) {
+          html += `<div class="pt-2 border-t border-slate-800 mt-2">
+                     <p class="text-[11px] font-bold text-amber-400 mb-1">Mensagens de Chat Vinculadas (${mensagens.length}):</p>`;
+          mensagens.forEach(m => {
+            html += `<div class="bg-slate-900 p-2 rounded-lg text-[10px] text-slate-300 mb-1">
+                       <strong>[Corrida #${m.corrida_id}]:</strong> ${m.mensagem || m.texto || '-'}
+                     </div>`;
+          });
+          html += `</div>`;
+        }
+
+        container.innerHTML = html;
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = '<p class="text-red-400 text-center py-2">Erro ao carregar histórico.</p>';
+      }
+    }
+
+    async function alternarTipoPerfilModal() {
+      const id = document.getElementById('edit-id').value;
+      const tabelaAtual = document.getElementById('edit-tabela').value;
+      const lista = tabelaAtual === 'motoristas' ? dadosGlobaisMotoristas : dadosGlobaisUsuarios;
+      const user = lista.find(item => item.id == id);
+      if (!user) return;
+
+      if (tabelaAtual === 'motoristas') {
+        const novoPassageiro = {
+          nome: user.nome,
+          telefone: user.telefone,
+          cpf: user.cpf,
+          endereco: user.endereco || '',
+          senha: user.senha,
+          foto_url: user.foto_url || '',
+          tipo: 'passageiro',
+          status: 'aprovado',
+          ultima_verificacao_facial: new Date().toISOString()
+        };
+
+        const { error: errIns } = await supabaseClient.from('usuarios').insert([novoPassageiro]);
+        if (errIns) {
+          mostrarAlertaModal("Erro ao converter perfil: " + errIns.message, "erro");
+          return;
+        }
+
+        await supabaseClient.from('corridas').delete().eq('motorista_id', id);
+        await supabaseClient.from('motoristas').delete().eq('id', id);
+
+        mostrarAlertaModal("Convertido para Passageiro com sucesso!", "sucesso");
+        setTimeout(() => { fecharModalEdicao(); carregarDadosAdmin(); }, 1200);
+      } else {
+        const novoMotorista = {
+          nome: user.nome,
+          telefone: user.telefone,
+          cpf: user.cpf,
+          endereco: user.endereco || '',
+          senha: user.senha,
+          foto_url: user.foto_url || '',
+          tipo: 'motorista',
+          status: 'aprovado',
+          veiculo_modelo: "Não informado",
+          veiculo_placa: "SEM-0000",
+          online: false,
+          ultima_verificacao_facial: new Date().toISOString()
+        };
+
+        const { error: errIns } = await supabaseClient.from('motoristas').insert([novoMotorista]);
+        if (errIns) {
+          mostrarAlertaModal("Erro ao promover perfil: " + errIns.message, "erro");
+          return;
+        }
+
+        await supabaseClient.from('corridas').delete().eq('passageiro_id', id);
+        await supabaseClient.from(tabelaAtual).delete().eq('id', id);
+
+        mostrarAlertaModal("Promovido a Motorista com sucesso!", "sucesso");
+        setTimeout(() => { fecharModalEdicao(); carregarDadosAdmin(); }, 1200);
+      }
     }
 
     async function salvarEdicaoUsuario(e) {
@@ -538,12 +697,28 @@
       }
 
       const { error } = await supabaseClient.from(tabela).update(atualizacao).eq('id', id);
-      if (error) alert("Erro ao salvar: " + error.message);
-      else {
-        alert("Atualizado com sucesso!");
-        fecharModalEdicao();
-        carregarDadosAdmin();
+      if (error) {
+        mostrarAlertaModal("Erro ao salvar alterações: " + error.message, "erro");
+      } else {
+        mostrarAlertaModal("Atualizado com sucesso!", "sucesso");
+        setTimeout(() => {
+          fecharModalEdicao();
+          carregarDadosAdmin();
+        }, 1200);
       }
+    }
+
+    function gerarSenhaTemporaria() {
+      const senhaGerada = Math.floor(100000 + Math.random() * 900000).toString();
+      document.getElementById('edit-senha-temp').value = senhaGerada;
+      mostrarAlertaModal("Senha temporária gerada com sucesso!", "sucesso");
+    }
+
+    function copiarSenhaTemporaria() {
+      const campo = document.getElementById('edit-senha-temp');
+      if (!campo.value) gerarSenhaTemporaria();
+      navigator.clipboard.writeText(campo.value);
+      mostrarAlertaModal("Senha temporária copiada para a área de transferência!", "sucesso");
     }
 
     function abrirConfirmacaoExclusao() {
@@ -589,15 +764,14 @@
         const { error } = await supabaseClient.from(tabela).delete().eq('id', id);
         
         if (error) {
-          alert("Erro ao excluir usuário: " + error.message);
+          mostrarAlertaModal("Erro ao excluir: " + error.message, "erro");
         } else {
-          alert("Usuário e todo o seu histórico foram excluídos permanentemente!");
           fecharConfirmacaoExclusao();
           fecharModalEdicao();
           carregarDadosAdmin();
         }
       } catch (err) {
-        alert("Erro inesperado ao excluir: " + err.message);
+        mostrarAlertaModal("Erro inesperado: " + err.message, "erro");
       }
     }
 
@@ -605,38 +779,6 @@
       const { error } = await supabaseClient.from(tabela).update({ status: novoStatus }).eq('id', id);
       if (error) alert("Erro ao atualizar status: " + error.message);
       else carregarDadosAdmin();
-    }
-
-    async function promoverParaMotorista(idUsuario) {
-      const passageiro = dadosGlobaisUsuarios.find(u => u.id == idUsuario);
-      if (!passageiro) return;
-
-      const novoMotorista = {
-        nome: passageiro.nome,
-        telefone: passageiro.telefone,
-        cpf: passageiro.cpf,
-        endereco: passageiro.endereco || '',
-        senha: passageiro.senha,
-        foto_url: passageiro.foto_url || '',
-        tipo: 'motorista',
-        status: 'pendente',
-        veiculo_modelo: '',
-        veiculo_placa: '',
-        online: false,
-        ultima_verificacao_facial: new Date().toISOString()
-      };
-
-      const { error: errInsert } = await supabaseClient.from('motoristas').insert([novoMotorista]);
-      if (errInsert) {
-        alert("Erro ao promover: " + errInsert.message);
-        return;
-      }
-
-      await supabaseClient.from('corridas').delete().eq('passageiro_id', idUsuario);
-      await supabaseClient.from(tabelaUsuariosAtiva).delete().eq('id', idUsuario);
-
-      alert("Promovido a motorista com sucesso!");
-      carregarDadosAdmin();
     }
 
     async function resolverSuporte(idChamado) {
