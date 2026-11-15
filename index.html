@@ -1,120 +1,72 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="dark">
+<html lang="pt-BR" class="dark h-full">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Importante: Garante o dimensionamento correto em celulares -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Mobilidade Laguna - Passageiro</title>
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            darkbg: '#0f172a',
-            darkcard: '#1e293b'
-          }
-        }
-      }
-    }
-  </script>
-  <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Leaflet CSS para o Mapa -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 h-screen flex flex-col justify-between overflow-hidden">
+<body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0">
 
-  <!-- CABEÇALHO -->
-  <header class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center shadow-md z-10">
-    <div class="flex items-center space-x-2">
-      <div class="bg-emerald-600 p-2 rounded-xl text-white shadow">
-        <i class="fa-solid fa-car-side"></i>
+  <!-- TOPO (Cabeçalho fixo ou flexível) -->
+  <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0">
+    <div class="flex items-center gap-2">
+      <div class="bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 p-2 rounded-xl">
+        <i class="fa-solid fa-car text-sm"></i>
       </div>
       <div>
-        <h1 class="font-extrabold text-sm tracking-wide text-white">Mobilidade Laguna</h1>
-        <p class="text-[10px] text-emerald-400 font-medium">Passageiro</p>
+        <h1 class="text-sm font-extrabold text-white">Mobilidade Laguna</h1>
+        <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span> Online
+        </span>
       </div>
-    </div>
-    <div id="status-conexao" class="text-[10px] bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full text-emerald-400 font-bold flex items-center gap-1.5">
-      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Online
     </div>
   </header>
 
-  <!-- CONTEÚDO PRINCIPAL (Onde os arquivos/abas são injetados) -->
-  <main id="app-container" class="flex-1 flex flex-col relative overflow-hidden bg-slate-950">
-    <!-- O conteúdo padrão inicial carrega o mapa ou a aba principal -->
-    <div class="p-5 flex-1 overflow-y-auto space-y-4 text-xs">
-      <div class="bg-slate-900 p-5 rounded-3xl space-y-4 border border-slate-800 shadow-sm">
-        <h2 class="text-sm font-extrabold text-white"><i class="fa-solid fa-map-location-dot text-emerald-500 mr-1.5"></i> Bem-vindo ao Sistema</h2>
-        <p class="text-slate-400">Selecione uma opção abaixo para navegar pelo aplicativo.</p>
+  <!-- CONTEÚDO CENTRAL (Com rolagem automática se o conteúdo for maior) -->
+  <main class="flex-1 overflow-y-auto relative flex flex-col pb-20">
+    <!-- Aqui fica o mapa ou os elementos de chamada de corrida -->
+    <div id="map" class="w-full h-64 shrink-0 bg-slate-900"></div>
+    
+    <div class="p-4 space-y-3 flex-1">
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-lg">
+        <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <i class="fa-solid fa-location-dot text-emerald-400"></i>
+          <input type="text" placeholder="Local de embarque" class="bg-transparent w-full text-xs text-slate-100 focus:outline-none">
+        </div>
+        <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <i class="fa-solid fa-location-pin text-amber-400"></i>
+          <input type="text" placeholder="Para onde vamos?" class="bg-transparent w-full text-xs text-slate-100 focus:outline-none">
+        </div>
+        <div class="flex justify-between items-center pt-2 text-xs">
+          <span class="text-slate-400">Estimativa (PIX)</span>
+          <span class="text-emerald-400 font-extrabold text-sm">R$ 14,90</span>
+        </div>
+        <button class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition text-xs">
+          Chamar Motorista
+        </button>
       </div>
     </div>
   </main>
 
-  <!-- MENU DE NAVEGAÇÃO INFERIOR -->
-  <nav class="bg-slate-900 border-t border-slate-800 py-2.5 px-6 flex justify-around items-center z-10 shadow-lg">
-    <button onclick="carregarAba('mapa.html', this)" class="nav-btn flex flex-col items-center text-emerald-400 transition">
-      <i class="fa-solid fa-map text-lg"><span></span></i>
-      <span class="text-[10px] font-bold mt-1">Mapa</span>
-    </button>
-    <button onclick="carregarAba('historico.html', this)" class="nav-btn flex flex-col items-center text-slate-400 hover:text-emerald-400 transition">
-      <i class="fa-solid fa-clock-rotate-left text-lg"></i>
-      <span class="text-[10px] font-bold mt-1">Histórico</span>
-    </button>
-    <button onclick="carregarAba('perfil.html', this)" class="nav-btn flex flex-col items-center text-slate-400 hover:text-emerald-400 transition">
-      <i class="fa-solid fa-user text-lg"></i>
-      <span class="text-[10px] font-bold mt-1">Perfil</span>
-    </button>
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR (Fixa na parte inferior da tela) -->
+  <nav class="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-800 py-3 px-6 flex justify-around items-center z-50">
+    <a href="index.html" class="text-emerald-400 flex flex-col items-center gap-1">
+      <i class="fa-solid fa-house text-base"></i>
+      <span class="text-[10px]">Início</span>
+    </a>
+    <a href="corridas.html" class="text-slate-400 hover:text-slate-200 flex flex-col items-center gap-1">
+      <i class="fa-solid fa-clock-rotate-left text-base"></i>
+      <span class="text-[10px]">Histórico</span>
+    </a>
+    <a href="perfil.html" class="text-slate-400 hover:text-slate-200 flex flex-col items-center gap-1">
+      <i class="fa-solid fa-user text-base"></i>
+      <span class="text-[10px]">Perfil</span>
+    </a>
   </nav>
 
-  <!-- SCRIPTS DE SUPORTE E CONTROLE DE ABAS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    // Função para carregar as abas dinamicamente sem recarregar a página
-    async function carregarAba(arquivo, elementoBotao) {
-      // Atualiza o estilo visual dos botões do menu
-      document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.remove('text-emerald-400');
-        btn.classList.add('text-slate-400');
-      });
-      if(elementoBotao) {
-        elementoBotao.classList.remove('text-slate-400');
-        elementoBotao.classList.add('text-emerald-400');
-      }
-
-      try {
-        const resposta = await fetch(arquivo);
-        if (!resposta.ok) throw new Error('Erro ao carregar o módulo.');
-        const html = await resposta.text();
-        
-        document.getElementById('app-container').innerHTML = html;
-
-        // Executa funções específicas caso existam nos módulos injetados
-        if (arquivo === 'mapa.html' && typeof inicializarMapa === 'function') {
-          inicializarMapa();
-        }
-        if (arquivo === 'perfil.html' && typeof carregarModuloPerfil === 'function') {
-          carregarModuloPerfil();
-        }
-        if (arquivo === 'historico.html' && typeof carregarHistorico === 'function') {
-          carregarHistorico();
-        }
-      } catch (erro) {
-        console.error(erro);
-        document.getElementById('app-container').innerHTML = `
-          <div class="p-6 text-center text-slate-400 my-auto">
-            <i class="fa-solid fa-triangle-exclamation text-amber-500 text-2xl mb-2"></i>
-            <p>Não foi possível carregar o conteúdo (${arquivo}).</p>
-          </div>`;
-      }
-    }
-
-    // Inicializa carregando o mapa por padrão ao abrir o app
-    window.onload = () => {
-      carregarAba('mapa.html', document.querySelector('.nav-btn'));
-    };
-  </script>
 </body>
 </html>
