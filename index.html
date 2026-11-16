@@ -7,6 +7,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Leaflet CSS e JS para o Mapa -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs">
 
@@ -75,28 +78,42 @@
     </div>
   </div>
 
-  <main class="flex-1 overflow-y-auto relative flex flex-col">
-    <div id="modulo-inicio" class="flex-1 flex flex-col relative h-full bg-slate-900">
+  <!-- CONTEÚDO PRINCIPAL COM O MAPA -->
+  <main class="flex-1 overflow-hidden relative flex flex-col">
+    <!-- MAPA LEAFLET -->
+    <div id="map" class="absolute inset-0 w-full h-full z-0"></div>
+
+    <!-- PAINEL FLUTUANTE DE SOLICITAÇÃO DE CORRIDA -->
+    <div class="absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-slate-800 p-4 rounded-2xl space-y-3 shadow-2xl z-20">
       
-      <!-- Botão ligar motorista (se for motorista) -->
-      <div id="painel-botao-ligar" class="absolute bottom-28 inset-x-0 flex justify-center z-30 hidden">
-        <button id="btn-ligar-motorista" onclick="tentarLigarMotorista()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-8 py-4 rounded-full shadow-2xl flex items-center gap-3 text-sm transition-all duration-300 border-2 border-emerald-400">
-          <i class="fa-solid fa-power-off text-lg"></i> LIGAR APP (FICAR ONLINE)
-        </button>
+      <!-- CAMPO ORIGEM -->
+      <div class="relative">
+        <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <i class="fa-solid fa-circle-dot text-emerald-400"></i>
+          <input type="text" id="input-origem" placeholder="Local de embarque" oninput="buscarSugestoes(this.value, 'origem')" class="bg-transparent w-full text-xs text-slate-100 focus:outline-none">
+          <button onclick="usarMinhaLocalizacao()" title="Usar minha GPS" class="text-emerald-400 hover:text-emerald-300 px-1"><i class="fa-solid fa-crosshairs"></i></button>
+        </div>
+        <div id="sugestoes-origem" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-40 overflow-y-auto"></div>
       </div>
 
-      <!-- Bloco busca passageiro (se for passageiro) -->
-      <div id="bloco-passageiro-busca" class="absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur border border-slate-800 p-4 rounded-2xl space-y-3 shadow-2xl z-30 hidden">
-        <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
-          <i class="fa-solid fa-location-dot text-emerald-400"></i>
-          <input type="text" placeholder="Local de embarque" class="bg-transparent w-full text-xs text-slate-100 focus:outline-none">
-        </div>
+      <!-- CAMPO DESTINO -->
+      <div class="relative">
         <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
           <i class="fa-solid fa-location-pin text-amber-400"></i>
-          <input type="text" placeholder="Para onde vamos?" class="bg-transparent w-full text-xs text-slate-100 focus:outline-none">
+          <input type="text" id="input-destino" placeholder="Para onde vamos?" oninput="buscarSugestoes(this.value, 'destino')" class="bg-transparent w-full text-xs text-slate-100 focus:outline-none">
         </div>
-        <button id="btn-chamar-corrida" onclick="tentarChamarCorrida()" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs transition-all duration-300">Chamar Motorista</button>
+        <div id="sugestoes-destino" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-40 overflow-y-auto"></div>
       </div>
+
+      <!-- ESTIMATIVA E BOTÃO -->
+      <div id="bloco-estimativa" class="hidden flex justify-between items-center px-1 text-slate-300">
+        <span>Estimativa (PIX/Dinheiro)</span>
+        <span id="valor-estimado" class="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
+      </div>
+
+      <button id="btn-chamar-corrida" onclick="tentarChamarCorrida()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs transition-all duration-300 shadow-lg shadow-emerald-950/50">
+        Chamar Motorista
+      </button>
     </div>
   </main>
 
@@ -107,6 +124,11 @@
 
     let usuarioLogado = null;
     let intervaloHeartbeat = null;
+    let mapaLeaflet = null;
+    let marcadorOrigem = null;
+    let marcadorDestino = null;
+    let coordsOrigem = null;
+    let coordsDestino = null;
 
     async function inicializarApp() {
       const motoristaStorage = localStorage.getItem('motorista_logado');
@@ -114,21 +136,19 @@
 
       if (motoristaStorage) {
         usuarioLogado = JSON.parse(motoristaStorage);
-        document.getElementById('painel-botao-ligar').classList.remove('hidden');
         document.getElementById('menu-tipo').innerText = "Motorista Parceiro";
+        // Se for motorista acidentalmente abrindo o index, redireciona ou avisa
+        window.location.href = 'motorista.html';
+        return;
       } else if (passageiroStorage) {
         usuarioLogado = JSON.parse(passageiroStorage);
-        document.getElementById('bloco-passageiro-busca').classList.remove('hidden');
         document.getElementById('menu-tipo').innerText = "Passageiro";
-        
-        // Inicia o envio de status online (Heartbeat) a cada 15 segundos para o passageiro
         iniciarHeartbeatOnline();
       } else {
         window.location.href = 'auth.html';
         return;
       }
 
-      // Consulta o status atualizado no banco de dados
       try {
         const { data } = await supabaseClient.from('usuarios').select('*').eq('id', usuarioLogado.id).single();
         if (data) usuarioLogado = data;
@@ -139,32 +159,150 @@
       document.getElementById('menu-nome').innerText = usuarioLogado.nome || 'Usuário';
       document.getElementById('menu-foto').src = usuarioLogado.foto_url || 'https://ui-avatars.com/api/?name=Usuario';
 
-      // Se a conta estiver bloqueada ou pendente (em análise), exibe o aviso
       if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
         document.getElementById('banner-bloqueio').classList.remove('hidden');
       }
+
+      // Inicializa o Mapa Leaflet centrado em Laguna - SC
+      inicializarMapa();
+      usarMinhaLocalizacao();
+    }
+
+    function inicializarMapa() {
+      if (mapaLeaflet) return;
+      const latLaguna = -28.4811;
+      const lngLaguna = -48.7811;
+
+      mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        subdomains: 'abcd',
+        attribution: '&copy; OpenStreetMap &copy; CARTO'
+      }).addTo(mapaLeaflet);
+    }
+
+    // Geolocalização do Aparelho (GPS)
+    function usarMinhaLocalizacao() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            coordsOrigem = { lat, lng };
+
+            if (mapaLeaflet) {
+              mapaLeaflet.setView([lat, lng], 15);
+              if (marcadorOrigem) mapaLeaflet.removeLayer(marcadorOrigem);
+              marcadorOrigem = L.marker([lat, lng]).addTo(mapaLeaflet).bindPopup("Sua Localização").openPopup();
+            }
+
+            // Faz reverse geocoding para preencher o input com o nome da rua aproximada
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+              .then(res => res.json())
+              .then(data => {
+                if (data && data.display_name) {
+                  document.getElementById('input-origem').value = data.display_name;
+                }
+              }).catch(() => {
+                document.getElementById('input-origem').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+              });
+          },
+          () => {
+            alert("Não foi possível obter sua localização GPS. Verifique as permissões.");
+          },
+          { enableHighAccuracy: true }
+        );
+      }
+    }
+
+    // Autocompletar de endereços usando OpenStreetMap Nominatim
+    async function buscarSugestoes(termo, tipo) {
+      const container = document.getElementById(`sugestoes-${tipo}`);
+      if (termo.length < 3) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      try {
+        // Restringe a busca para proximidades de Santa Catarina / Brasil
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo + ', Laguna, Santa Catarina')}`);
+        const resultados = await res.json();
+
+        if (!resultados || resultados.length === 0) {
+          container.classList.add('hidden');
+          return;
+        }
+
+        container.innerHTML = resultados.map(item => `
+          <div onclick="selecionarEndereco('${item.display_name}', ${item.lat}, ${item.lon}, '${tipo}')" class="p-2.5 hover:bg-slate-800 cursor-pointer border-b border-slate-800 text-slate-200 truncate">
+            <i class="fa-solid fa-location-dot text-emerald-400 mr-2"></i> ${item.display_name}
+          </div>
+        `).join('');
+        container.classList.remove('hidden');
+      } catch (e) {
+        console.error("Erro no autocomplete:", e);
+      }
+    }
+
+    function selecionarEndereco(nome, lat, lon, tipo) {
+      document.getElementById(`input-${tipo}`).value = nome;
+      document.getElementById(`sugestoes-${tipo}`).classList.add('hidden');
+
+      const coord = { lat: parseFloat(lat), lng: parseFloat(lon) };
+
+      if (tipo === 'origem') {
+        coordsOrigem = coord;
+        if (marcadorOrigem) mapaLeaflet.removeLayer(marcadorOrigem);
+        marcadorOrigem = L.marker([lat, lon]).addTo(mapaLeaflet);
+      } else {
+        coordsDestino = coord;
+        if (marcadorDestino) mapaLeaflet.removeLayer(marcadorDestino);
+        marcadorDestino = L.marker([lat, lon], {
+          icon: L.divIcon({ className: 'bg-amber-500 w-3 h-3 rounded-full border-2 border-white' })
+        }).addTo(mapaLeaflet);
+      }
+
+      if (coordsOrigem && coordsDestino) {
+        calcularRotaEValor();
+      }
+    }
+
+    // Cálculo de Distância e Valor Estimado
+    function calcularRotaEValor() {
+      if (!coordsOrigem || !coordsDestino) return;
+
+      // Fórmula de Haversine para calcular distância em km
+      const R = 6371;
+      const dLat = (coordsDestino.lat - coordsOrigem.lat) * Math.PI / 180;
+      const dLon = (coordsDestino.lng - coordsOrigem.lng) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(coordsOrigem.lat * Math.PI / 180) * Math.cos(coordsDestino.lat * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distanciaKm = R * c;
+
+      // Cálculo de preço base (ex: R$ 5 fixo + R$ 3,50 por km, mínimo R$ 10)
+      let valorCalculado = 5.0 + (distanciaKm * 3.50);
+      if (valorCalculado < 10.0) valorCalculado = 10.0;
+
+      document.getElementById('valor-estimado').innerText = `R$ ${valorCalculado.toFixed(2).replace('.', ',')}`;
+      document.getElementById('bloco-estimativa').classList.remove('hidden');
+
+      // Centraliza o mapa para mostrar ambos os pontos
+      const bounds = L.latLngBounds([coordsOrigem.lat, coordsOrigem.lng], [coordsDestino.lat, coordsDestino.lng]);
+      mapaLeaflet.fitBounds(bounds, { padding: [50, 50] });
     }
 
     function iniciarHeartbeatOnline() {
       if (!usuarioLogado || !usuarioLogado.id) return;
-
       const atualizarPresenca = async (statusOnline) => {
         try {
-          await supabaseClient
-            .from('usuarios')
-            .update({ online: statusOnline })
-            .eq('id', usuarioLogado.id);
-        } catch (err) {
-          console.error("Erro no heartbeat:", err);
-        }
+          await supabaseClient.from('usuarios').update({ online: statusOnline }).eq('id', usuarioLogado.id);
+        } catch (err) {}
       };
-
       atualizarPresenca(true);
-
-      intervaloHeartbeat = setInterval(() => {
-        atualizarPresenca(true);
-      }, 15000);
-
+      intervaloHeartbeat = setInterval(() => atualizarPresenca(true), 15000);
       window.addEventListener('beforeunload', () => {
         supabaseClient.from('usuarios').update({ online: false }).eq('id', usuarioLogado.id);
       });
@@ -172,54 +310,40 @@
 
     function dispararAlertaBloqueioVisual() {
       const banner = document.getElementById('banner-bloqueio');
-      const btn = usuarioLogado.veiculo_modelo ? document.getElementById('btn-ligar-motorista') : document.getElementById('btn-chamar-corrida');
-      
       banner.classList.add('bg-red-600', 'animate-pulse');
-      if (btn) {
-        btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
-        btn.classList.add('bg-red-600', 'animate-bounce');
-      }
-
-      setTimeout(() => {
-        banner.classList.remove('bg-red-600', 'animate-pulse');
-        if (btn) {
-          btn.classList.remove('bg-red-600', 'animate-bounce');
-          btn.classList.add('bg-emerald-600');
-        }
-      }, 3000);
+      setTimeout(() => banner.classList.remove('bg-red-600', 'animate-pulse'), 3000);
     }
 
-    function tentarLigarMotorista() {
+    async function tentarChamarCorrida() {
       if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
         dispararAlertaBloqueioVisual();
         return;
       }
-      alert("Você está online e visível para os passageiros!");
-    }
 
-    function tentarChamarCorrida() {
-      if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
-        dispararAlertaBloqueioVisual();
+      const origem = document.getElementById('input-origem').value;
+      const destino = document.getElementById('input-destino').value;
+      const valorTexto = document.getElementById('valor-estimado').innerText;
+
+      if (!origem || !destino) {
+        alert("Por favor, informe a origem e o destino da corrida.");
         return;
       }
-      alert("Procurando motorista parceiro próximo...");
-    }
 
-    async function abrirSuporteBloqueio() {
-      const msg = prompt("Descreva o motivo do contato com o suporte:");
-      if (!msg) return;
+      const valorNumerico = parseFloat(valorTexto.replace('R$ ', '').replace(',', '.')) || 15.0;
 
-      const { error } = await supabaseClient.from('chamados_suporte').insert([{
-        usuario_id: usuarioLogado.id,
-        usuario_nome: usuarioLogado.nome,
-        mensagem: msg,
-        status: 'pendente'
+      // Insere a corrida no Supabase para os motoristas visualizarem
+      const { error } = await supabaseClient.from('corridas').insert([{
+        passageiro_id: usuarioLogado.id,
+        origem: origem,
+        destino: destino,
+        valor: valorNumerico,
+        status: 'procurando'
       }]);
 
       if (error) {
-        alert("Erro ao enviar chamado: " + error.message);
+        alert("Erro ao chamar motorista: " + error.message);
       } else {
-        alert("Solicitação enviada ao suporte administrativo com sucesso!");
+        alert("Buscando motorista parceiro mais próximo em Laguna...");
       }
     }
 
@@ -229,9 +353,7 @@
 
     async function sairConta() {
       if (usuarioLogado && usuarioLogado.id) {
-        try {
-          await supabaseClient.from('usuarios').update({ online: false }).eq('id', usuarioLogado.id);
-        } catch(e) {}
+        try { await supabaseClient.from('usuarios').update({ online: false }).eq('id', usuarioLogado.id); } catch(e) {}
       }
       clearInterval(intervaloHeartbeat);
       localStorage.removeItem('passageiro_logado');
