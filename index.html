@@ -60,8 +60,8 @@
       <a href="index.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
         <i class="fa-solid fa-house text-emerald-400 w-5"></i> Mapa / Início
       </a>
-      <a href="corridas.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
-        <i class="fa-solid fa-clock-rotate-left text-amber-400 w-5"></i> Histórico
+      <a href="historico.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
+        <i class="fa-solid fa-clock-rotate-left text-amber-400 w-5"></i> Histórico de Viagens
       </a>
       <a href="perfil.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
         <i class="fa-solid fa-user text-sky-400 w-5"></i> Meu Perfil
@@ -145,7 +145,6 @@
       }
     }
 
-    // Função que mantém o passageiro marcado como online no Supabase
     function iniciarHeartbeatOnline() {
       if (!usuarioLogado || !usuarioLogado.id) return;
 
@@ -160,17 +159,13 @@
         }
       };
 
-      // Envia online imediatamente ao abrir
       atualizarPresenca(true);
 
-      // Repete a cada 15 segundos para confirmar que continua na página
       intervaloHeartbeat = setInterval(() => {
         atualizarPresenca(true);
       }, 15000);
 
-      // Se o usuário fechar a aba ou navegar para fora, tenta desligar o online instantaneamente
       window.addEventListener('beforeunload', () => {
-        navigator.sendBeacon ? null : atualizarPresenca(false); // Fallback leve
         supabaseClient.from('usuarios').update({ online: false }).eq('id', usuarioLogado.id);
       });
     }
@@ -233,7 +228,6 @@
     }
 
     async function sairConta() {
-      // Ao sair da conta, marca explicitamente como offline antes de limpar
       if (usuarioLogado && usuarioLogado.id) {
         try {
           await supabaseClient.from('usuarios').update({ online: false }).eq('id', usuarioLogado.id);

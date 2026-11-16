@@ -1,55 +1,128 @@
-<div class="p-5 flex-1 overflow-y-auto space-y-4 bg-slate-950 text-xs">
-  <div class="flex justify-between items-center">
-    <h2 class="text-sm font-extrabold text-white">
-      <i class="fa-solid fa-clock-rotate-left text-emerald-500 mr-1.5"></i> Minhas Viagens
-    </h2>
-    <button onclick="carregarHistorico()" class="bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-xl border border-slate-800 font-bold transition">
-      <i class="fa-solid fa-rotate mr-1"></i> Atualizar
-    </button>
-  </div>
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Histórico de Viagens - Mobilidade Laguna</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs">
 
-  <!-- LISTA DE CORRIDAS -->
-  <div id="lista-historico-passageiro" class="space-y-3">
-    <!-- Exemplo de card de corrida -->
-    <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-2.5 shadow-sm">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-        <span class="text-[10px] text-slate-400 font-medium">14/11/2026 • 19:30</span>
-        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-          Concluída
-        </span>
-      </div>
-
-      <div class="space-y-1.5 text-slate-300">
-        <div class="flex items-start gap-2">
-          <i class="fa-solid fa-circle-dot text-emerald-500 mt-0.5 text-[10px]"></i>
-          <p class="truncate"><strong>Origem:</strong> Praça República Juliana, Centro</p>
-        </div>
-        <div class="flex items-start gap-2">
-          <i class="fa-solid fa-location-dot text-amber-500 mt-0.5 text-[10px]"></i>
-          <p class="truncate"><strong>Destino:</strong> Av. Senador Galotti, Mar Grosso</p>
-        </div>
-      </div>
-
-      <div class="flex justify-between items-center pt-2 border-t border-slate-800">
-        <span class="text-slate-400">Valor pago (PIX)</span>
-        <span class="text-sm font-extrabold text-emerald-400">R$ 15,00</span>
+  <!-- TOPO FIXO -->
+  <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0 z-40">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800 border border-slate-700 transition">
+        <i class="fa-solid fa-arrow-left text-sm"></i>
+      </a>
+      <div>
+        <h1 class="text-sm font-extrabold text-white">Minhas Viagens</h1>
+        <p class="text-[10px] text-slate-400">Histórico de corridas realizadas</p>
       </div>
     </div>
-  </div>
-</div>
+    <button onclick="carregarHistorico()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl border border-slate-700 font-bold transition flex items-center gap-1.5">
+      <i class="fa-solid fa-rotate"></i> Atualizar
+    </button>
+  </header>
 
-<script>
-  async function carregarHistorico() {
-    const lista = document.getElementById('lista-historico-passageiro');
-    const dadosUsuario = window.usuarioAtual || JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
+  <!-- LISTA DE VIAGENS DO PASSAGEIRO -->
+  <main class="p-4 flex-1 overflow-y-auto space-y-3 pb-10">
+    <div id="lista-historico-passageiro" class="space-y-3">
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 text-slate-400 text-center animate-pulse">
+        Carregando suas viagens...
+      </div>
+    </div>
+  </main>
 
-    if (!dadosUsuario || !dadosUsuario.id) {
-      console.log("Usuário não identificado para buscar histórico.");
-      return;
+  <script>
+    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function carregarHistorico() {
+      const lista = document.getElementById('lista-historico-passageiro');
+      const passageiroStorage = localStorage.getItem('passageiro_logado');
+
+      if (!passageiroStorage) {
+        window.location.href = 'auth.html';
+        return;
+      }
+
+      const dadosUsuario = JSON.parse(passageiroStorage);
+      lista.innerHTML = `<div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 text-slate-400 text-center animate-pulse">Buscando viagens...</div>`;
+
+      try {
+        const { data: corridas, error } = await supabaseClient
+          .from('corridas')
+          .select('*')
+          .eq('passageiro_id', dadosUsuario.id)
+          .order('id', { ascending: false });
+
+        if (error) {
+          lista.innerHTML = `<div class="bg-red-950/40 p-4 rounded-2xl border border-red-800 text-red-300 text-center">Erro ao carregar histórico: ${error.message}</div>`;
+          return;
+        }
+
+        if (!corridas || corridas.length === 0) {
+          lista.innerHTML = `
+            <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center space-y-2">
+              <i class="fa-solid fa-route text-2xl text-slate-600"></i>
+              <p class="text-slate-400 font-bold">Nenhuma viagem realizada ainda</p>
+              <p class="text-[11px] text-slate-500">Suas corridas solicitadas aparecerão aqui.</p>
+            </div>
+          `;
+          return;
+        }
+
+        lista.innerHTML = corridas.map(c => {
+          const valor = Number(c.valor || c.preco || 0).toFixed(2).replace('.', ',');
+          const status = c.status || 'Concluída';
+          const isCancelada = status.toLowerCase().includes('cancel');
+          
+          const badgeClass = isCancelada 
+            ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+            : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+
+          const dataFormatada = c.criado_em 
+            ? new Date(c.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+            : `Viagem #${c.id}`;
+
+          return `
+            <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-2.5 shadow-sm">
+              <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <span class="text-[10px] text-slate-400 font-medium">${dataFormatada}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}">
+                  ${status}
+                </span>
+              </div>
+
+              <div class="space-y-1.5 text-slate-300">
+                <div class="flex items-start gap-2">
+                  <i class="fa-solid fa-circle-dot text-emerald-500 mt-0.5 text-[10px]"></i>
+                  <p class="truncate"><strong>Origem:</strong> ${c.origem || 'Não informada'}</p>
+                </div>
+                <div class="flex items-start gap-2">
+                  <i class="fa-solid fa-location-dot text-amber-500 mt-0.5 text-[10px]"></i>
+                  <p class="truncate"><strong>Destino:</strong> ${c.destino || 'Não informado'}</p>
+                </div>
+              </div>
+
+              <div class="flex justify-between items-center pt-2 border-t border-slate-800">
+                <span class="text-slate-400">Valor da viagem ${c.forma_pagamento ? `(${c.forma_pagamento})` : ''}</span>
+                <span class="text-sm font-extrabold text-emerald-400">R$ ${valor}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error(err);
+        lista.innerHTML = `<div class="bg-red-950/40 p-4 rounded-2xl border border-red-800 text-red-300 text-center">Erro inesperado ao carregar viagens.</div>`;
+      }
     }
 
-    // Aqui entra a chamada ao Supabase filtrando pelo ID do passageiro:
-    // const { data, error } = await supabase.from('corridas').select('*').eq('passageiro_id', dadosUsuario.id).order('criado_em', { ascending: false });
-    console.log("Buscando histórico de corridas do passageiro:", dadosUsuario.id);
-  }
-</script>
+    window.onload = carregarHistorico;
+  </script>
+</body>
+</html>
