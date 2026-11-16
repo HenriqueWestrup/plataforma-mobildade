@@ -27,6 +27,7 @@
     </div>
   </div>
 
+  <!-- TOPO DO APP -->
   <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0 z-40">
     <div class="flex items-center gap-3">
       <button onclick="toggleMenuLateral()" class="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800 border border-slate-700">
@@ -53,7 +54,7 @@
         <img id="menu-foto" src="https://ui-avatars.com/api/?name=Usuario" class="w-10 h-10 rounded-full object-cover border border-emerald-500">
         <div>
           <h3 id="menu-nome" class="font-bold text-white text-xs">Carregando...</h3>
-          <p id="menu-tipo" class="text-[10px] text-slate-400">-</p>
+          <p id="menu-tipo" class="text-[10px] text-slate-400">Passageiro</p>
         </div>
       </div>
       <button onclick="toggleMenuLateral()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -78,25 +79,25 @@
     </div>
   </div>
 
-  <!-- CONTEÚDO PRINCIPAL COM O MAPA -->
+  <!-- CONTEÚDO PRINCIPAL (MAPA NATIVO + PAINEL FLUTUANTE) -->
   <main class="flex-1 overflow-hidden relative flex flex-col">
-    <!-- MAPA LEAFLET -->
+    <!-- MAPA LEAFLET EM TELA CHEIA -->
     <div id="map" class="absolute inset-0 w-full h-full z-0"></div>
 
     <!-- PAINEL FLUTUANTE DE SOLICITAÇÃO DE CORRIDA -->
     <div class="absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-slate-800 p-4 rounded-2xl space-y-3 shadow-2xl z-20">
       
-      <!-- CAMPO ORIGEM -->
+      <!-- CAMPO ORIGEM (Com autocomplete e botão GPS) -->
       <div class="relative">
         <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
           <i class="fa-solid fa-circle-dot text-emerald-400"></i>
           <input type="text" id="input-origem" placeholder="Local de embarque" oninput="buscarSugestoes(this.value, 'origem')" class="bg-transparent w-full text-xs text-slate-100 focus:outline-none">
-          <button onclick="usarMinhaLocalizacao()" title="Usar minha GPS" class="text-emerald-400 hover:text-emerald-300 px-1"><i class="fa-solid fa-crosshairs"></i></button>
+          <button onclick="usarMinhaLocalizacao()" title="Usar minha GPS" class="text-emerald-400 hover:text-emerald-300 px-1"><i class="fa-solid fa-crosshairs text-sm"></i></button>
         </div>
         <div id="sugestoes-origem" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-40 overflow-y-auto"></div>
       </div>
 
-      <!-- CAMPO DESTINO -->
+      <!-- CAMPO DESTINO (Com autocomplete) -->
       <div class="relative">
         <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
           <i class="fa-solid fa-location-pin text-amber-400"></i>
@@ -105,14 +106,15 @@
         <div id="sugestoes-destino" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-40 overflow-y-auto"></div>
       </div>
 
-      <!-- ESTIMATIVA E BOTÃO -->
+      <!-- ESTIMATIVA DE VALOR E ROTA -->
       <div id="bloco-estimativa" class="hidden flex justify-between items-center px-1 text-slate-300">
-        <span>Estimativa (PIX/Dinheiro)</span>
+        <span>Estimativa (PIX / Dinheiro)</span>
         <span id="valor-estimado" class="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
       </div>
 
-      <button id="btn-chamar-corrida" onclick="tentarChamarCorrida()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs transition-all duration-300 shadow-lg shadow-emerald-950/50">
-        Chamar Motorista
+      <!-- BOTÃO CHAMAR MOTORISTA -->
+      <button id="btn-chamar-corrida" onclick="tentarChamarCorrida()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs transition-all duration-300 shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2">
+        <i class="fa-solid fa-car-side"></i> Chamar Motorista
       </button>
     </div>
   </main>
@@ -135,7 +137,6 @@
       const passageiroStorage = localStorage.getItem('passageiro_logado');
 
       if (motoristaStorage) {
-        usuarioLogado = JSON.parse(motoristaStorage);
         window.location.href = 'motorista.html';
         return;
       } else if (passageiroStorage) {
@@ -161,6 +162,7 @@
         document.getElementById('banner-bloqueio').classList.remove('hidden');
       }
 
+      // Inicializa o mapa nativo diretamente na tela
       inicializarMapa();
       usarMinhaLocalizacao();
     }
@@ -172,17 +174,19 @@
 
       mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
 
-      // Camada padrão OpenStreetMap livre de chaves de API
+      // OpenStreetMap Tiles padrão (Sem exigência de chave de API)
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(mapaLeaflet);
 
+      // Corrige redimensionamento do container móvel
       setTimeout(() => {
         mapaLeaflet.invalidateSize();
       }, 300);
     }
 
+    // Geolocalização via GPS do Aparelho
     function usarMinhaLocalizacao() {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -197,6 +201,7 @@
               marcadorOrigem = L.marker([lat, lng]).addTo(mapaLeaflet).bindPopup("Sua Localização").openPopup();
             }
 
+            // Busca o nome legível da rua da posição atual
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
               .then(res => res.json())
               .then(data => {
@@ -208,13 +213,14 @@
               });
           },
           () => {
-            alert("Não foi possível obter sua localização GPS. Verifique as permissões.");
+            alert("Não foi possível obter sua localização GPS. Verifique as permissões do navegador.");
           },
           { enableHighAccuracy: true }
         );
       }
     }
 
+    // Autocompletar de endereços em tempo real
     async function buscarSugestoes(termo, tipo) {
       const container = document.getElementById(`sugestoes-${tipo}`);
       if (termo.length < 3) {
@@ -260,11 +266,13 @@
         }).addTo(mapaLeaflet);
       }
 
+      // Se ambos os campos estiverem preenchidos, calcula a rota e o preço
       if (coordsOrigem && coordsDestino) {
         calcularRotaEValor();
       }
     }
 
+    // Cálculo dinâmico de rota e estimativa de valor
     function calcularRotaEValor() {
       if (!coordsOrigem || !coordsDestino) return;
 
@@ -277,16 +285,19 @@
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       const distanciaKm = R * c;
 
+      // Tarifa: R$ 5,00 base + R$ 3,50 por km (Mínimo R$ 10,00)
       let valorCalculado = 5.0 + (distanciaKm * 3.50);
       if (valorCalculado < 10.0) valorCalculado = 10.0;
 
       document.getElementById('valor-estimado').innerText = `R$ ${valorCalculado.toFixed(2).replace('.', ',')}`;
       document.getElementById('bloco-estimativa').classList.remove('hidden');
 
+      // Centraliza os limites do mapa para enquadrar origem e destino
       const bounds = L.latLngBounds([coordsOrigem.lat, coordsOrigem.lng], [coordsDestino.lat, coordsDestino.lng]);
       mapaLeaflet.fitBounds(bounds, { padding: [50, 50] });
     }
 
+    // Sistema de presença online (Heartbeat)
     function iniciarHeartbeatOnline() {
       if (!usuarioLogado || !usuarioLogado.id) return;
       const atualizarPresenca = async (statusOnline) => {
