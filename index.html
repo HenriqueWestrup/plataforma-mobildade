@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Leaflet CSS e JS para o Mapa -->
+  <!-- Leaflet CSS e JS para o Mapa (Sem Chave de API) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
@@ -136,8 +136,6 @@
 
       if (motoristaStorage) {
         usuarioLogado = JSON.parse(motoristaStorage);
-        document.getElementById('menu-tipo').innerText = "Motorista Parceiro";
-        // Se for motorista acidentalmente abrindo o index, redireciona ou avisa
         window.location.href = 'motorista.html';
         return;
       } else if (passageiroStorage) {
@@ -163,7 +161,6 @@
         document.getElementById('banner-bloqueio').classList.remove('hidden');
       }
 
-      // Inicializa o Mapa Leaflet centrado em Laguna - SC
       inicializarMapa();
       usarMinhaLocalizacao();
     }
@@ -175,14 +172,17 @@
 
       mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      // Camada padrão OpenStreetMap livre de chaves de API
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        subdomains: 'abcd',
-        attribution: '&copy; OpenStreetMap &copy; CARTO'
+        attribution: '&copy; OpenStreetMap contributors'
       }).addTo(mapaLeaflet);
+
+      setTimeout(() => {
+        mapaLeaflet.invalidateSize();
+      }, 300);
     }
 
-    // Geolocalização do Aparelho (GPS)
     function usarMinhaLocalizacao() {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -197,7 +197,6 @@
               marcadorOrigem = L.marker([lat, lng]).addTo(mapaLeaflet).bindPopup("Sua Localização").openPopup();
             }
 
-            // Faz reverse geocoding para preencher o input com o nome da rua aproximada
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
               .then(res => res.json())
               .then(data => {
@@ -216,7 +215,6 @@
       }
     }
 
-    // Autocompletar de endereços usando OpenStreetMap Nominatim
     async function buscarSugestoes(termo, tipo) {
       const container = document.getElementById(`sugestoes-${tipo}`);
       if (termo.length < 3) {
@@ -225,7 +223,6 @@
       }
 
       try {
-        // Restringe a busca para proximidades de Santa Catarina / Brasil
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo + ', Laguna, Santa Catarina')}`);
         const resultados = await res.json();
 
@@ -235,7 +232,7 @@
         }
 
         container.innerHTML = resultados.map(item => `
-          <div onclick="selecionarEndereco('${item.display_name}', ${item.lat}, ${item.lon}, '${tipo}')" class="p-2.5 hover:bg-slate-800 cursor-pointer border-b border-slate-800 text-slate-200 truncate">
+          <div onclick="selecionarEndereco('${item.display_name.replace(/'/g, "")}', ${item.lat}, ${item.lon}, '${tipo}')" class="p-2.5 hover:bg-slate-800 cursor-pointer border-b border-slate-800 text-slate-200 truncate">
             <i class="fa-solid fa-location-dot text-emerald-400 mr-2"></i> ${item.display_name}
           </div>
         `).join('');
@@ -268,11 +265,9 @@
       }
     }
 
-    // Cálculo de Distância e Valor Estimado
     function calcularRotaEValor() {
       if (!coordsOrigem || !coordsDestino) return;
 
-      // Fórmula de Haversine para calcular distância em km
       const R = 6371;
       const dLat = (coordsDestino.lat - coordsOrigem.lat) * Math.PI / 180;
       const dLon = (coordsDestino.lng - coordsOrigem.lng) * Math.PI / 180;
@@ -282,14 +277,12 @@
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       const distanciaKm = R * c;
 
-      // Cálculo de preço base (ex: R$ 5 fixo + R$ 3,50 por km, mínimo R$ 10)
       let valorCalculado = 5.0 + (distanciaKm * 3.50);
       if (valorCalculado < 10.0) valorCalculado = 10.0;
 
       document.getElementById('valor-estimado').innerText = `R$ ${valorCalculado.toFixed(2).replace('.', ',')}`;
       document.getElementById('bloco-estimativa').classList.remove('hidden');
 
-      // Centraliza o mapa para mostrar ambos os pontos
       const bounds = L.latLngBounds([coordsOrigem.lat, coordsOrigem.lng], [coordsDestino.lat, coordsDestino.lng]);
       mapaLeaflet.fitBounds(bounds, { padding: [50, 50] });
     }
@@ -331,7 +324,6 @@
 
       const valorNumerico = parseFloat(valorTexto.replace('R$ ', '').replace(',', '.')) || 15.0;
 
-      // Insere a corrida no Supabase para os motoristas visualizarem
       const { error } = await supabaseClient.from('corridas').insert([{
         passageiro_id: usuarioLogado.id,
         origem: origem,
