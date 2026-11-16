@@ -106,6 +106,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let usuarioLogado = null;
+    let intervaloHeartbeat = null;
 
     async function inicializarApp() {
       const motoristaStorage = localStorage.getItem('motorista_logado');
@@ -119,6 +120,9 @@
         usuarioLogado = JSON.parse(passageiroStorage);
         document.getElementById('bloco-passageiro-busca').classList.remove('hidden');
         document.getElementById('menu-tipo').innerText = "Passageiro";
+        
+        // Inicia o envio de status online (Heartbeat) a cada 15 segundos para o passageiro
+        iniciarHeartbeatOnline();
       } else {
         window.location.href = 'auth.html';
         return;
@@ -141,11 +145,40 @@
       }
     }
 
+    // Função que mantém o passageiro marcado como online no Supabase
+    function iniciarHeartbeatOnline() {
+      if (!usuarioLogado || !usuarioLogado.id) return;
+
+      const atualizarPresenca = async (statusOnline) => {
+        try {
+          await supabaseClient
+            .from('usuarios')
+            .update({ online: statusOnline })
+            .eq('id', usuarioLogado.id);
+        } catch (err) {
+          console.error("Erro no heartbeat:", err);
+        }
+      };
+
+      // Envia online imediatamente ao abrir
+      atualizarPresenca(true);
+
+      // Repete a cada 15 segundos para confirmar que continua na página
+      intervaloHeartbeat = setInterval(() => {
+        atualizarPresenca(true);
+      }, 15000);
+
+      // Se o usuário fechar a aba ou navegar para fora, tenta desligar o online instantaneamente
+      window.addEventListener('beforeunload', () => {
+        navigator.sendBeacon ? null : atualizarPresenca(false); // Fallback leve
+        supabaseClient.from('usuarios').update({ online: false }).eq('id', usuarioLogado.id);
+      });
+    }
+
     function dispararAlertaBloqueioVisual() {
       const banner = document.getElementById('banner-bloqueio');
       const btn = usuarioLogado.veiculo_modelo ? document.getElementById('btn-ligar-motorista') : document.getElementById('btn-chamar-corrida');
       
-      // Efeito piscando em vermelho por 3 segundos
       banner.classList.add('bg-red-600', 'animate-pulse');
       if (btn) {
         btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
@@ -199,7 +232,14 @@
       document.getElementById('menu-lateral').classList.toggle('-translate-x-full');
     }
 
-    function sairConta() {
+    async function sairConta() {
+      // Ao sair da conta, marca explicitamente como offline antes de limpar
+      if (usuarioLogado && usuarioLogado.id) {
+        try {
+          await supabaseClient.from('usuarios').update({ online: false }).eq('id', usuarioLogado.id);
+        } catch(e) {}
+      }
+      clearInterval(intervaloHeartbeat);
       localStorage.removeItem('passageiro_logado');
       localStorage.removeItem('motorista_logado');
       window.location.href = 'auth.html';

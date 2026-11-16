@@ -100,6 +100,11 @@
 
     <!-- SEÇÃO 2: PASSAGEIROS -->
     <div id="secao-usuarios" class="space-y-3 hidden">
+      <!-- BARRA DE BUSCA -->
+      <div class="relative">
+        <i class="fa-solid fa-search absolute left-3.5 top-3 text-slate-400"></i>
+        <input type="text" id="input-busca-passageiro" oninput="renderizarAdmin()" placeholder="Buscar passageiro por nome, CPF ou celular..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-slate-100 outline-none focus:border-emerald-500">
+      </div>
       <div id="lista-admin-passageiros" class="space-y-3">
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Carregando passageiros...</div>
       </div>
@@ -417,7 +422,6 @@
 
         const usuariosTotais = resUsu || [];
         
-        // Separa quem é motorista e quem é passageiro garantindo segurança caso a tabela "motoristas" não exista separada
         dadosGlobaisMotoristas = usuariosTotais.filter(u => u.tipo === 'motorista' || u.veiculo_modelo);
         dadosGlobaisUsuarios = usuariosTotais.filter(u => u.tipo !== 'motorista' && !u.veiculo_modelo);
         dadosGlobaisSuporte = resSup || [];
@@ -478,10 +482,28 @@
         }
       } else if (abaAdminAtual === 'usuarios') {
         const container = document.getElementById('lista-admin-passageiros');
-        if (dadosGlobaisUsuarios.length === 0) {
-          container.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro cadastrado.</div>';
+        const termoBusca = (document.getElementById('input-busca-passageiro')?.value || '').toLowerCase().trim();
+
+        // Filtra por termo de busca se houver
+        let passageirosFiltrados = dadosGlobaisUsuarios.filter(u => {
+          const nome = (u.nome || '').toLowerCase();
+          const cpf = (u.cpf || '').toLowerCase();
+          const tel = (u.telefone || '').toLowerCase();
+          return nome.includes(termoBusca) || cpf.includes(termoBusca) || tel.includes(termoBusca);
+        });
+
+        // Ordena alfabeticamente por nome e coloca os online no topo
+        passageirosFiltrados.sort((a, b) => {
+          const aOnline = (a.online === true) ? 1 : 0;
+          const bOnline = (b.online === true) ? 1 : 0;
+          if (aOnline !== bOnline) return bOnline - aOnline; // Online primeiro
+          return (a.nome || '').localeCompare(b.nome || ''); // Ordem alfabética
+        });
+
+        if (passageirosFiltrados.length === 0) {
+          container.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro encontrado.</div>';
         } else {
-          container.innerHTML = dadosGlobaisUsuarios.map(u => gerarCardAdmin(u, 'usuarios')).join('');
+          container.innerHTML = passageirosFiltrados.map(u => gerarCardAdmin(u, 'usuarios')).join('');
         }
       } else if (abaAdminAtual === 'suporte') {
         const container = document.getElementById('lista-admin-suporte');
@@ -509,13 +531,15 @@
       const isBloqueado = status === 'bloqueado';
       const isPendente = status === 'pendente';
       const isMotorista = user.tipo === 'motorista' || user.veiculo_modelo;
+      const isOnline = user.online === true;
       
-      let badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400">Ativo</span>';
+      let badge = '';
       if (isBloqueado) badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-500/20 text-red-400">Bloqueado</span>';
       else if (isPendente) badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-400">Em Análise</span>';
+      else if (isOnline) badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Online</span>';
 
       return `
-        <div class="bg-slate-900 p-4 rounded-2xl border ${isBloqueado ? 'border-red-500/40' : 'border-slate-800'} space-y-3 shadow">
+        <div class="bg-slate-900 p-4 rounded-2xl border ${isBloqueado ? 'border-red-500/40' : (isOnline ? 'border-emerald-500/40' : 'border-slate-800')} space-y-3 shadow">
           <div class="flex items-center gap-3">
             <img src="${user.foto_url || 'https://ui-avatars.com/api/?name=Usuario'}" class="w-12 h-12 rounded-full object-cover border-2 border-slate-700">
             <div class="flex-1">
