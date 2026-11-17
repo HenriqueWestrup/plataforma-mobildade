@@ -217,7 +217,7 @@
           </div>
         </div>
 
-        <!-- ABA SUPORTE / HISTÓRICO DE OCORRÊNCIAS COM IDENTIFICAÇÃO DE QUEM AVALIOU QUEM -->
+        <!-- ABA SUPORTE / HISTÓRICO DE OCORRÊNCIAS COM IDENTIFICAÇÃO CORRETA -->
         <div id="modal-conteudo-suporte" class="space-y-3 hidden">
           <div class="space-y-3">
             <h4 class="font-extrabold text-white text-xs flex items-center gap-1.5">
@@ -558,7 +558,7 @@
                   <span class="text-[10px] text-slate-400">Corrida #${s.id}</span>
                 </div>
                 <div class="text-[11px] space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-                  <p class="text-emerald-400 font-bold mb-1"><i class="fa-solid fa-arrow-right-arrow-left"></i> Reporte feito por <u>${nomePass}</u> para o motorista <u>${nomeMot}</u></p>
+                  <p class="text-emerald-400 font-bold mb-1"><i class="fa-solid fa-arrow-right-arrow-left"></i> Reporte feito pelo motorista <u>${nomeMot}</u> para o passageiro <u>${nomePass}</u></p>
                   <p><strong>De:</strong> ${s.origem || '-'}</p>
                   <p><strong>Para:</strong> ${s.destino || '-'}</p>
                   <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${s.motivo_avaliacao_motorista || 'Nenhuma observação informada.'}</p>
@@ -771,8 +771,8 @@
             const nomePassageiro = c.passageiro?.nome || 'Passageiro';
             const nomeMotorista = c.motorista?.nome || 'Motorista';
             
-            // Identifica quem avaliou quem com clareza
-            const descricaoReporte = `Reporte feito por <b>${nomePassageiro}</b> para o motorista <b>${nomeMotorista}</b>`;
+            // Exibe corretamente que a avaliação foi feita pelo motorista para o passageiro
+            const descricaoReporte = `Reporte feito pelo motorista <b>${nomeMotorista}</b> para o passageiro <b>${nomePassageiro}</b>`;
 
             htmlOcorrencias += `
               <div class="bg-slate-900 p-2.5 rounded-xl border border-amber-500/30 space-y-1.5">
