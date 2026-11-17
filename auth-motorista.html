@@ -13,7 +13,7 @@
   <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-5 relative">
     
     <!-- VERSÃO DISCRETA -->
-    <span class="absolute top-2 right-3 text-[9px] text-slate-600 font-mono">v9</span>
+    <span class="absolute top-2 right-3 text-[9px] text-slate-600 font-mono">v10</span>
 
     <div class="text-center space-y-1">
       <div class="inline-block bg-amber-600/20 border border-amber-500/30 text-amber-400 p-3 rounded-2xl mb-1">
@@ -29,11 +29,11 @@
       <span id="texto-erro">Erro ao realizar login.</span>
     </div>
 
-    <!-- LOGIN (Alterado para button onclick para evitar qualquer comportamento padrão de submit/F5) -->
+    <!-- CAMPOS DE ENTRADA -->
     <div class="space-y-4 text-xs">
       <div>
         <label class="text-[10px] text-slate-400 ml-1">Celular / Telefone</label>
-        <input type="tel" id="login-celular-motorista" placeholder="(00) 00000-0000" class="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
+        <input type="text" id="login-celular-motorista" placeholder="(00) 00000-0000" class="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
       </div>
       <div>
         <label class="text-[10px] text-slate-400 ml-1">Senha</label>
@@ -74,7 +74,7 @@
       const btn = document.getElementById('btn-entrar');
 
       if (!inputCel || !inputSenha) {
-        mostrarErro("Erro interno: Campos de formulário não encontrados.");
+        mostrarErro("Erro interno: Campos não encontrados.");
         return;
       }
 
@@ -90,7 +90,7 @@
       btn.disabled = true;
 
       try {
-        // Busca unificada na tabela 'usuarios' do painel admin
+        // Consulta no Supabase exatamente igual ao painel admin
         const { data: usuario, error } = await supabaseClient
           .from('usuarios')
           .select('*')
@@ -99,36 +99,26 @@
           .maybeSingle();
 
         if (error) {
-          throw new Error("Erro de consulta ao banco: " + error.message);
+          throw new Error("Erro no Banco: " + error.message);
         }
 
         if (!usuario) {
-          throw new Error("Celular ou senha incorretos.");
+          throw new Error("Telefone ou senha incorretos no banco de dados.");
         }
 
-        // Validação idêntica à do painel admin: verifica se é motorista (tipo motorista ou tem veículo)
-        const isMotorista = usuario.tipo === 'motorista' || usuario.veiculo_modelo;
+        // Valida se o usuário cadastrado é motorista (tipo motorista ou tem veículo preenchido)
+        const isMotorista = usuario.tipo === 'motorista' || (usuario.veiculo_modelo && usuario.veiculo_modelo.trim() !== '');
         if (!isMotorista) {
-          throw new Error("Acesso negado: esta conta é de passageiro, não de motorista.");
+          throw new Error("Acesso negado: Este cadastro é de passageiro, não possui veículo associado.");
         }
 
         if (usuario.status === 'bloqueado' || usuario.status === 'pendente') {
-          throw new Error("Sua conta está bloqueada ou pendente de aprovação pelo admin.");
+          throw new Error("Sua conta está bloqueada ou pendente de aprovação.");
         }
 
-        // Gera token de sessão única
+        // Cria token e salva no localStorage
         const sessionToken = 'sessao_mot_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
         
-        try {
-          await supabaseClient
-            .from('usuarios')
-            .update({ session_token: sessionToken })
-            .eq('id', usuario.id);
-        } catch (updErr) {
-          console.warn("Não foi possível atualizar o token no banco:", updErr);
-        }
-
-        // Salva os dados no navegador e redireciona
         localStorage.removeItem('passageiro_logado');
         usuario.tipo = 'motorista';
         usuario.session_token = sessionToken;
@@ -136,11 +126,12 @@
         localStorage.setItem('motorista_logado', JSON.stringify(usuario));
         localStorage.setItem('session_token', sessionToken);
         
+        // Redireciona com sucesso
         window.location.href = 'motorista.html';
 
       } catch (err) {
-        console.error("Erro no login:", err);
-        mostrarErro(err.message || "Erro desconhecido ao tentar entrar.");
+        console.error("Falha no login:", err);
+        mostrarErro(err.message || "Erro de conexão com o Supabase.");
         btn.innerText = "Entrar como Motorista";
         btn.disabled = false;
       }
