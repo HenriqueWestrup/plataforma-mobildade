@@ -34,7 +34,7 @@
       <span id="valor-estimado" class="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
     </div>
 
-    <!-- SELEÇÃO DE FORMA DE PAGAMENTO (PIX / DINHEIRO) CORRIGIDA -->
+    <!-- SELEÇÃO DE FORMA DE PAGAMENTO (PIX / DINHEIRO) -->
     <div class="grid grid-cols-2 gap-2 pt-1">
       <button type="button" onclick="selecionarPagamento('PIX')" id="btn-pay-pix" class="bg-emerald-600/20 border border-emerald-500 text-emerald-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2">
         <i class="fa-solid fa-qrcode"></i> PIX
@@ -51,7 +51,15 @@
   </div>
 </div>
 
+<!-- Importação local do SDK do Supabase caso o arquivo rode isolado -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
+  // Inicialização independente do Supabase para evitar o erro de fetch
+  const SUPABASE_URL_MAPA = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
+  const SUPABASE_ANON_KEY_MAPA = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
+  const supabaseMapa = window.supabase ? window.supabase.createClient(SUPABASE_URL_MAPA, SUPABASE_ANON_KEY_MAPA) : null;
+
   let mapaLeaflet = null;
   let marcadorOrigem = null;
   let marcadorDestino = null;
@@ -80,7 +88,6 @@
     usarMinhaLocalizacao();
   }
 
-  // Função corrigida para alternar visualmente o botão de pagamento selecionado
   function selecionarPagamento(tipo) {
     formaPagamentoSelecionada = tipo;
     const btnPix = document.getElementById('btn-pay-pix');
@@ -234,13 +241,14 @@
       return;
     }
 
-    if (typeof supabaseClient === 'undefined') {
-      alert("Erro de conexão com o banco de dados. Recarregue a página.");
+    const clienteSupabaseAtivo = supabaseMapa || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
+
+    if (!clienteSupabaseAtivo) {
+      alert("Erro crítico: Conexão com o banco de dados indisponível.");
       return;
     }
 
-    // Envio explícito garantindo a forma de pagamento selecionada
-    const { error } = await supabaseClient.from('corridas').insert([{
+    const { error } = await clienteSupabaseAtivo.from('corridas').insert([{
       passageiro_id: dadosUsuario.id,
       origem: origem,
       destino: destino,

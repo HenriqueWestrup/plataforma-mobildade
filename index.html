@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Leaflet CSS e JS (Necessários no Index para rodar o mapa nativo) -->
+  <!-- Leaflet CSS e JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
@@ -81,13 +81,10 @@
 
   <!-- CONTEÚDO PRINCIPAL ONDE O MAPA SERÁ INJETADO -->
   <main id="main-app" class="flex-1 overflow-hidden relative flex flex-col bg-slate-950">
-    <!-- Loader enquanto o mapa carrega -->
     <div id="map-loader" class="flex-1 flex flex-col justify-center items-center text-slate-500 gap-3">
       <i class="fa-solid fa-map-location-dot text-4xl animate-pulse"></i>
       Carregando mapa em Laguna...
     </div>
-    
-    <!-- O conteúdo do mapa.html será inserido aqui pelo JS -->
   </main>
 
   <script>
@@ -97,14 +94,35 @@
 
     let usuarioLogado = null;
     let intervaloHeartbeat = null;
+    let intervaloValidacaoSessao = null;
 
-    // Variáveis globais do Mapa (serão inicializadas quando o HTML do mapa carregar)
     let mapaLeaflet = null;
     let marcadorOrigem = null;
     let marcadorDestino = null;
     let coordsOrigem = null;
     let coordsDestino = null;
-    let marcadoresParadas = [];
+
+    // Validação de Sessão Única em tempo real
+    async function validarSessaoUnica() {
+      const passageiroStorage = localStorage.getItem('passageiro_logado');
+      const sessionTokenLocal = localStorage.getItem('session_token');
+      if (!passageiroStorage) return;
+
+      const usuario = JSON.parse(passageiroStorage);
+      try {
+        const { data, error } = await supabaseClient
+          .from('usuarios')
+          .select('session_token')
+          .eq('id', usuario.id)
+          .single();
+
+        if (data && data.session_token && data.session_token !== sessionTokenLocal) {
+          alert("Sua conta foi acessada em outro aparelho. Você foi desconectado.");
+          localStorage.clear();
+          window.location.href = 'auth.html';
+        }
+      } catch (e) {}
+    }
 
     async function inicializarApp() {
       const passageiroStorage = localStorage.getItem('passageiro_logado');
@@ -117,6 +135,9 @@
         usuarioLogado = JSON.parse(passageiroStorage);
         document.getElementById('menu-tipo').innerText = "Passageiro";
         iniciarHeartbeatOnline();
+        
+        // Inicia verificação de sessão única a cada 7 segundos
+        intervaloValidacaoSessao = setInterval(validarSessaoUnica, 7000);
       } else {
         window.location.href = 'auth.html';
         return;
@@ -134,52 +155,35 @@
         document.getElementById('banner-bloqueio').classList.remove('hidden');
       }
 
-      // 1. Carrega o HTML do mapa nativamente para dentro da tag <main>
       carregarModuloMapa();
     }
 
-    // Função que injeta o conteúdo do mapa na página principal
     async function carregarModuloMapa() {
       const mainApp = document.getElementById('main-app');
       try {
-        // Faz o fetch do arquivo mapa.html (certifique-se que ele está na mesma pasta)
         const response = await fetch('mapa.html');
         if (!response.ok) throw new Error('Falha ao carregar mapa');
-        
         const htmlMapa = await response.text();
-        
-        // Insere o HTML do mapa na gaveta principal
         mainApp.innerHTML = htmlMapa;
         
-        // 2. Após o HTML estar no DOM, inicializa a lógica do Leaflet
-        // (A função inicializarMapa() abaixo precisa estar definida no seu mapa.html ou aqui)
         if (typeof inicializarMapa === 'function') {
            inicializarMapa();
-        } else {
-           console.error("Erro: A função inicializarMapa() não foi encontrada.");
         }
-
       } catch (error) {
-        console.error(error);
         mainApp.innerHTML = '<div class="flex-1 flex justify-center items-center text-red-400">Erro ao carregar o módulo do mapa.</div>';
       }
     }
 
-    // --- Funções de Geolocalização e Mapa (Copiadas/Adaptadas do seu mapa.html) ---
-    // É crucial que estas funções estejam acessíveis no escopo global ou definidas aqui
-    
     function inicializarMapa() {
         if (mapaLeaflet) {
             mapaLeaflet.invalidateSize();
             return;
         }
-        // Coordenadas centrais de Laguna - SC
         const latLaguna = -28.4811;
         const lngLaguna = -48.7811;
 
         mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
 
-        // Camada de mapa (OpenStreetMap - Livre de API Key)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap contributors'
@@ -189,7 +193,6 @@
         usarMinhaLocalizacao();
     }
 
-    // Geolocalização via GPS do aparelho
     function usarMinhaLocalizacao() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -204,26 +207,23 @@
                         marcadorOrigem = L.marker([lat, lng]).addTo(mapaLeaflet).bindPopup("Sua Localização").openPopup();
                     }
 
-                    // Busca o nome legível da rua
                     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
                         .then(res => res.json())
                         .then(data => {
                             if (data && data.display_name) {
                                 document.getElementById('origem-corrida').value = data.display_name;
-                                // Se já houver destino, recalcula
                                 if (coordsDestino) calcularRotaEValor();
                             }
                         }).catch(() => {
                             document.getElementById('origem-corrida').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
                         });
                 },
-                () => { console.warn("GPS indisponível"); },
+                () => {},
                 { enableHighAccuracy: true }
             );
         }
     }
 
-    // Autocompletar de endereços (Nominatim)
     async function buscarSugestoes(termo, tipo) {
         const container = document.getElementById(`sugestoes-${tipo}`);
         if (termo.length < 3) {
@@ -232,7 +232,7 @@
         }
 
         try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo + ', Laguna, Santa Catarina')}`);
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo)}`);
             const resultados = await res.json();
 
             if (!resultados || resultados.length === 0) {
@@ -265,21 +265,17 @@
             marcadorDestino = L.marker([lat, lon], {
                 icon: L.divIcon({ className: 'bg-amber-500 w-3 h-3 rounded-full border-2 border-white' })
             }).addTo(mapaLeaflet);
-        } else {
-           // É uma parada intermediária, implemente a lógica de marcadores extras se necessário
         }
 
-        // Se ambos os campos principais estiverem preenchidos, calcula a rota
         if (coordsOrigem && coordsDestino) {
             calcularRotaEValor();
         }
     }
 
-    // Cálculo de Distância (Haversine) e Valor (Instantâneo)
     function calcularRotaEValor() {
         if (!coordsOrigem || !coordsDestino) return;
 
-        const R = 6371; // Raio da Terra em km
+        const R = 6371;
         const dLat = (coordsDestino.lat - coordsOrigem.lat) * Math.PI / 180;
         const dLon = (coordsDestino.lng - coordsOrigem.lng) * Math.PI / 180;
         const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -288,69 +284,16 @@
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         const distanciaKm = R * c;
 
-        // Tarifa: R$ 5,00 base + R$ 3,50 por km (Mínimo R$ 10,00)
         let valorCalculado = 5.0 + (distanciaKm * 3.50);
         if (valorCalculado < 10.0) valorCalculado = 10.0;
 
         document.getElementById('valor-estimado').innerText = `R$ ${valorCalculado.toFixed(2).replace('.', ',')}`;
         document.getElementById('bloco-estimativa').classList.remove('hidden');
 
-        // Ajusta o zoom para mostrar ambos os pontos
         const bounds = L.latLngBounds([coordsOrigem.lat, coordsOrigem.lng], [coordsDestino.lat, coordsDestino.lng]);
         mapaLeaflet.fitBounds(bounds, { padding: [50, 50] });
     }
 
-    // Adicionar Parada (Lógica Dinâmica)
-    function adicionarCampoParada() {
-        const container = document.getElementById('container-paradas');
-        if (container.children.length >= 2) {
-            alert("Limite máximo de 2 paradas intermediárias.");
-            return;
-        }
-        const idParada = 'parada-' + Date.now();
-        const div = document.createElement('div');
-        div.className = "relative flex items-center gap-2 bg-slate-950 border border-slate-800 p-2.5 rounded-xl";
-        div.innerHTML = `
-          <i class="fa-solid fa-stop text-sky-400"></i>
-          <input type="text" id="${idParada}-corrida" placeholder="Adicionar parada" oninput="buscarSugestoes(this.value, '${idParada}')" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
-          <button onclick="this.parentElement.remove();" class="text-red-400 hover:text-red-300 px-1"><i class="fa-solid fa-xmark text-sm"></i></button>
-          <div id="sugestoes-${idParada}" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-36 overflow-y-auto"></div>
-        `;
-        container.appendChild(div);
-    }
-
-    // Chamar Motorista (Supabase)
-    async function chamarMotorista() {
-        const origem = document.getElementById('origem-corrida').value;
-        const destino = document.getElementById('destino-corrida').value;
-        const valorTexto = document.getElementById('valor-estimado').innerText;
-        
-        if (!origem || !destino) {
-            alert('Por favor, preencha a origem e o destino.');
-            return;
-        }
-
-        const valorNumerico = parseFloat(valorTexto.replace('R$ ', '').replace(',', '.')) || 15.0;
-
-        // Insere a corrida no Supabase
-        const { error } = await supabaseClient.from('corridas').insert([{
-            passageiro_id: usuarioLogado.id,
-            origem: origem,
-            destino: destino,
-            valor: valorNumerico,
-            status: 'procurando'
-        }]);
-
-        if (error) {
-            alert("Erro ao solicitar corrida: " + error.message);
-        } else {
-            alert("Buscando motorista parceiro mais próximo em Laguna...");
-            // Opcional: Mudar interface para aguardando motorista
-        }
-    }
-    // --- Fim das Funções de Mapa ---
-
-    // Funções Gerais
     function iniciarHeartbeatOnline() {
       if (!usuarioLogado || !usuarioLogado.id) return;
       const atualizarPresenca = async (statusOnline) => {
@@ -365,12 +308,6 @@
       });
     }
 
-    function dispararAlertaBloqueioVisual() {
-      const banner = document.getElementById('banner-bloqueio');
-      banner.classList.add('bg-red-600', 'animate-pulse');
-      setTimeout(() => banner.classList.remove('bg-red-600', 'animate-pulse'), 3000);
-    }
-
     function toggleMenuLateral() {
       document.getElementById('menu-lateral').classList.toggle('-translate-x-full');
     }
@@ -380,7 +317,8 @@
         try { await supabaseClient.from('usuarios').update({ online: false }).eq('id', usuarioLogado.id); } catch(e) {}
       }
       clearInterval(intervaloHeartbeat);
-      localStorage.removeItem('passageiro_logado');
+      clearInterval(intervaloValidacaoSessao);
+      localStorage.clear();
       window.location.href = 'auth.html';
     }
 

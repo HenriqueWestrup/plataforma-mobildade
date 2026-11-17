@@ -20,6 +20,7 @@
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 h-screen flex flex-col justify-between overflow-hidden">
 
@@ -44,7 +45,7 @@
     </div>
   </header>
 
-  <!-- CONTEÚDO PRINCIPAL (Módulos injetados via abas) -->
+  <!-- CONTEÚDO PRINCIPAL -->
   <main id="app-motorista-container" class="flex-1 flex flex-col relative overflow-hidden bg-slate-950">
     <!-- Conteúdo inicial carrega o radar do motorista -->
   </main>
@@ -68,6 +69,41 @@
   <!-- SCRIPTS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let intervaloValidacaoSessao = null;
+
+    // Validação de Sessão Única do Motorista
+    async function validarSessaoMotorista() {
+      const motoristaStorage = localStorage.getItem('motorista_logado');
+      const sessionTokenLocal = localStorage.getItem('session_token');
+      if (!motoristaStorage) return;
+
+      const motorista = JSON.parse(motoristaStorage);
+      try {
+        const { data, error } = await supabaseClient
+          .from('motoristas')
+          .select('session_token')
+          .eq('id', motorista.id)
+          .single();
+
+        let tokenBanco = data ? data.session_token : null;
+        if (!tokenBanco) {
+          // Tenta na tabela usuarios se não achar na motoristas
+          const resUsr = await supabaseClient.from('usuarios').select('session_token').eq('id', motorista.id).single();
+          if (resUsr.data) tokenBanco = resUsr.data.session_token;
+        }
+
+        if (tokenBanco && tokenBanco !== sessionTokenLocal) {
+          alert("Sua conta foi acessada em outro aparelho. Você foi desconectado.");
+          localStorage.clear();
+          window.location.href = 'auth-motorista.html';
+        }
+      } catch (e) {}
+    }
+
     async function carregarAbaMotorista(arquivo, elementoBotao) {
       document.querySelectorAll('.nav-motorista-btn').forEach(btn => {
         btn.classList.remove('text-amber-400');
@@ -113,12 +149,15 @@
     }
 
     window.onload = () => {
-      // Verifica se o motorista está logado, senão manda para o login de motorista
       const motoristaLogado = localStorage.getItem('motorista_logado');
       if (!motoristaLogado) {
         window.location.href = 'auth-motorista.html';
         return;
       }
+
+      // Ativa a verificação de sessão única a cada 7 segundos
+      intervaloValidacaoSessao = setInterval(validarSessaoMotorista, 7000);
+
       carregarAbaMotorista('radar-motorista.html', document.querySelector('.nav-motorista-btn'));
     };
   </script>

@@ -20,6 +20,12 @@
       <p id="subtitulo-tela" class="text-xs text-slate-400">Entre com seu celular e senha para viajar</p>
     </div>
 
+    <!-- CAIXA DE ALERTA DE ERRO VISUAL -->
+    <div id="box-erro" class="hidden bg-red-950/80 border border-red-600 text-red-200 text-xs p-3 rounded-xl flex items-center gap-2">
+      <i class="fa-solid fa-triangle-exclamation text-red-400 text-base shrink-0"></i>
+      <span id="texto-erro">Erro ao realizar login.</span>
+    </div>
+
     <!-- LOGIN -->
     <form id="form-login" class="space-y-4 text-xs" onsubmit="realizarLogin(event)">
       <div class="space-y-1">
@@ -30,7 +36,7 @@
         <label class="text-slate-300 font-medium">Senha</label>
         <input type="password" id="login-senha" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
       </div>
-      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Entrar na Conta</button>
+      <button type="submit" id="btn-entrar" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Entrar na Conta</button>
     </form>
 
     <div class="text-center text-[11px] text-slate-500 space-y-2 pt-2 border-t border-slate-800">
@@ -46,27 +52,53 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    function mostrarErro(mensagem) {
+      const box = document.getElementById('box-erro');
+      const texto = document.getElementById('texto-erro');
+      texto.innerText = mensagem;
+      box.classList.remove('hidden');
+    }
+
     async function realizarLogin(e) {
       e.preventDefault();
+      document.getElementById('box-erro').classList.add('hidden');
+
       const cel = document.getElementById('login-celular').value.trim();
       const senha = document.getElementById('login-senha').value;
+      const btn = document.getElementById('btn-entrar');
 
-      const { data, error } = await supabaseClient.from('usuarios').select('*').eq('telefone', cel).eq('senha', senha).single();
-      if (error || !data) {
-        alert("Celular ou senha inválidos.");
-        return;
+      btn.innerText = "Entrando...";
+      btn.disabled = true;
+
+      try {
+        const { data, error } = await supabaseClient.from('usuarios').select('*').eq('telefone', cel).eq('senha', senha).single();
+        if (error || !data) {
+          throw new Error("Celular ou senha inválidos.");
+        }
+
+        if (data.status === 'bloqueado') {
+          throw new Error("Conta temporariamente suspensa.");
+        }
+
+        // Gera um token de sessão único para este aparelho
+        const sessionToken = 'sessao_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+        // Atualiza o token no Supabase (isso invalida qualquer outro aparelho logado)
+        await supabaseClient.from('usuarios').update({ session_token: sessionToken }).eq('id', data.id);
+
+        // Salva localmente
+        localStorage.removeItem('motorista_logado');
+        data.tipo = 'passageiro';
+        data.session_token = sessionToken;
+        localStorage.setItem('passageiro_logado', JSON.stringify(data));
+        localStorage.setItem('session_token', sessionToken);
+
+        window.location.href = 'index.html';
+      } catch (err) {
+        mostrarErro(err.message || "Erro ao realizar login. Tente novamente.");
+        btn.innerText = "Entrar na Conta";
+        btn.disabled = false;
       }
-
-      if (data.status === 'bloqueado') {
-        alert("Conta temporariamente suspensa.");
-        return;
-      }
-
-      // Limpa sessão de motorista para evitar conflito
-      localStorage.removeItem('motorista_logado');
-      data.tipo = 'passageiro';
-      localStorage.setItem('passageiro_logado', JSON.stringify(data));
-      window.location.href = 'index.html';
     }
   </script>
 </body>
