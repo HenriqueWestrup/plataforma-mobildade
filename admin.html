@@ -86,7 +86,7 @@
   <!-- CONTEÚDO COM SCROLL -->
   <main class="flex-1 overflow-y-auto p-4 space-y-4 pb-16">
     
-    <!-- SEÇÃO 1: MOTORISTAS (Lista única ordenada: online no topo) -->
+    <!-- SEÇÃO 1: MOTORISTAS -->
     <div id="secao-motoristas" class="space-y-3">
       <div id="lista-admin-motoristas" class="space-y-3">
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Carregando motoristas...</div>
@@ -443,7 +443,6 @@
           .lt('avaliacao_motorista', 5)
           .order('id', { ascending: false });
 
-        // Busca de viagens ativas / em andamento
         const { data: resViagensAtivas } = await supabaseClient
           .from('corridas')
           .select(`
@@ -522,7 +521,6 @@
       if (abaAdminAtual === 'motoristas') {
         const container = document.getElementById('lista-admin-motoristas');
 
-        // Ordenação: Online sempre no topo
         let motoristasOrdenados = [...dadosGlobaisMotoristas].sort((a, b) => {
           const aOnline = (a.online === true) ? 1 : 0;
           const bOnline = (b.online === true) ? 1 : 0;
@@ -603,6 +601,7 @@
             const idPassageiro = s.passageiro_id;
             const nomeMot = s.motorista?.nome || 'Motorista Desconhecido';
             const nomePass = s.passageiro?.nome || 'Passageiro Desconhecido';
+            const observacao = s.motivo_avaliacao_motorista || 'Nenhuma observação informada.';
 
             return `
               <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40 space-y-3 shadow">
@@ -613,21 +612,33 @@
                   <span class="text-[10px] text-slate-400">Corrida #${s.id}</span>
                 </div>
                 <div class="text-[11px] space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-                  <p class="text-emerald-400 font-bold mb-1"><i class="fa-solid fa-arrow-right-arrow-left"></i> Reporte feito por <u>${nomePass}</u> para o motorista <u>${nomeMot}</u></p>
+                  <p class="text-emerald-400 font-bold mb-1"><i class="fa-solid fa-arrow-right-arrow-left"></i> Reporte feito por <u>${nomePass}</u> (Passageiro) para o motorista <u>${nomeMot}</u></p>
                   <p><strong>De:</strong> ${s.origem || '-'}</p>
                   <p><strong>Para:</strong> ${s.destino || '-'}</p>
-                  <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${s.motivo_avaliacao_motorista || 'Nenhuma observação informada.'}</p>
+                  <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${observacao}</p>
                 </div>
-                <!-- BOTÕES DE ACESSO RÁPIDO AOS PERFIS DOS ENVOLVIDOS -->
-                <div class="flex gap-2 pt-1">
-                  ${idPassageiro ? `<button onclick="abrirModalEdicao('${idPassageiro}')" class="flex-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-user"></i> Ver Passageiro</button>` : ''}
-                  ${idMotorista ? `<button onclick="abrirModalEdicao('${idMotorista}')" class="flex-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-car"></i> Ver Motorista</button>` : ''}
+                <!-- BOTÕES DE ACESSO RÁPIDO E RESPOSTA DIRETA AO SUPORTE -->
+                <div class="flex flex-col gap-2 pt-1">
+                  <button onclick="responderSuporteDireto('${idPassageiro}', \`${observacao.replace(/`/g, '\\`')}\`)" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-headset"></i> Responder Suporte ao Passageiro (${nomePass})
+                  </button>
+                  <div class="flex gap-2">
+                    ${idPassageiro ? `<button onclick="abrirModalEdicao('${idPassageiro}')" class="flex-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-user"></i> Ver Passageiro</button>` : ''}
+                    ${idMotorista ? `<button onclick="abrirModalEdicao('${idMotorista}')" class="flex-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-car"></i> Ver Motorista</button>` : ''}
+                  </div>
                 </div>
               </div>
             `;
           }).join('');
         }
       }
+    }
+
+    function responderSuporteDireto(idUsuario, observacao) {
+      if (!idUsuario) return;
+      abrirModalEdicao(idUsuario);
+      mudarAbaModal('suporte');
+      document.getElementById('input-resposta-suporte').value = `Referente à ocorrência: "${observacao}"\nOlá, entramos em contato sobre o seu reporte: `;
     }
 
     function gerarCardAdmin(user) {
@@ -826,7 +837,7 @@
             const nomePassageiro = c.passageiro?.nome || 'Passageiro';
             const nomeMotorista = c.motorista?.nome || 'Motorista';
             
-            const descricaoReporte = `Reporte feito por <b>${nomePassageiro}</b> para o motorista <b>${nomeMotorista}</b>`;
+            const descricaoReporte = `Reporte feito por <b>${nomePassageiro}</b> (Passageiro) para o motorista <b>${nomeMotorista}</b>`;
 
             htmlOcorrencias += `
               <div class="bg-slate-900 p-2.5 rounded-xl border border-amber-500/30 space-y-1.5">
