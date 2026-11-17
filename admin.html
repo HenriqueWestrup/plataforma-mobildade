@@ -109,7 +109,7 @@
       </div>
     </div>
 
-    <!-- SEÇÃO 3: SUPORTE CENTRAL COM SUB-ABAS (NOVAS NOTIFICAÇÕES / EM ANÁLISE) -->
+    <!-- SEÇÃO 3: SUPORTE CENTRAL COM SUB-ABAS -->
     <div id="secao-suporte" class="space-y-3 hidden">
       <div class="flex gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
         <button onclick="mudarSubAbaSuporte('novas')" id="sub-btn-sup-novas" class="flex-1 py-2 rounded-lg font-bold text-xs bg-emerald-600 text-white transition">
@@ -226,7 +226,7 @@
           </div>
         </div>
 
-        <!-- ABA SUPORTE / HISTÓRICO DE OCORRÊNCIAS COM IDENTIFICAÇÃO CORRETA -->
+        <!-- ABA SUPORTE / HISTÓRICO DE OCORRÊNCIAS -->
         <div id="modal-conteudo-suporte" class="space-y-3 hidden">
           <div class="space-y-3">
             <h4 class="font-extrabold text-white text-xs flex items-center gap-1.5">
@@ -319,7 +319,7 @@
     let dadosGlobaisSuporte = [];
     let abaAdminAtual = 'motoristas';
     let subAbaMotorista = 'todos';
-    let subAbaSuporteAtual = 'novas'; // 'novas' ou 'analise'
+    let subAbaSuporteAtual = 'novas';
     let canalRealtimeAdmin = null;
 
     function tocarSomAlertaAdmin() {
@@ -425,7 +425,7 @@
       localStorage.setItem('admin_master_pass', nova);
       msgEl.innerText = "Senha mestre atualizada com sucesso!";
       msgEl.className = "text-emerald-400 text-[11px] font-semibold text-center";
-      msgEl.classList.add('hidden');
+      msgEl.classList.remove('hidden');
       setTimeout(() => fecharModalSenhaMestre(), 1500);
     }
 
@@ -433,7 +433,6 @@
       try {
         const { data: resUsu } = await supabaseClient.from('usuarios').select('*');
         
-        // Consulta robusta corrigida para garantir o vínculo correto com as tabelas de motorista e passageiro
         const { data: resCorridasSuporte } = await supabaseClient
           .from('corridas')
           .select(`
@@ -484,7 +483,6 @@
     }
 
     function atualizarContadorSuporte() {
-      // Conta as notificações pendentes que não estão em análise nem resolvidas
       const novas = dadosGlobaisSuporte.filter(s => !s.status_suporte || s.status_suporte === 'novo');
       const badge = document.getElementById('badge-contador-suporte');
       if (novas.length > 0) {
@@ -576,33 +574,36 @@
             const idPassageiro = s.passageiro_id;
             const nomeMot = s.motorista?.nome || 'Motorista Desconhecido';
             const nomePass = s.passageiro?.nome || 'Passageiro Desconhecido';
+            const dataCorrida = s.criado_em ? new Date(s.criado_em).toLocaleDateString('pt-BR') : '-';
 
+            // Card exatamente com o formato visual idêntico ao do print do histórico de ocorrências
             const botaoAcao = subAbaSuporteAtual === 'novas' 
-              ? `<button onclick="alterarStatusSuporte(${s.id}, 'analise')" class="flex-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-spinner"></i> Analisar Chamado</button>`
-              : `<button onclick="alterarStatusSuporte(${s.id}, 'resolvido')" class="flex-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-check"></i> Confirmar como OK (Concluído)</button>`;
+              ? `<button onclick="alterarStatusSuporte(${s.id}, 'analise')" class="flex-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-spinner"></i> Analisar (Mover para Em Análise)</button>`
+              : `<button onclick="alterarStatusSuporte(${s.id}, 'resolvido')" class="flex-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-check"></i> Concluir / Resolver Chamado</button>`;
 
             return `
               <div class="bg-slate-900 p-4 rounded-2xl border ${subAbaSuporteAtual === 'novas' ? 'border-amber-500/40' : 'border-blue-500/40'} space-y-3 shadow">
                 <div class="flex justify-between items-start">
                   <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1">
-                    <i class="fa-solid fa-star"><b>${s.avaliacao_motorista}</b> Estrelas</i>
+                    <i class="fa-solid fa-star"></i> <b>${s.avaliacao_motorista} Estrelas</b> (Corrida #${s.id})
                   </span>
-                  <span class="text-[10px] text-slate-400">Corrida #${s.id}</span>
+                  <span class="text-[10px] text-slate-400">${dataCorrida}</span>
                 </div>
+                
                 <div class="text-[11px] space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-                  <p class="text-emerald-400 font-bold mb-1"><i class="fa-solid fa-arrow-right-arrow-left"></i> Reporte feito pelo motorista <u>${nomeMot}</u> para o passageiro <u>${nomePass}</u></p>
-                  <p><strong>De:</strong> ${s.origem || '-'}</p>
-                  <p><strong>Para:</strong> ${s.destino || '-'}</p>
-                  <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${s.motivo_avaliacao_motorista || 'Nenhuma observação informada.'}</p>
+                  <p class="text-emerald-400 font-bold mb-1"><i class="fa-solid fa-info-circle"></i> Reporte feito pelo motorista <u>${nomeMot}</u> para o passageiro <u>${nomePass}</u></p>
+                  <p><strong>Observação / Motivo:</strong> ${s.motivo_avaliacao_motorista || 'Nenhum motivo informado.'}</p>
+                  <p class="text-[10px] text-slate-500 pt-1 border-t border-slate-800">Rota: ${s.origem || '-'} ➔ ${s.destino || '-'}</p>
                 </div>
-                <!-- BOTÕES DE AÇÃO DO SUPORTE E PERFIS -->
+
+                <!-- ATALHOS DE AÇÃO E PERFIS -->
                 <div class="flex flex-col gap-2 pt-1">
                   <div class="flex gap-2">
                     ${botaoAcao}
                   </div>
                   <div class="flex gap-2">
-                    ${idPassageiro ? `<button onclick="abrirModalEdicao('${idPassageiro}')" class="flex-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-user"></i> Ver Passageiro</button>` : ''}
-                    ${idMotorista ? `<button onclick="abrirModalEdicao('${idMotorista}')" class="flex-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-car"></i> Ver Motorista</button>` : ''}
+                    ${idPassageiro ? `<button onclick="abrirModalEdicao('${idPassageiro}')" class="flex-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-user"></i> Ver Perfil Passageiro</button>` : ''}
+                    ${idMotorista ? `<button onclick="abrirModalEdicao('${idMotorista}')" class="flex-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-car"></i> Ver Perfil Motorista</button>` : ''}
                   </div>
                 </div>
               </div>
@@ -624,12 +625,12 @@
           if (item) item.status_suporte = novoStatus;
           renderizarAdmin();
           atualizarContadorSuporte();
-          mostrarAlertaModal(novoStatus === 'analise' ? 'Chamado movido para Em Análise.' : 'Chamado confirmado como OK!', 'sucesso');
+          mostrarAlertaModal(novoStatus === 'analise' ? 'Chamado movido para Em Análise.' : 'Chamado concluído com sucesso!', 'sucesso');
           return;
         }
 
         carregarDadosAdmin();
-        mostrarAlertaModal(novoStatus === 'analise' ? 'Chamado movido para Em Análise.' : 'Chamado confirmado como OK!', 'sucesso');
+        mostrarAlertaModal(novoStatus === 'analise' ? 'Chamado movido para Em Análise.' : 'Chamado concluído com sucesso!', 'sucesso');
       } catch (err) {
         mostrarAlertaModal('Erro ao atualizar status do suporte.', 'erro');
       }
@@ -830,6 +831,7 @@
           corridas.forEach(c => {
             const nomePassageiro = c.passageiro?.nome || 'Passageiro';
             const nomeMotorista = c.motorista?.nome || 'Motorista';
+            const dataCorrida = c.criado_em ? new Date(c.criado_em).toLocaleDateString('pt-BR') : '-';
             
             const descricaoReporte = `Reporte feito pelo motorista <b>${nomeMotorista}</b> para o passageiro <b>${nomePassageiro}</b>`;
 
@@ -837,7 +839,7 @@
               <div class="bg-slate-900 p-2.5 rounded-xl border border-amber-500/30 space-y-1.5">
                 <div class="flex justify-between items-center text-[10px] text-slate-400">
                   <span class="text-amber-400 font-bold"><i class="fa-solid fa-star"></i> ${c.avaliacao_motorista} Estrelas (Corrida #${c.id})</span>
-                  <span>${new Date(c.criado_em || Date.now()).toLocaleDateString()}</span>
+                  <span>${dataCorrida}</span>
                 </div>
                 <p class="text-emerald-400 text-[11px]"><i class="fa-solid fa-info-circle"></i> ${descricaoReporte}</p>
                 <p class="text-slate-300"><strong>Observação / Motivo:</strong> ${c.motivo_avaliacao_motorista || 'Nenhum motivo informado.'}</p>
