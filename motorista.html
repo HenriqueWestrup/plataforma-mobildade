@@ -81,10 +81,10 @@
   <main id="app-motorista-container" class="flex-1 relative overflow-hidden bg-slate-950 flex flex-col">
     <div id="map-radar" class="w-full h-full absolute inset-0 z-0"></div>
 
-    <!-- BOTÃO POWER FLUTUANTE COMPACTO NO MAPA (APENAS ÍCONE QUANDO OFFLINE) -->
-    <div id="container-power-flutuante" class="absolute top-4 right-4 z-20">
-      <button onclick="alternarPowerMotorista()" title="Ligar Aplicativo" class="bg-emerald-600 hover:bg-emerald-500 text-white w-12 h-12 rounded-2xl shadow-2xl flex items-center justify-center font-bold transition border border-emerald-400/40 animate-bounce">
-        <i class="fa-solid fa-power-off text-lg"></i>
+    <!-- BOTÃO POWER FLUTUANTE NO MAPA (VISÍVEL APENAS QUANDO OFFLINE - POSIÇÃO SOLICITADA) -->
+    <div id="container-power-flutuante" class="absolute top-20 right-4 z-20">
+      <button onclick="alternarPowerMotorista()" class="bg-emerald-600 hover:bg-emerald-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center font-bold transition border-2 border-white/20 animate-bounce" title="Ligar Aplicativo">
+        <i class="fa-solid fa-power-off text-base"></i>
       </button>
     </div>
   </main>
@@ -144,36 +144,34 @@
     </div>
   </div>
 
-  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS (EXPANSÍVEL) -->
+  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS (EXPANSÍVEL POR TOQUE OU ARRASTE) -->
   <div id="barra-inferior-notificacao" class="bg-slate-900 border-t border-slate-800 p-3 z-40 shrink-0 shadow-2xl flex flex-col gap-2 transition-all duration-300 cursor-pointer" onclick="toggleExpandirBarra(event)">
     
     <!-- CABEÇALHO DA BARRA INFERIOR (INDICADOR DE ARRASTE) -->
     <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto mb-1"></div>
 
-    <!-- CONTEÚDO EXPANSÍVEL DA BARRA -->
+    <!-- CONTEÚDO EXPANSÍVEL DA BARRA (NOTIFICAÇÕES E BOTÃO DE DESLIGAR) -->
     <div id="conteudo-gaveta-notificacao" class="flex flex-col gap-3 max-h-0 overflow-hidden transition-all duration-300">
-      
-      <!-- AVISO OSCILANTE (TÍTULO DA BARRA COM BOLINHA PULSANTE) -->
-      <div class="bg-slate-950 border border-emerald-500/40 rounded-2xl p-3 space-y-1 shadow-inner flex items-center gap-3">
-        <div id="status-luz-indicadora" class="w-3 h-3 rounded-full bg-slate-500 shrink-0"></div>
-        <div class="flex-1 overflow-hidden">
-          <span id="texto-alerta-oscilante" class="text-emerald-400 font-extrabold text-xs block truncate transition-opacity duration-500">Offline</span>
-          <p id="subtexto-alerta" class="text-[10px] text-slate-300 truncate">Gerencie sua disponibilidade por aqui.</p>
+      <div class="bg-slate-950 border border-emerald-500/40 rounded-2xl p-3 space-y-1 shadow-inner">
+        <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-xs">
+          <i class="fa-solid fa-circle-info text-sm"></i>
+          <span>Central de Notificações e Avisos</span>
         </div>
+        <p class="text-[10px] text-slate-300">Nenhum aviso de suporte pendente no momento.</p>
       </div>
 
-      <!-- BOTÃO VERMELHO DE DESLIGAR (APARECE APENAS QUANDO ONLINE) -->
-      <button id="btn-desligar-inferior" onclick="alternarPowerMotorista(); event.stopPropagation();" class="hidden w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition">
+      <!-- BOTÃO VERMELHO DE DESLIGAR (POWER) DENTRO DA BARRA EXPANDIDA -->
+      <button onclick="alternarPowerMotorista(); event.stopPropagation();" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition">
         <i class="fa-solid fa-power-off"></i> Desligar Aplicativo (Ficar Offline)
       </button>
     </div>
 
-    <!-- STATUS RESUMIDO DA BARRA INFERIOR -->
+    <!-- STATUS RESUMIDO DA BARRA INFERIOR (TÍTULO OSCILANTE FIXO) -->
     <div class="flex items-center justify-between px-2 pt-1">
       <div class="flex items-center gap-2.5">
-        <i class="fa-solid fa-bell text-amber-400 text-xs"></i>
+        <div id="status-luz-indicadora" class="w-3 h-3 rounded-full bg-slate-500"></div>
         <div>
-          <p class="font-bold text-white text-xs" id="status-texto-principal">Notificações e Status</p>
+          <p class="font-bold text-white text-xs" id="status-texto-principal">Offline</p>
           <p class="text-[10px] text-slate-400" id="status-subtexto">Toque ou puxe para cima para gerenciar</p>
         </div>
       </div>
@@ -195,23 +193,23 @@
     let marcadorCarro = null;
     let intervaloValidacaoSessao = null;
     let intervaloVerificacaoPedidos = null;
+    let intervaloOscilacaoTexto = null;
     let corridaPendenteAtual = null;
     let corridaAtiva = null;
     let timer15sId = null;
     let timerEspera3mId = null;
     let gavetaAberta = false;
     let touchStartY = 0;
-    let intervaloOscilacaoTexto = null;
 
-    // SUPORTE A GESTO DE ARRASTE NA BARRA INFERIOR
+    // SUPORTE A GESTO DE ARRASTE (SWIPE UP / DOWN) NA BARRA INFERIOR
     const barraInf = document.getElementById('barra-inferior-notificacao');
     barraInf.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; }, {passive: true});
     barraInf.addEventListener('touchend', (e) => {
       let touchEndY = e.changedTouches[0].clientY;
       if (touchStartY - touchEndY > 40) {
-        setGavetaAberta(true);
+        setGavetaAberta(true); // Puxou para cima
       } else if (touchEndY - touchStartY > 40) {
-        setGavetaAberta(false);
+        setGavetaAberta(false); // Puxou para baixo
       }
     }, {passive: true});
 
@@ -231,23 +229,6 @@
         conteudo.style.maxHeight = '0px';
         seta.className = "fa-solid fa-chevron-up text-slate-400 text-xs transition-transform duration-300";
       }
-    }
-
-    // OSCILAÇÃO DE MENSAGENS QUANDO ONLINE ("Você está online" <-> "Procurando viagens...")
-    function iniciarOscilacaoStatusOnline() {
-      if (intervaloOscilacaoTexto) clearInterval(intervaloOscilacaoTexto);
-      const elTexto = document.getElementById('texto-alerta-oscilante');
-      let alternar = false;
-
-      elTexto.innerText = "Você está online";
-      intervaloOscilacaoTexto = setInterval(() => {
-        alternar = !alternar;
-        elTexto.style.opacity = '0';
-        setTimeout(() => {
-          elTexto.innerText = alternar ? "Procurando viagens..." : "Você está online";
-          elTexto.style.opacity = '1';
-        }, 200);
-      }, 3000);
     }
 
     // ÁUDIO DE ALERTA
@@ -351,32 +332,56 @@
       statusOnline = !statusOnline;
       const btnPowerFlutuante = document.getElementById('container-power-flutuante');
       const indicador = document.getElementById('status-luz-indicadora');
-      const elTexto = document.getElementById('texto-alerta-oscilante');
-      const btnDesligarInferior = document.getElementById('btn-desligar-inferior');
+      const textoPrincipal = document.getElementById('status-texto-principal');
+      const subtexto = document.getElementById('status-subtexto');
 
       if (statusOnline) {
         // LIGADO (ONLINE)
-        btnPowerFlutuante.classList.add('hidden'); // Oculta o botão do mapa
-        btnDesligarInferior.classList.remove('hidden'); // Mostra o botão vermelho na barra
-        indicador.className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping shrink-0";
+        btnPowerFlutuante.classList.add('hidden'); // Oculta o botão flutuante do mapa
+        indicador.className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping";
         
-        iniciarOscilacaoStatusOnline();
-        setGavetaAberta(true); // Abre a gaveta para confirmar online
+        // Inicia oscilação de frases ("Você está online" <-> "Procurando viagens...")
+        iniciarOscilacaoStatus();
+
+        setGavetaAberta(true); // Abre a gaveta levemente para confirmar e dar acesso rápido ao botão vermelho
         iniciarRastreamentoGPS();
         iniciarEscutaPedidos();
       } else {
         // DESLIGADO (OFFLINE)
         btnPowerFlutuante.classList.remove('hidden'); // Mostra o botão flutuante no mapa
-        btnDesligarInferior.classList.add('hidden'); // Oculta o botão vermelho da barra
-        indicador.className = "w-3 h-3 rounded-full bg-slate-500 shrink-0";
+        indicador.className = "w-3 h-3 rounded-full bg-slate-500";
         
         if (intervaloOscilacaoTexto) clearInterval(intervaloOscilacaoTexto);
-        elTexto.innerText = "Offline";
-        
+        textoPrincipal.innerText = "Offline";
+        subtexto.innerText = "Toque ou puxe para cima para gerenciar";
+
         setGavetaAberta(false);
         document.getElementById('modal-nova-corrida').classList.add('hidden');
         pararRastreamentoGPS();
       }
+    }
+
+    // OSCILAÇÃO ENTRE AS FRASES DE STATUS QUANDO ONLINE
+    function iniciarOscilacaoStatus() {
+      if (intervaloOscilacaoTexto) clearInterval(intervaloOscilacaoTexto);
+      const textoPrincipal = document.getElementById('status-texto-principal');
+      const subtexto = document.getElementById('status-subtexto');
+      
+      let alternar = false;
+      textoPrincipal.innerText = "Você está online";
+      subtexto.innerText = "Procurando viagens...";
+
+      intervaloOscilacaoTexto = setInterval(() => {
+        if (!statusOnline) return;
+        alternar = !alternar;
+        if (alternar) {
+          textoPrincipal.innerText = "Você está online";
+          subtexto.innerText = "Aguardando chamados na região";
+        } else {
+          textoPrincipal.innerText = "Procurando viagens...";
+          subtexto.innerText = "Radar ativo em tempo real";
+        }
+      }, 4000);
     }
 
     function iniciarRastreamentoGPS() {
