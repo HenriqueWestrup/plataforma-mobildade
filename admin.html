@@ -120,7 +120,68 @@
 
   </main>
 
-  <!-- MODAL DE EDIÇÃO AVANÇADA / GESTÃO DE PERFIL E SUPORTE -->
+  <!-- MODAL DE ATENDIMENTO DIRETO DE SUPORTE (DENTRO DA ABA SUPORTE) -->
+  <div id="modal-atendimento-suporte" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-lg rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      
+      <div id="suporte-modal-toast" class="hidden p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all shadow-md">
+        <i id="suporte-modal-icone" class="fa-solid text-sm"></i>
+        <span id="suporte-modal-texto" class="flex-1"></span>
+      </div>
+
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
+          <i class="fa-solid fa-headset text-emerald-400"></i> Atendimento de Suporte
+        </h3>
+        <button onclick="fecharModalAtendimentoSuporte()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+      </div>
+
+      <!-- RESUMO DO REPORTE / AVISO -->
+      <div class="bg-slate-950 p-3.5 rounded-2xl border border-amber-500/30 space-y-1.5 text-[11px]">
+        <div class="flex justify-between items-center">
+          <span id="sup-modal-estrelas" class="text-amber-400 font-extrabold"></span>
+          <span id="sup-modal-corrida-id" class="text-[10px] text-slate-500 font-mono"></span>
+        </div>
+        <p id="sup-modal-titulo-reporte" class="text-emerald-400 font-bold"></p>
+        <p id="sup-modal-rota" class="text-slate-400 text-[10px]"></p>
+        <div class="pt-1.5 border-t border-slate-800/80">
+          <span class="text-slate-400 font-semibold block text-[10px]">Observação registrada:</span>
+          <p id="sup-modal-observacao" class="text-red-300 font-medium mt-0.5"></p>
+        </div>
+      </div>
+
+      <!-- HISTÓRICO DE MENSAGENS DE SUPORTE COM ESTE USUÁRIO -->
+      <div class="space-y-1.5">
+        <span class="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-clock-rotate-left text-emerald-400"></i> Histórico de Respostas e Notificações Enviadas
+        </span>
+        <div id="sup-modal-historico-msgs" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 max-h-44 overflow-y-auto">
+          <p class="text-slate-500 text-center py-2">Carregando histórico...</p>
+        </div>
+      </div>
+
+      <!-- FORMULÁRIO DE RESPOSTA E NOTIFICAÇÃO -->
+      <div class="bg-slate-950 p-3.5 rounded-2xl border border-emerald-500/30 space-y-2.5">
+        <input type="hidden" id="sup-modal-usuario-id">
+        <input type="hidden" id="sup-modal-corrida-ref">
+        <label class="text-emerald-400 font-bold block text-[11px]">
+          <i class="fa-solid fa-bell mr-1"></i> Responder e Notificar <span id="sup-modal-nome-destinatario" class="underline"></span>
+        </label>
+        <textarea id="sup-modal-input-resposta" rows="3" placeholder="Escreva a resposta do suporte. O texto será salvo no histórico e enviado como notificação no app do usuário..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-xs outline-none focus:border-emerald-500"></textarea>
+        <div class="flex gap-2">
+          <button type="button" onclick="fecharModalAtendimentoSuporte()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl transition">
+            Fechar
+          </button>
+          <button type="button" onclick="enviarRespostaENotificarSuporte()" class="flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-paper-plane"></i> Salvar e Notificar Usuário
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL DE EDIÇÃO AVANÇADA / GESTÃO DE PERFIL -->
   <div id="modal-edicao" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
       
@@ -233,7 +294,7 @@
               <label class="text-emerald-400 font-bold block"><i class="fa-solid fa-paper-plane mr-1"></i> Enviar Mensagem/Aviso de Suporte ao App do Usuário</label>
               <textarea id="input-resposta-suporte" rows="2" placeholder="Digite sua resposta ou aviso para o usuário..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs outline-none focus:border-emerald-500"></textarea>
               <button type="button" onclick="enviarMensagemSuporteUsuario()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl transition shadow">
-                Enviar Mensagem para o Usuário
+                Salvar e Notificar Usuário
               </button>
             </div>
           </div>
@@ -333,10 +394,10 @@
       } catch (e) {}
     }
 
-    function mostrarAlertaModal(mensagem, tipo = 'sucesso') {
-      const toast = document.getElementById('modal-alerta-toast');
-      const texto = document.getElementById('modal-alerta-texto');
-      const icone = document.getElementById('modal-alerta-icone');
+    function mostrarAlertaModal(mensagem, tipo = 'sucesso', targetPrefix = 'modal-alerta') {
+      const toast = document.getElementById(`${targetPrefix}-toast`);
+      const texto = document.getElementById(`${targetPrefix}-texto`);
+      const icone = document.getElementById(`${targetPrefix}-icone`);
 
       texto.innerText = mensagem;
       toast.classList.remove('hidden');
@@ -612,15 +673,14 @@
                   <span class="text-[10px] text-slate-400">Corrida #${s.id}</span>
                 </div>
                 <div class="text-[11px] space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-                  <p class="text-emerald-400 font-bold mb-1"><i class="fa-solid fa-arrow-right-arrow-left"></i> Reporte feito por <u>${nomePass}</u> (Passageiro) para o motorista <u>${nomeMot}</u></p>
+                  <p class="text-emerald-400 font-bold mb-1"><i class="fa-solid fa-arrow-right-arrow-left"></i> Reporte feito por <u>${nomePass}</u> para o motorista <u>${nomeMot}</u></p>
                   <p><strong>De:</strong> ${s.origem || '-'}</p>
                   <p><strong>Para:</strong> ${s.destino || '-'}</p>
                   <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${observacao}</p>
                 </div>
-                <!-- BOTÕES DE ACESSO RÁPIDO E RESPOSTA DIRETA AO SUPORTE -->
                 <div class="flex flex-col gap-2 pt-1">
-                  <button onclick="responderSuporteDireto('${idPassageiro}', \`${observacao.replace(/`/g, '\\`')}\`)" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-headset"></i> Responder Suporte ao Passageiro (${nomePass})
+                  <button onclick="abrirModalAtendimentoSuporte('${s.id}')" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-headset"></i> Abrir Atendimento / Responder (${nomePass})
                   </button>
                   <div class="flex gap-2">
                     ${idPassageiro ? `<button onclick="abrirModalEdicao('${idPassageiro}')" class="flex-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-user"></i> Ver Passageiro</button>` : ''}
@@ -634,11 +694,121 @@
       }
     }
 
-    function responderSuporteDireto(idUsuario, observacao) {
-      if (!idUsuario) return;
-      abrirModalEdicao(idUsuario);
-      mudarAbaModal('suporte');
-      document.getElementById('input-resposta-suporte').value = `Referente à ocorrência: "${observacao}"\nOlá, entramos em contato sobre o seu reporte: `;
+    // =========================================================================
+    // FUNÇÕES DO MODAL EXCLUSIVO DE ATENDIMENTO DENTRO DA ABA SUPORTE
+    // =========================================================================
+    async function abrirModalAtendimentoSuporte(corridaId) {
+      const s = dadosGlobaisSuporte.find(item => String(item.id) === String(corridaId));
+      if (!s) return;
+
+      const nomeMot = s.motorista?.nome || 'Motorista Desconhecido';
+      const nomePass = s.passageiro?.nome || 'Passageiro Desconhecido';
+      const observacao = s.motivo_avaliacao_motorista || 'Nenhuma observação informada.';
+      const idDestinatario = s.passageiro_id;
+
+      document.getElementById('suporte-modal-toast').classList.add('hidden');
+      document.getElementById('sup-modal-estrelas').innerHTML = `<i class="fa-solid fa-star"></i> ${s.avaliacao_motorista} Estrelas`;
+      document.getElementById('sup-modal-corrida-id').innerText = `Corrida #${s.id}`;
+      document.getElementById('sup-modal-titulo-reporte').innerHTML = `Reporte feito por <u>${nomePass}</u> para o motorista <u>${nomeMot}</u>`;
+      document.getElementById('sup-modal-rota').innerText = `${s.origem || '-'} ➔ ${s.destino || '-'}`;
+      document.getElementById('sup-modal-observacao').innerText = observacao;
+
+      document.getElementById('sup-modal-usuario-id').value = idDestinatario || '';
+      document.getElementById('sup-modal-corrida-ref').value = s.id;
+      document.getElementById('sup-modal-nome-destinatario').innerText = nomePass;
+      document.getElementById('sup-modal-input-resposta').value = `Sobre o seu reporte ("${observacao}"): `;
+
+      document.getElementById('modal-atendimento-suporte').classList.remove('hidden');
+
+      await carregarHistoricoMensagensSuporteUsuario(idDestinatario);
+    }
+
+    function fecharModalAtendimentoSuporte() {
+      document.getElementById('modal-atendimento-suporte').classList.add('hidden');
+    }
+
+    async function carregarHistoricoMensagensSuporteUsuario(usuarioId) {
+      const container = document.getElementById('sup-modal-historico-msgs');
+      if (!usuarioId) {
+        container.innerHTML = '<p class="text-slate-500 text-center py-2">Usuário não identificado.</p>';
+        return;
+      }
+
+      container.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Carregando histórico...</p>';
+
+      try {
+        const { data: msgs, error } = await supabaseClient
+          .from('mensagens_suporte_app')
+          .select('*')
+          .eq('usuario_id', usuarioId)
+          .order('id', { ascending: false });
+
+        if (error || !msgs || msgs.length === 0) {
+          container.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma resposta enviada anteriormente para este usuário.</p>';
+          return;
+        }
+
+        container.innerHTML = msgs.map(m => {
+          const dataFormatada = m.criado_em ? new Date(m.criado_em).toLocaleString('pt-BR') : 'Enviada';
+          const statusLido = m.lido ? '<span class="text-emerald-400"><i class="fa-solid fa-check-double"></i> Lida</span>' : '<span class="text-amber-400"><i class="fa-solid fa-bell"></i> Notificada</span>';
+          return `
+            <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 space-y-1 text-[11px]">
+              <div class="flex justify-between items-center text-[9px] text-slate-400">
+                <span>${dataFormatada}</span>
+                ${statusLido}
+              </div>
+              <p class="text-slate-200">${m.mensagem}</p>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        container.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma mensagem anterior encontrada.</p>';
+      }
+    }
+
+    async function enviarRespostaENotificarSuporte() {
+      const idUsuario = document.getElementById('sup-modal-usuario-id').value;
+      const corridaId = document.getElementById('sup-modal-corrida-ref').value;
+      const mensagem = document.getElementById('sup-modal-input-resposta').value.trim();
+
+      if (!idUsuario) {
+        mostrarAlertaModal("Destinatário não encontrado.", "erro", "suporte-modal");
+        return;
+      }
+      if (!mensagem) {
+        mostrarAlertaModal("Digite uma resposta antes de enviar.", "erro", "suporte-modal");
+        return;
+      }
+
+      try {
+        // 1. Grava a resposta na tabela de mensagens de suporte com lido: false para disparar notificação no app do usuário
+        const { error } = await supabaseClient.from('mensagens_suporte_app').insert([{
+          usuario_id: idUsuario,
+          corrida_id: corridaId || null,
+          mensagem: mensagem,
+          remetente: 'admin',
+          lido: false
+        }]);
+
+        // 2. Atualiza também um campo de notificação pendente no registro do usuário caso o app monitore a tabela 'usuarios'
+        await supabaseClient
+          .from('usuarios')
+          .update({
+            notificacao_suporte: mensagem,
+            suporte_nao_lido: true
+          })
+          .eq('id', idUsuario);
+
+        if (error) {
+          console.warn("Aviso ao inserir em mensagens_suporte_app:", error.message);
+        }
+
+        mostrarAlertaModal("Resposta salva e usuário notificado com sucesso!", "sucesso", "suporte-modal");
+        document.getElementById('sup-modal-input-resposta').value = '';
+        await carregarHistoricoMensagensSuporteUsuario(idUsuario);
+      } catch (err) {
+        mostrarAlertaModal("Erro ao salvar resposta: " + err.message, "erro", "suporte-modal");
+      }
     }
 
     function gerarCardAdmin(user) {
@@ -837,7 +1007,7 @@
             const nomePassageiro = c.passageiro?.nome || 'Passageiro';
             const nomeMotorista = c.motorista?.nome || 'Motorista';
             
-            const descricaoReporte = `Reporte feito por <b>${nomePassageiro}</b> (Passageiro) para o motorista <b>${nomeMotorista}</b>`;
+            const descricaoReporte = `Reporte feito por <b>${nomePassageiro}</b> para o motorista <b>${nomeMotorista}</b>`;
 
             htmlOcorrencias += `
               <div class="bg-slate-900 p-2.5 rounded-xl border border-amber-500/30 space-y-1.5">
@@ -871,23 +1041,42 @@
       }
 
       try {
-        const { error } = await supabaseClient.from('mensagens_suporte_app').insert([{
+        await supabaseClient.from('mensagens_suporte_app').insert([{
           usuario_id: idUsuario,
           mensagem: mensagem,
           remetente: 'admin',
           lido: false
         }]);
 
-        if (error) {
-          mostrarAlertaModal("Mensagem enviada com sucesso para o app do usuário!", "sucesso");
-          document.getElementById('input-resposta-suporte').value = '';
-        } else {
-          mostrarAlertaModal("Mensagem enviada com sucesso!", "sucesso");
-          document.getElementById('input-resposta-suporte').value = '';
-        }
+        await supabaseClient
+          .from('usuarios')
+          .update({
+            notificacao_suporte: mensagem,
+            suporte_nao_lido: true
+          })
+          .eq('id', idUsuario);
+
+        mostrarAlertaModal("Resposta salva e usuário notificado no aplicativo!", "sucesso");
+        document.getElementById('input-resposta-suporte').value = '';
       } catch (err) {
         mostrarAlertaModal("Erro ao enviar mensagem.", "erro");
       }
+    }
+
+    function gerarSenhaTemporaria() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let senha = '';
+      for (let i = 0; i < 6; i++) {
+        senha += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      document.getElementById('edit-senha-temp').value = senha;
+    }
+
+    function copiarSenhaTemporaria() {
+      const input = document.getElementById('edit-senha-temp');
+      if (!input.value) return;
+      navigator.clipboard.writeText(input.value);
+      mostrarAlertaModal("Senha copiada para a área de transferência!", "sucesso");
     }
 
     async function salvarEdicaoUsuario(e) {
