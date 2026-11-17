@@ -113,6 +113,13 @@
 
     <!-- SEÇÃO 4: SUPORTE CENTRAL -->
     <div id="secao-suporte" class="space-y-3 hidden">
+      <!-- BOTÃO PARA LIMPAR NOTIFICAÇÕES VISUAIS SEM APAGAR DO BANCO -->
+      <div class="flex justify-between items-center bg-slate-900 p-3 rounded-2xl border border-slate-800">
+        <span class="text-slate-400 text-[11px]">Gerenciamento de Alertas de Suporte</span>
+        <button onclick="limparNotificacoesSuporte()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition text-[11px]">
+          <i class="fa-solid fa-broom"></i> Limpar Notificações Visuais
+        </button>
+      </div>
       <div id="lista-admin-suporte" class="space-y-3">
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum chamado de suporte pendente.</div>
       </div>
@@ -493,14 +500,25 @@
     }
 
     function atualizarContadorSuporte() {
-      const pendentes = dadosGlobaisSuporte.length;
+      const idsLidos = JSON.parse(localStorage.getItem('admin_suporte_lidos') || '[]');
+      const pendentes = dadosGlobaisSuporte.filter(s => !idsLidos.includes(String(s.id))).length;
       const badge = document.getElementById('badge-contador-suporte');
+      
       if (pendentes > 0) {
         badge.innerText = `+${pendentes}`;
         badge.classList.remove('hidden');
       } else {
         badge.classList.add('hidden');
       }
+    }
+
+    function limparNotificacoesSuporte() {
+      // Salva os IDs atuais na memória local para marcá-los como visualizados/limpos da tela de alertas
+      const idsAtuais = dadosGlobaisSuporte.map(s => String(s.id));
+      localStorage.setItem('admin_suporte_lidos', JSON.stringify(idsAtuais));
+      
+      atualizarContadorSuporte();
+      renderizarAdmin();
     }
 
     function mudarAbaAdmin(aba) {
@@ -593,10 +611,13 @@
         }
       } else if (abaAdminAtual === 'suporte') {
         const container = document.getElementById('lista-admin-suporte');
-        if (dadosGlobaisSuporte.length === 0) {
-          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhuma avaliação abaixo de 5 estrelas registrada.</div>`;
+        const idsLidos = JSON.parse(localStorage.getItem('admin_suporte_lidos') || '[]');
+        const suporteNaoLido = dadosGlobaisSuporte.filter(s => !idsLidos.includes(String(s.id)));
+
+        if (suporteNaoLido.length === 0) {
+          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhuma notificação de suporte pendente. (Os registros antigos continuam salvos no histórico dos usuários).</div>`;
         } else {
-          container.innerHTML = dadosGlobaisSuporte.map(s => {
+          container.innerHTML = suporteNaoLido.map(s => {
             const idMotorista = s.motorista_id;
             const idPassageiro = s.passageiro_id;
             const nomeMot = s.motorista?.nome || 'Motorista Desconhecido';
