@@ -42,7 +42,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v24</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v25</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -105,13 +105,22 @@
       <span id="corrida-valor" class="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
     </div>
 
-    <div class="space-y-2 text-xs text-slate-300">
+    <!-- EXIBIÇÃO DO PASSAGEIRO NA NOTIFICAÇÃO -->
+    <div class="flex items-center gap-3 bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
+      <img id="modal- passageiro-foto" src="" class="w-10 h-10 rounded-full object-cover border border-amber-500">
+      <div>
+        <h4 id="modal-passageiro-nome" class="font-bold text-white text-xs">-</h4>
+        <p class="text-[10px] text-amber-400 font-semibold"><i class="fa-solid fa-star"></i> <span id="modal-passageiro-nota">5.0</span></p>
+      </div>
+    </div>
+
+    <div class="space-y-1.5 text-xs text-slate-300">
       <p><strong>Origem:</strong> <span id="corrida-origem" class="text-white">-</span></p>
       <p><strong>Destino:</strong> <span id="corrida-destino" class="text-white">-</span></p>
       <p><strong>Pagamento:</strong> <span id="corrida-pagamento" class="text-amber-300 font-bold">-</span></p>
     </div>
 
-    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center px-3">
+    <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 flex justify-between items-center px-3">
       <span class="text-slate-400 text-[11px]">Tempo para aceitar:</span>
       <span id="timer-radar-15s" class="font-mono text-amber-400 font-bold text-sm">15s</span>
     </div>
@@ -266,6 +275,11 @@
     let gavetaAberta = false;
     let touchStartY = 0;
     let notaSelecionada = 5;
+
+    function primeiroNome(nomeCompleto) {
+      if (!nomeCompleto) return 'Passageiro';
+      return nomeCompleto.trim().split(' ')[0];
+    }
 
     function mostrarModalAlerta(titulo, mensagem, acaoConfirmar = null) {
       document.getElementById('modal-titulo-texto').innerText = titulo;
@@ -514,7 +528,7 @@
         .channel('public:corridas_motorista_radar')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'corridas' }, payload => {
           if (payload.new && payload.new.status === 'procurando' && statusOnline && !corridaAtiva) {
-            exibirModalNovaCorrida(payload.new);
+            buscarDetalhesEExibirModalNovaCorrida(payload.new);
           }
         })
         .subscribe();
@@ -531,14 +545,34 @@
           .limit(1);
 
         if (data && data.length > 0) {
-          exibirModalNovaCorrida(data[0]);
+          buscarDetalhesEExibirModalNovaCorrida(data[0]);
         }
       } catch (e) {}
     }
 
-    function exibirModalNovaCorrida(corrida) {
+    async function buscarDetalhesEExibirModalNovaCorrida(corrida) {
       if (corridaPendenteAtual && corridaPendenteAtual.id === corrida.id) return;
+      
+      // Busca dados do passageiro para exibir nome, foto e nota no modal de chamada
+      let passageiroInfo = { nome: 'Passageiro', foto_url: '', nota: '5.0' };
+      try {
+        const { data: usuarioPassageiro } = await supabaseClient
+          .from('usuarios')
+          .select('nome, foto_url, nota')
+          .eq('id', corrida.passageiro_id)
+          .single();
+        if (usuarioPassageiro) passageiroInfo = usuarioPassageiro;
+      } catch (e) {}
+
+      corrida.passageiro = passageiroInfo;
       corridaPendenteAtual = corrida;
+
+      const primeiroNomePassageiro = primeiroNome(passageiroInfo.nome);
+      const fotoPassageiro = passageiroInfo.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(primeiroNomePassageiro)}`;
+
+      document.getElementById('modal-passageiro-nome').innerText = primeiroNomePassageiro;
+      document.getElementById('modal-passageiro-nota').innerText = passageiroInfo.nota || '5.0';
+      document.getElementById('modal- passageiro-foto').src = fotoPassageiro;
 
       document.getElementById('corrida-origem').innerText = corrida.origem || '-';
       document.getElementById('corrida-destino').innerText = corrida.destino || '-';
@@ -609,8 +643,9 @@
       document.getElementById('bloco-detalhes-corrida-ativa').classList.remove('hidden');
       document.getElementById('container-btn-maps-flutuante').classList.remove('hidden');
 
-      const nomePassageiro = corridaAtiva.passageiro?.nome || 'Passageiro';
-      const fotoPassageiro = corridaAtiva.passageiro?.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nomePassageiro)}`;
+      const nomeCompletoPassageiro = corridaAtiva.passageiro?.nome || 'Passageiro';
+      const primeiroNomePassageiro = primeiroNome(nomeCompletoPassageiro);
+      const fotoPassageiro = corridaAtiva.passageiro?.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(primeiroNomePassageiro)}`;
       const notaPassageiro = corridaAtiva.passageiro?.nota || '5.0';
 
       document.getElementById('ativa-origem').innerText = corridaAtiva.origem;
@@ -627,7 +662,7 @@
       const blocoEspera = document.getElementById('bloco-espera-local');
 
       if (corridaAtiva.status === 'em_andamento') {
-        textoPrincipal.innerText = `Em rumo ao destino de ${nomePassageiro}`;
+        textoPrincipal.innerText = `Em rumo ao destino de ${primeiroNomePassageiro}`;
         subtexto.innerText = `Destino: ${corridaAtiva.destino}`;
         btnIniciar.innerText = "Finalizar Viagem";
         btnIniciar.className = "flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl transition text-xs shadow";
@@ -635,7 +670,7 @@
         blocoEspera.classList.add('hidden');
         if (timerEspera3mId) clearInterval(timerEspera3mId);
       } else {
-        textoPrincipal.innerText = `Indo buscar ${nomePassageiro} (${notaPassageiro} ★)`;
+        textoPrincipal.innerText = `Indo buscar ${primeiroNomePassageiro} (${notaPassageiro} ★)`;
         subtexto.innerText = `Toque para ver detalhes do embarque`;
         btnIniciar.innerText = "Iniciar Viagem";
         btnIniciar.className = "flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition text-xs shadow";
@@ -644,7 +679,7 @@
         iniciarTimerEsperaLocal();
       }
 
-      setGavetaAberta(true); // Abre a barra automaticamente para destacar os dados do passageiro
+      setGavetaAberta(true);
       iniciarEscutaCorridaAtivaRealtime();
     }
 
@@ -680,9 +715,9 @@
 
           if (!error && data) {
             corridaAtiva = data;
-            const nomePassageiro = corridaAtiva.passageiro?.nome || 'Passageiro';
+            const primeiroNomePassageiro = primeiroNome(corridaAtiva.passageiro?.nome);
             
-            document.getElementById('status-texto-principal').innerText = `Em rumo ao destino de ${nomePassageiro}`;
+            document.getElementById('status-texto-principal').innerText = `Em rumo ao destino de ${primeiroNomePassageiro}`;
             document.getElementById('status-subtexto').innerText = `Destino: ${corridaAtiva.destino}`;
             
             const btn = document.getElementById('btn-iniciar-viagem');
