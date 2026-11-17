@@ -109,17 +109,8 @@
       </div>
     </div>
 
-    <!-- SEÇÃO 3: SUPORTE CENTRAL COM SUB-ABAS -->
+    <!-- SEÇÃO 3: SUPORTE CENTRAL -->
     <div id="secao-suporte" class="space-y-3 hidden">
-      <div class="flex gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
-        <button onclick="mudarSubAbaSuporte('novas')" id="sub-btn-sup-novas" class="flex-1 py-2 rounded-lg font-bold text-xs bg-emerald-600 text-white transition">
-          <i class="fa-solid fa-bell mr-1"></i> Novas Notificações (<span id="count-sup-novas">0</span>)
-        </button>
-        <button onclick="mudarSubAbaSuporte('analise')" id="sub-btn-sup-analise" class="flex-1 py-2 rounded-lg font-bold text-xs bg-slate-800 text-slate-400 transition">
-          <i class="fa-solid fa-spinner mr-1"></i> Em Análise (<span id="count-sup-analise">0</span>)
-        </button>
-      </div>
-
       <div id="lista-admin-suporte" class="space-y-3">
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum chamado de suporte pendente.</div>
       </div>
@@ -226,7 +217,7 @@
           </div>
         </div>
 
-        <!-- ABA SUPORTE / HISTÓRICO DE OCORRÊNCIAS -->
+        <!-- ABA SUPORTE / HISTÓRICO DE OCORRÊNCIAS COM IDENTIFICAÇÃO DE QUEM AVALIOU QUEM -->
         <div id="modal-conteudo-suporte" class="space-y-3 hidden">
           <div class="space-y-3">
             <h4 class="font-extrabold text-white text-xs flex items-center gap-1.5">
@@ -319,7 +310,6 @@
     let dadosGlobaisSuporte = [];
     let abaAdminAtual = 'motoristas';
     let subAbaMotorista = 'todos';
-    let subAbaSuporteAtual = 'novas';
     let canalRealtimeAdmin = null;
 
     function tocarSomAlertaAdmin() {
@@ -442,7 +432,6 @@
             valor,
             avaliacao_motorista,
             motivo_avaliacao_motorista,
-            status_suporte,
             motorista_id,
             passageiro_id,
             criado_em,
@@ -483,11 +472,10 @@
     }
 
     function atualizarContadorSuporte() {
-      // Conta as notificações novas de forma flexível (null, undefined ou 'novo')
-      const novas = dadosGlobaisSuporte.filter(s => !s.status_suporte || s.status_suporte === 'novo');
+      const pendentes = dadosGlobaisSuporte.length;
       const badge = document.getElementById('badge-contador-suporte');
-      if (novas.length > 0) {
-        badge.innerText = `+${novas.length}`;
+      if (pendentes > 0) {
+        badge.innerText = `+${pendentes}`;
         badge.classList.remove('hidden');
       } else {
         badge.classList.add('hidden');
@@ -511,36 +499,6 @@
       document.getElementById('sub-btn-todos').className = sub === 'todos' ? 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-400';
       document.getElementById('sub-btn-online').className = sub === 'online' ? 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-400';
       renderizarAdmin();
-    }
-
-    function mudarSubAbaSuporte(sub) {
-      subAbaSuporteAtual = sub;
-      document.getElementById('sub-btn-sup-novas').className = sub === 'novas' ? 'flex-1 py-2 rounded-lg font-bold text-xs bg-emerald-600 text-white transition' : 'flex-1 py-2 rounded-lg font-bold text-xs bg-slate-800 text-slate-400 transition';
-      document.getElementById('sub-btn-sup-analise').className = sub === 'analise' ? 'flex-1 py-2 rounded-lg font-bold text-xs bg-amber-600 text-white transition' : 'flex-1 py-2 rounded-lg font-bold text-xs bg-slate-800 text-slate-400 transition';
-      renderizarAdmin();
-    }
-
-    async function alterarStatusSuporte(corridaId, novoStatus) {
-      try {
-        const { error } = await supabaseClient
-          .from('corridas')
-          .update({ status_suporte: novoStatus })
-          .eq('id', corridaId);
-
-        if (error) {
-          const item = dadosGlobaisSuporte.find(s => s.id === corridaId);
-          if (item) item.status_suporte = novoStatus;
-          renderizarAdmin();
-          atualizarContadorSuporte();
-          mostrarAlertaModal('Chamado movido para Em Análise.', 'sucesso');
-          return;
-        }
-
-        carregarDadosAdmin();
-        mostrarAlertaModal('Chamado movido para Em Análise com sucesso!', 'sucesso');
-      } catch (err) {
-        mostrarAlertaModal('Erro ao atualizar status do suporte.', 'erro');
-      }
     }
 
     function renderizarAdmin() {
@@ -581,31 +539,18 @@
           container.innerHTML = passageirosFiltrados.map(u => gerarCardAdmin(u)).join('');
         }
       } else if (abaAdminAtual === 'suporte') {
-        // Filtragem robusta para contemplar registros antigos sem status_suporte definido
-        const novasLista = dadosGlobaisSuporte.filter(s => !s.status_suporte || s.status_suporte === 'novo' || s.status_suporte === '');
-        const analiseLista = dadosGlobaisSuporte.filter(s => s.status_suporte === 'analise');
-
-        document.getElementById('count-sup-novas').innerText = novasLista.length;
-        document.getElementById('count-sup-analise').innerText = analiseLista.length;
-
-        const listaAlvo = subAbaSuporteAtual === 'novas' ? novasLista : analiseLista;
         const container = document.getElementById('lista-admin-suporte');
-
-        if (listaAlvo.length === 0) {
-          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum chamado nesta sub-aba.</div>`;
+        if (dadosGlobaisSuporte.length === 0) {
+          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhuma avaliação abaixo de 5 estrelas registrada.</div>`;
         } else {
-          container.innerHTML = listaAlvo.map(s => {
+          container.innerHTML = dadosGlobaisSuporte.map(s => {
             const idMotorista = s.motorista_id;
             const idPassageiro = s.passageiro_id;
             const nomeMot = s.motorista?.nome || 'Motorista Desconhecido';
             const nomePass = s.passageiro?.nome || 'Passageiro Desconhecido';
 
-            const botaoAnalise = subAbaSuporteAtual === 'novas' 
-              ? `<button onclick="alterarStatusSuporte(${s.id}, 'analise')" class="flex-1 bg-amber-600/25 hover:bg-amber-600/40 text-amber-300 border border-amber-500/40 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5 transition"><i class="fa-solid fa-spinner"></i> Colocar em Análise</button>`
-              : `<span class="flex-1 text-center py-2 text-amber-400 font-bold bg-amber-950/30 border border-amber-500/20 rounded-xl">Em Análise Ativa</span>`;
-
             return `
-              <div class="bg-slate-900 p-4 rounded-2xl border ${subAbaSuporteAtual === 'novas' ? 'border-amber-500/40' : 'border-blue-500/40'} space-y-3 shadow">
+              <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40 space-y-3 shadow">
                 <div class="flex justify-between items-start">
                   <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1">
                     <i class="fa-solid fa-star"><b>${s.avaliacao_motorista}</b> Estrelas</i>
@@ -618,14 +563,10 @@
                   <p><strong>Para:</strong> ${s.destino || '-'}</p>
                   <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${s.motivo_avaliacao_motorista || 'Nenhuma observação informada.'}</p>
                 </div>
-                <div class="flex flex-col gap-2 pt-1">
-                  <div class="flex gap-2">
-                    ${botaoAnalise}
-                  </div>
-                  <div class="flex gap-2">
-                    ${idPassageiro ? `<button onclick="abrirModalEdicao('${idPassageiro}')" class="flex-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-user"></i> Ver Passageiro</button>` : ''}
-                    ${idMotorista ? `<button onclick="abrirModalEdicao('${idMotorista}')" class="flex-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-car"></i> Ver Motorista</button>` : ''}
-                  </div>
+                <!-- BOTÕES DE ACESSO RÁPIDO AOS PERFIS DOS ENVOLVIDOS -->
+                <div class="flex gap-2 pt-1">
+                  ${idPassageiro ? `<button onclick="abrirModalEdicao('${idPassageiro}')" class="flex-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-user"></i> Ver Passageiro</button>` : ''}
+                  ${idMotorista ? `<button onclick="abrirModalEdicao('${idMotorista}')" class="flex-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-car"></i> Ver Motorista</button>` : ''}
                 </div>
               </div>
             `;
@@ -830,6 +771,7 @@
             const nomePassageiro = c.passageiro?.nome || 'Passageiro';
             const nomeMotorista = c.motorista?.nome || 'Motorista';
             
+            // Identifica quem avaliou quem com clareza
             const descricaoReporte = `Reporte feito por <b>${nomePassageiro}</b> para o motorista <b>${nomeMotorista}</b>`;
 
             htmlOcorrencias += `
