@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Mobilidade Laguna</title>
+  <title>Mobilidade Laguna - Passageiro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Leaflet CSS e JS para o Mapa (Sem Chave de API) -->
+  <!-- Leaflet CSS e JS (Necessários no Index para rodar o mapa nativo) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
@@ -35,7 +35,7 @@
       </button>
       <div class="flex items-center gap-2">
         <div id="icone-tipo-topo" class="bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 p-2 rounded-xl">
-          <i class="fa-solid fa-car text-sm"></i>
+          <i class="fa-solid fa-user text-sm"></i>
         </div>
         <div>
           <h1 class="text-sm font-extrabold text-white" id="titulo-app-topo">Mobilidade Laguna</h1>
@@ -51,7 +51,7 @@
   <div id="menu-lateral" class="fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
     <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
       <div class="flex items-center gap-3">
-        <img id="menu-foto" src="https://ui-avatars.com/api/?name=Usuario" class="w-10 h-10 rounded-full object-cover border border-emerald-500">
+        <img id="menu-foto" src="https://ui-avatars.com/api/?name=Passageiro" class="w-10 h-10 rounded-full object-cover border border-emerald-500">
         <div>
           <h3 id="menu-nome" class="font-bold text-white text-xs">Carregando...</h3>
           <p id="menu-tipo" class="text-[10px] text-slate-400">Passageiro</p>
@@ -79,44 +79,15 @@
     </div>
   </div>
 
-  <!-- CONTEÚDO PRINCIPAL (MAPA NATIVO + PAINEL FLUTUANTE) -->
-  <main class="flex-1 overflow-hidden relative flex flex-col">
-    <!-- MAPA LEAFLET EM TELA CHEIA -->
-    <div id="map" class="absolute inset-0 w-full h-full z-0"></div>
-
-    <!-- PAINEL FLUTUANTE DE SOLICITAÇÃO DE CORRIDA -->
-    <div class="absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-slate-800 p-4 rounded-2xl space-y-3 shadow-2xl z-20">
-      
-      <!-- CAMPO ORIGEM (Com autocomplete e botão GPS) -->
-      <div class="relative">
-        <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
-          <i class="fa-solid fa-circle-dot text-emerald-400"></i>
-          <input type="text" id="input-origem" placeholder="Local de embarque" oninput="buscarSugestoes(this.value, 'origem')" class="bg-transparent w-full text-xs text-slate-100 focus:outline-none">
-          <button onclick="usarMinhaLocalizacao()" title="Usar minha GPS" class="text-emerald-400 hover:text-emerald-300 px-1"><i class="fa-solid fa-crosshairs text-sm"></i></button>
-        </div>
-        <div id="sugestoes-origem" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-40 overflow-y-auto"></div>
-      </div>
-
-      <!-- CAMPO DESTINO (Com autocomplete) -->
-      <div class="relative">
-        <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
-          <i class="fa-solid fa-location-pin text-amber-400"></i>
-          <input type="text" id="input-destino" placeholder="Para onde vamos?" oninput="buscarSugestoes(this.value, 'destino')" class="bg-transparent w-full text-xs text-slate-100 focus:outline-none">
-        </div>
-        <div id="sugestoes-destino" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-40 overflow-y-auto"></div>
-      </div>
-
-      <!-- ESTIMATIVA DE VALOR E ROTA -->
-      <div id="bloco-estimativa" class="hidden flex justify-between items-center px-1 text-slate-300">
-        <span>Estimativa (PIX / Dinheiro)</span>
-        <span id="valor-estimado" class="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
-      </div>
-
-      <!-- BOTÃO CHAMAR MOTORISTA -->
-      <button id="btn-chamar-corrida" onclick="tentarChamarCorrida()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs transition-all duration-300 shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2">
-        <i class="fa-solid fa-car-side"></i> Chamar Motorista
-      </button>
+  <!-- CONTEÚDO PRINCIPAL ONDE O MAPA SERÁ INJETADO -->
+  <main id="main-app" class="flex-1 overflow-hidden relative flex flex-col bg-slate-950">
+    <!-- Loader enquanto o mapa carrega -->
+    <div id="map-loader" class="flex-1 flex flex-col justify-center items-center text-slate-500 gap-3">
+      <i class="fa-solid fa-map-location-dot text-4xl animate-pulse"></i>
+      Carregando mapa em Laguna...
     </div>
+    
+    <!-- O conteúdo do mapa.html será inserido aqui pelo JS -->
   </main>
 
   <script>
@@ -126,19 +97,22 @@
 
     let usuarioLogado = null;
     let intervaloHeartbeat = null;
+
+    // Variáveis globais do Mapa (serão inicializadas quando o HTML do mapa carregar)
     let mapaLeaflet = null;
     let marcadorOrigem = null;
     let marcadorDestino = null;
     let coordsOrigem = null;
     let coordsDestino = null;
+    let marcadoresParadas = [];
 
     async function inicializarApp() {
-      const motoristaStorage = localStorage.getItem('motorista_logado');
       const passageiroStorage = localStorage.getItem('passageiro_logado');
+      const motoristaStorage = localStorage.getItem('motorista_logado');
 
       if (motoristaStorage) {
-        window.location.href = 'motorista.html';
-        return;
+         window.location.href = 'motorista.html';
+         return;
       } else if (passageiroStorage) {
         usuarioLogado = JSON.parse(passageiroStorage);
         document.getElementById('menu-tipo').innerText = "Passageiro";
@@ -151,153 +125,232 @@
       try {
         const { data } = await supabaseClient.from('usuarios').select('*').eq('id', usuarioLogado.id).single();
         if (data) usuarioLogado = data;
-      } catch (e) {
-        console.error("Erro ao verificar status:", e);
-      }
+      } catch (e) {}
 
-      document.getElementById('menu-nome').innerText = usuarioLogado.nome || 'Usuário';
-      document.getElementById('menu-foto').src = usuarioLogado.foto_url || 'https://ui-avatars.com/api/?name=Usuario';
+      document.getElementById('menu-nome').innerText = usuarioLogado.nome || 'Passageiro';
+      document.getElementById('menu-foto').src = usuarioLogado.foto_url || 'https://ui-avatars.com/api/?name=Passageiro';
 
       if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
         document.getElementById('banner-bloqueio').classList.remove('hidden');
       }
 
-      // Inicializa o mapa nativo diretamente na tela
-      inicializarMapa();
-      usarMinhaLocalizacao();
+      // 1. Carrega o HTML do mapa nativamente para dentro da tag <main>
+      carregarModuloMapa();
     }
 
-    function inicializarMapa() {
-      if (mapaLeaflet) return;
-      const latLaguna = -28.4811;
-      const lngLaguna = -48.7811;
-
-      mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
-
-      // OpenStreetMap Tiles padrão (Sem exigência de chave de API)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(mapaLeaflet);
-
-      // Corrige redimensionamento do container móvel
-      setTimeout(() => {
-        mapaLeaflet.invalidateSize();
-      }, 300);
-    }
-
-    // Geolocalização via GPS do Aparelho
-    function usarMinhaLocalizacao() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            coordsOrigem = { lat, lng };
-
-            if (mapaLeaflet) {
-              mapaLeaflet.setView([lat, lng], 15);
-              if (marcadorOrigem) mapaLeaflet.removeLayer(marcadorOrigem);
-              marcadorOrigem = L.marker([lat, lng]).addTo(mapaLeaflet).bindPopup("Sua Localização").openPopup();
-            }
-
-            // Busca o nome legível da rua da posição atual
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-              .then(res => res.json())
-              .then(data => {
-                if (data && data.display_name) {
-                  document.getElementById('input-origem').value = data.display_name;
-                }
-              }).catch(() => {
-                document.getElementById('input-origem').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-              });
-          },
-          () => {
-            alert("Não foi possível obter sua localização GPS. Verifique as permissões do navegador.");
-          },
-          { enableHighAccuracy: true }
-        );
-      }
-    }
-
-    // Autocompletar de endereços em tempo real
-    async function buscarSugestoes(termo, tipo) {
-      const container = document.getElementById(`sugestoes-${tipo}`);
-      if (termo.length < 3) {
-        container.classList.add('hidden');
-        return;
-      }
-
+    // Função que injeta o conteúdo do mapa na página principal
+    async function carregarModuloMapa() {
+      const mainApp = document.getElementById('main-app');
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo + ', Laguna, Santa Catarina')}`);
-        const resultados = await res.json();
-
-        if (!resultados || resultados.length === 0) {
-          container.classList.add('hidden');
-          return;
+        // Faz o fetch do arquivo mapa.html (certifique-se que ele está na mesma pasta)
+        const response = await fetch('mapa.html');
+        if (!response.ok) throw new Error('Falha ao carregar mapa');
+        
+        const htmlMapa = await response.text();
+        
+        // Insere o HTML do mapa na gaveta principal
+        mainApp.innerHTML = htmlMapa;
+        
+        // 2. Após o HTML estar no DOM, inicializa a lógica do Leaflet
+        // (A função inicializarMapa() abaixo precisa estar definida no seu mapa.html ou aqui)
+        if (typeof inicializarMapa === 'function') {
+           inicializarMapa();
+        } else {
+           console.error("Erro: A função inicializarMapa() não foi encontrada.");
         }
 
-        container.innerHTML = resultados.map(item => `
-          <div onclick="selecionarEndereco('${item.display_name.replace(/'/g, "")}', ${item.lat}, ${item.lon}, '${tipo}')" class="p-2.5 hover:bg-slate-800 cursor-pointer border-b border-slate-800 text-slate-200 truncate">
-            <i class="fa-solid fa-location-dot text-emerald-400 mr-2"></i> ${item.display_name}
-          </div>
-        `).join('');
-        container.classList.remove('hidden');
-      } catch (e) {
-        console.error("Erro no autocomplete:", e);
+      } catch (error) {
+        console.error(error);
+        mainApp.innerHTML = '<div class="flex-1 flex justify-center items-center text-red-400">Erro ao carregar o módulo do mapa.</div>';
       }
+    }
+
+    // --- Funções de Geolocalização e Mapa (Copiadas/Adaptadas do seu mapa.html) ---
+    // É crucial que estas funções estejam acessíveis no escopo global ou definidas aqui
+    
+    function inicializarMapa() {
+        if (mapaLeaflet) {
+            mapaLeaflet.invalidateSize();
+            return;
+        }
+        // Coordenadas centrais de Laguna - SC
+        const latLaguna = -28.4811;
+        const lngLaguna = -48.7811;
+
+        mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
+
+        // Camada de mapa (OpenStreetMap - Livre de API Key)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(mapaLeaflet);
+
+        setTimeout(() => mapaLeaflet.invalidateSize(), 300);
+        usarMinhaLocalizacao();
+    }
+
+    // Geolocalização via GPS do aparelho
+    function usarMinhaLocalizacao() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    coordsOrigem = { lat, lng };
+
+                    if (mapaLeaflet) {
+                        mapaLeaflet.setView([lat, lng], 15);
+                        if (marcadorOrigem) mapaLeaflet.removeLayer(marcadorOrigem);
+                        marcadorOrigem = L.marker([lat, lng]).addTo(mapaLeaflet).bindPopup("Sua Localização").openPopup();
+                    }
+
+                    // Busca o nome legível da rua
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data && data.display_name) {
+                                document.getElementById('origem-corrida').value = data.display_name;
+                                // Se já houver destino, recalcula
+                                if (coordsDestino) calcularRotaEValor();
+                            }
+                        }).catch(() => {
+                            document.getElementById('origem-corrida').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        });
+                },
+                () => { console.warn("GPS indisponível"); },
+                { enableHighAccuracy: true }
+            );
+        }
+    }
+
+    // Autocompletar de endereços (Nominatim)
+    async function buscarSugestoes(termo, tipo) {
+        const container = document.getElementById(`sugestoes-${tipo}`);
+        if (termo.length < 3) {
+            container.classList.add('hidden');
+            return;
+        }
+
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo + ', Laguna, Santa Catarina')}`);
+            const resultados = await res.json();
+
+            if (!resultados || resultados.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.innerHTML = resultados.map(item => `
+                <div onclick="selecionarEndereco('${item.display_name.replace(/'/g, "")}', ${item.lat}, ${item.lon}, '${tipo}')" class="p-2.5 hover:bg-slate-800 cursor-pointer border-b border-slate-800 text-slate-200 truncate">
+                    <i class="fa-solid fa-location-dot text-emerald-400 mr-2"></i> ${item.display_name}
+                </div>
+            `).join('');
+            container.classList.remove('hidden');
+        } catch (e) {}
     }
 
     function selecionarEndereco(nome, lat, lon, tipo) {
-      document.getElementById(`input-${tipo}`).value = nome;
-      document.getElementById(`sugestoes-${tipo}`).classList.add('hidden');
+        document.getElementById(`${tipo}-corrida`).value = nome;
+        document.getElementById(`sugestoes-${tipo}`).classList.add('hidden');
 
-      const coord = { lat: parseFloat(lat), lng: parseFloat(lon) };
+        const coord = { lat: parseFloat(lat), lng: parseFloat(lon) };
 
-      if (tipo === 'origem') {
-        coordsOrigem = coord;
-        if (marcadorOrigem) mapaLeaflet.removeLayer(marcadorOrigem);
-        marcadorOrigem = L.marker([lat, lon]).addTo(mapaLeaflet);
-      } else {
-        coordsDestino = coord;
-        if (marcadorDestino) mapaLeaflet.removeLayer(marcadorDestino);
-        marcadorDestino = L.marker([lat, lon], {
-          icon: L.divIcon({ className: 'bg-amber-500 w-3 h-3 rounded-full border-2 border-white' })
-        }).addTo(mapaLeaflet);
-      }
+        if (tipo === 'origem') {
+            coordsOrigem = coord;
+            if (marcadorOrigem) mapaLeaflet.removeLayer(marcadorOrigem);
+            marcadorOrigem = L.marker([lat, lon]).addTo(mapaLeaflet);
+        } else if (tipo === 'destino') {
+            coordsDestino = coord;
+            if (marcadorDestino) mapaLeaflet.removeLayer(marcadorDestino);
+            marcadorDestino = L.marker([lat, lon], {
+                icon: L.divIcon({ className: 'bg-amber-500 w-3 h-3 rounded-full border-2 border-white' })
+            }).addTo(mapaLeaflet);
+        } else {
+           // É uma parada intermediária, implemente a lógica de marcadores extras se necessário
+        }
 
-      // Se ambos os campos estiverem preenchidos, calcula a rota e o preço
-      if (coordsOrigem && coordsDestino) {
-        calcularRotaEValor();
-      }
+        // Se ambos os campos principais estiverem preenchidos, calcula a rota
+        if (coordsOrigem && coordsDestino) {
+            calcularRotaEValor();
+        }
     }
 
-    // Cálculo dinâmico de rota e estimativa de valor
+    // Cálculo de Distância (Haversine) e Valor (Instantâneo)
     function calcularRotaEValor() {
-      if (!coordsOrigem || !coordsDestino) return;
+        if (!coordsOrigem || !coordsDestino) return;
 
-      const R = 6371;
-      const dLat = (coordsDestino.lat - coordsOrigem.lat) * Math.PI / 180;
-      const dLon = (coordsDestino.lng - coordsOrigem.lng) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(coordsOrigem.lat * Math.PI / 180) * Math.cos(coordsDestino.lat * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distanciaKm = R * c;
+        const R = 6371; // Raio da Terra em km
+        const dLat = (coordsDestino.lat - coordsOrigem.lat) * Math.PI / 180;
+        const dLon = (coordsDestino.lng - coordsOrigem.lng) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(coordsOrigem.lat * Math.PI / 180) * Math.cos(coordsDestino.lat * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distanciaKm = R * c;
 
-      // Tarifa: R$ 5,00 base + R$ 3,50 por km (Mínimo R$ 10,00)
-      let valorCalculado = 5.0 + (distanciaKm * 3.50);
-      if (valorCalculado < 10.0) valorCalculado = 10.0;
+        // Tarifa: R$ 5,00 base + R$ 3,50 por km (Mínimo R$ 10,00)
+        let valorCalculado = 5.0 + (distanciaKm * 3.50);
+        if (valorCalculado < 10.0) valorCalculado = 10.0;
 
-      document.getElementById('valor-estimado').innerText = `R$ ${valorCalculado.toFixed(2).replace('.', ',')}`;
-      document.getElementById('bloco-estimativa').classList.remove('hidden');
+        document.getElementById('valor-estimado').innerText = `R$ ${valorCalculado.toFixed(2).replace('.', ',')}`;
+        document.getElementById('bloco-estimativa').classList.remove('hidden');
 
-      // Centraliza os limites do mapa para enquadrar origem e destino
-      const bounds = L.latLngBounds([coordsOrigem.lat, coordsOrigem.lng], [coordsDestino.lat, coordsDestino.lng]);
-      mapaLeaflet.fitBounds(bounds, { padding: [50, 50] });
+        // Ajusta o zoom para mostrar ambos os pontos
+        const bounds = L.latLngBounds([coordsOrigem.lat, coordsOrigem.lng], [coordsDestino.lat, coordsDestino.lng]);
+        mapaLeaflet.fitBounds(bounds, { padding: [50, 50] });
     }
 
-    // Sistema de presença online (Heartbeat)
+    // Adicionar Parada (Lógica Dinâmica)
+    function adicionarCampoParada() {
+        const container = document.getElementById('container-paradas');
+        if (container.children.length >= 2) {
+            alert("Limite máximo de 2 paradas intermediárias.");
+            return;
+        }
+        const idParada = 'parada-' + Date.now();
+        const div = document.createElement('div');
+        div.className = "relative flex items-center gap-2 bg-slate-950 border border-slate-800 p-2.5 rounded-xl";
+        div.innerHTML = `
+          <i class="fa-solid fa-stop text-sky-400"></i>
+          <input type="text" id="${idParada}-corrida" placeholder="Adicionar parada" oninput="buscarSugestoes(this.value, '${idParada}')" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
+          <button onclick="this.parentElement.remove();" class="text-red-400 hover:text-red-300 px-1"><i class="fa-solid fa-xmark text-sm"></i></button>
+          <div id="sugestoes-${idParada}" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-36 overflow-y-auto"></div>
+        `;
+        container.appendChild(div);
+    }
+
+    // Chamar Motorista (Supabase)
+    async function chamarMotorista() {
+        const origem = document.getElementById('origem-corrida').value;
+        const destino = document.getElementById('destino-corrida').value;
+        const valorTexto = document.getElementById('valor-estimado').innerText;
+        
+        if (!origem || !destino) {
+            alert('Por favor, preencha a origem e o destino.');
+            return;
+        }
+
+        const valorNumerico = parseFloat(valorTexto.replace('R$ ', '').replace(',', '.')) || 15.0;
+
+        // Insere a corrida no Supabase
+        const { error } = await supabaseClient.from('corridas').insert([{
+            passageiro_id: usuarioLogado.id,
+            origem: origem,
+            destino: destino,
+            valor: valorNumerico,
+            status: 'procurando'
+        }]);
+
+        if (error) {
+            alert("Erro ao solicitar corrida: " + error.message);
+        } else {
+            alert("Buscando motorista parceiro mais próximo em Laguna...");
+            // Opcional: Mudar interface para aguardando motorista
+        }
+    }
+    // --- Fim das Funções de Mapa ---
+
+    // Funções Gerais
     function iniciarHeartbeatOnline() {
       if (!usuarioLogado || !usuarioLogado.id) return;
       const atualizarPresenca = async (statusOnline) => {
@@ -318,38 +371,6 @@
       setTimeout(() => banner.classList.remove('bg-red-600', 'animate-pulse'), 3000);
     }
 
-    async function tentarChamarCorrida() {
-      if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
-        dispararAlertaBloqueioVisual();
-        return;
-      }
-
-      const origem = document.getElementById('input-origem').value;
-      const destino = document.getElementById('input-destino').value;
-      const valorTexto = document.getElementById('valor-estimado').innerText;
-
-      if (!origem || !destino) {
-        alert("Por favor, informe a origem e o destino da corrida.");
-        return;
-      }
-
-      const valorNumerico = parseFloat(valorTexto.replace('R$ ', '').replace(',', '.')) || 15.0;
-
-      const { error } = await supabaseClient.from('corridas').insert([{
-        passageiro_id: usuarioLogado.id,
-        origem: origem,
-        destino: destino,
-        valor: valorNumerico,
-        status: 'procurando'
-      }]);
-
-      if (error) {
-        alert("Erro ao chamar motorista: " + error.message);
-      } else {
-        alert("Buscando motorista parceiro mais próximo em Laguna...");
-      }
-    }
-
     function toggleMenuLateral() {
       document.getElementById('menu-lateral').classList.toggle('-translate-x-full');
     }
@@ -360,7 +381,6 @@
       }
       clearInterval(intervaloHeartbeat);
       localStorage.removeItem('passageiro_logado');
-      localStorage.removeItem('motorista_logado');
       window.location.href = 'auth.html';
     }
 

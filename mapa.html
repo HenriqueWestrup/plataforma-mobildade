@@ -1,25 +1,40 @@
-<div class="flex-1 flex flex-col relative bg-slate-950 text-xs">
+<div class="flex-1 flex flex-col relative bg-slate-950 text-xs h-full">
   <!-- CONTAINER DO MAPA LEAFLET -->
-  <div id="map" class="flex-1 w-full h-full z-0"></div>
+  <div id="map" class="absolute inset-0 w-full h-full z-0"></div>
 
   <!-- PAINEL FLUTUANTE DE SOLICITAÇÃO DE CORRIDA -->
-  <div class="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 p-4 rounded-t-3xl shadow-2xl z-10 space-y-3">
-    <div class="space-y-2">
-      <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 p-2.5 rounded-xl">
+  <div class="absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-slate-800 p-4 rounded-2xl space-y-3 shadow-2xl z-10">
+    
+    <!-- CAMPO ORIGEM -->
+    <div class="relative">
+      <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
         <i class="fa-solid fa-circle-dot text-emerald-500"></i>
-        <input type="text" id="origem-corrida" placeholder="Local de embarque" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
+        <input type="text" id="origem-corrida" placeholder="Local de embarque" oninput="buscarSugestoes(this.value, 'origem')" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
+        <button onclick="usarMinhaLocalizacao()" title="Usar GPS" class="text-emerald-400 hover:text-emerald-300 px-1"><i class="fa-solid fa-crosshairs"></i></button>
       </div>
-      <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 p-2.5 rounded-xl">
+      <div id="sugestoes-origem" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-36 overflow-y-auto"></div>
+    </div>
+
+    <!-- CONTAINER DE PARADAS OPCIONAIS -->
+    <div id="container-paradas" class="space-y-2"></div>
+
+    <!-- CAMPO DESTINO -->
+    <div class="relative">
+      <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
         <i class="fa-solid fa-location-dot text-amber-500"></i>
-        <input type="text" id="destino-corrida" placeholder="Para onde vamos?" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
+        <input type="text" id="destino-corrida" placeholder="Para onde vamos?" oninput="buscarSugestoes(this.value, 'destino')" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
+        <button onclick="adicionarCampoParada()" title="Adicionar Parada" class="text-amber-400 hover:text-amber-300 px-1"><i class="fa-solid fa-plus"></i></button>
       </div>
+      <div id="sugestoes-destino" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-36 overflow-y-auto"></div>
     </div>
 
-    <div class="flex justify-between items-center px-1">
-      <span class="text-slate-400">Estimativa (PIX)</span>
-      <span id="valor-estimado" class="text-sm font-extrabold text-emerald-400">R$ 14,90</span>
+    <!-- ESTIMATIVA DE VALOR -->
+    <div id="bloco-estimativa" class="hidden flex justify-between items-center px-1 text-slate-300">
+      <span class="text-slate-400">Estimativa (PIX / Dinheiro)</span>
+      <span id="valor-estimado" class="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
     </div>
 
+    <!-- BOTÃO CHAMAR MOTORISTA -->
     <button onclick="chamarMotorista()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
       <i class="fa-solid fa-car-side"></i> Chamar Motorista
     </button>
@@ -28,6 +43,10 @@
 
 <script>
   let mapaLeaflet = null;
+  let marcadorOrigem = null;
+  let marcadorDestino = null;
+  let coordsOrigem = null;
+  let coordsDestino = null;
 
   function inicializarMapa() {
     if (mapaLeaflet) {
@@ -41,24 +60,180 @@
 
     mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
 
-    // Camada de mapa escuro (CartoDB Dark Matter) compatível com o tema
+    // Camada de mapa escuro (CartoDB Dark Matter)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
       subdomains: 'abcd',
       attribution: '&copy; OpenStreetMap &copy; CARTO'
     }).addTo(mapaLeaflet);
+
+    setTimeout(() => mapaLeaflet.invalidateSize(), 200);
+    usarMinhaLocalizacao();
   }
 
-  function chamarMotorista() {
+  // Geolocalização via GPS
+  function usarMinhaLocalizacao() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          coordsOrigem = { lat, lng };
+
+          if (mapaLeaflet) {
+            mapaLeaflet.setView([lat, lng], 15);
+            if (marcadorOrigem) mapaLeaflet.removeLayer(marcadorOrigem);
+            marcadorOrigem = L.marker([lat, lng]).addTo(mapaLeaflet).bindPopup("Sua Localização").openPopup();
+          }
+
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data && data.display_name) {
+                document.getElementById('origem-corrida').value = data.display_name;
+              }
+            }).catch(() => {
+              document.getElementById('origem-corrida').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            });
+        },
+        () => {
+          console.log("GPS negado ou indisponível.");
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+  }
+
+  // Autocompletar endereços
+  async function buscarSugestoes(termo, tipo) {
+    const container = document.getElementById(`sugestoes-${tipo}`);
+    if (termo.length < 3) {
+      container.classList.add('hidden');
+      return;
+    }
+
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo + ', Laguna, Santa Catarina')}`);
+      const resultados = await res.json();
+
+      if (!resultados || resultados.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      container.innerHTML = resultados.map(item => `
+        <div onclick="selecionarEndereco('${item.display_name.replace(/'/g, "")}', ${item.lat}, ${item.lon}, '${tipo}')" class="p-2.5 hover:bg-slate-800 cursor-pointer border-b border-slate-800 text-slate-200 truncate">
+          <i class="fa-solid fa-location-dot text-emerald-400 mr-2"></i> ${item.display_name}
+        </div>
+      `).join('');
+      container.classList.remove('hidden');
+    } catch (e) {
+      console.error("Erro no autocomplete:", e);
+    }
+  }
+
+  function selecionarEndereco(nome, lat, lon, tipo) {
+    document.getElementById(`${tipo}-corrida`).value = nome;
+    document.getElementById(`sugestoes-${tipo}`).classList.add('hidden');
+
+    const coord = { lat: parseFloat(lat), lng: parseFloat(lon) };
+
+    if (tipo === 'origem') {
+      coordsOrigem = coord;
+      if (marcadorOrigem) mapaLeaflet.removeLayer(marcadorOrigem);
+      marcadorOrigem = L.marker([lat, lon]).addTo(mapaLeaflet);
+    } else {
+      coordsDestino = coord;
+      if (marcadorDestino) mapaLeaflet.removeLayer(marcadorDestino);
+      marcadorDestino = L.marker([lat, lon], {
+        icon: L.divIcon({ className: 'bg-amber-500 w-3 h-3 rounded-full border-2 border-white' })
+      }).addTo(mapaLeaflet);
+    }
+
+    // Cálculo instantâneo ao preencher origem e destino
+    if (coordsOrigem && coordsDestino) {
+      calcularRotaEValor();
+    }
+  }
+
+  // Adicionar campo de Parada Intermediária
+  function adicionarCampoParada() {
+    const container = document.getElementById('container-paradas');
+    if (container.children.length >= 2) {
+      alert("Limite máximo de 2 paradas intermediárias.");
+      return;
+    }
+    const idParada = 'parada-' + Date.now();
+    const div = document.createElement('div');
+    div.className = "relative flex items-center gap-2 bg-slate-950 border border-slate-800 p-2.5 rounded-xl";
+    div.innerHTML = `
+      <i class="fa-solid fa-stop text-sky-400"></i>
+      <input type="text" id="${idParada}" placeholder="Adicionar parada" oninput="buscarSugestoes(this.value, '${idParada}')" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
+      <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-300 px-1"><i class="fa-solid xmark"></i></button>
+      <div id="sugestoes-${idParada}" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-36 overflow-y-auto"></div>
+    `;
+    container.appendChild(div);
+  }
+
+  // Cálculo de Distância e Valor Instantâneo
+  function calcularRotaEValor() {
+    if (!coordsOrigem || !coordsDestino) return;
+
+    const R = 6371;
+    const dLat = (coordsDestino.lat - coordsOrigem.lat) * Math.PI / 180;
+    const dLon = (coordsDestino.lng - coordsOrigem.lng) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(coordsOrigem.lat * Math.PI / 180) * Math.cos(coordsDestino.lat * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distanciaKm = R * c;
+
+    // Tarifa base: R$ 5,00 + R$ 3,50 por km (Mínimo R$ 10,00)
+    let valorCalculado = 5.0 + (distanciaKm * 3.50);
+    if (valorCalculado < 10.0) valorCalculado = 10.0;
+
+    document.getElementById('valor-estimado').innerText = `R$ ${valorCalculado.toFixed(2).replace('.', ',')}`;
+    document.getElementById('bloco-estimativa').classList.remove('hidden');
+
+    const bounds = L.latLngBounds([coordsOrigem.lat, coordsOrigem.lng], [coordsDestino.lat, coordsDestino.lng]);
+    mapaLeaflet.fitBounds(bounds, { padding: [50, 50] });
+  }
+
+  async function chamarMotorista() {
     const origem = document.getElementById('origem-corrida').value;
     const destino = document.getElementById('destino-corrida').value;
+    const valorTexto = document.getElementById('valor-estimado').innerText;
     
     if (!origem || !destino) {
       alert('Por favor, preencha a origem e o destino.');
       return;
     }
 
-    console.log("Solicitando corrida de:", origem, "para:", destino);
-    alert('Buscando motorista mais próximo em Laguna...');
+    const valorNumerico = parseFloat(valorTexto.replace('R$ ', '').replace(',', '.')) || 15.0;
+    const dadosUsuario = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
+
+    if (!dadosUsuario.id) {
+      alert("Erro: Passageiro não identificado. Faça login novamente.");
+      window.location.href = 'auth.html';
+      return;
+    }
+
+    // Salva a corrida no Supabase para o motorista mais próximo aceitar
+    const { error } = await supabaseClient.from('corridas').insert([{
+      passageiro_id: dadosUsuario.id,
+      origem: origem,
+      destino: destino,
+      valor: valorNumerico,
+      status: 'procurando'
+    }]);
+
+    if (error) {
+      alert("Erro ao solicitar corrida: " + error.message);
+    } else {
+      alert("Buscando motorista parceiro mais próximo em Laguna...");
+    }
   }
+
+  // Auto-inicia o mapa ao carregar o módulo
+  setTimeout(inicializarMapa, 100);
 </script>
