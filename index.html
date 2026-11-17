@@ -45,7 +45,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v16</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v18</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -80,7 +80,7 @@
     </div>
   </div>
 
-  <!-- CONTEÚDO PRINCIPAL ONDE O MAPA SERÁ INJETADO -->
+  <!-- CONTEÚDO PRINCIPAL ONDE O MAPA.HTML SERÁ INJETADO -->
   <main id="main-app" class="flex-1 overflow-hidden relative flex flex-col bg-slate-950">
     <div id="map-loader" class="flex-1 flex flex-col justify-center items-center text-slate-500 gap-3">
       <i class="fa-solid fa-map-location-dot text-4xl animate-pulse"></i>
@@ -126,7 +126,7 @@
       carregarModuloMapa();
     }
 
-    // CORREÇÃO: Carrega o mapa.html e executa os scripts internos corretamente
+    // CARREGA O MAPA.HTML E EXECUTA OS SCRIPTS DINAMICAMENTE
     async function carregarModuloMapa() {
       const mainApp = document.getElementById('main-app');
       try {
