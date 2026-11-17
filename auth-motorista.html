@@ -13,7 +13,7 @@
   <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-5 relative">
     
     <!-- VERSÃO DISCRETA -->
-    <span class="absolute top-2 right-3 text-[9px] text-slate-600 font-mono">v10</span>
+    <span class="absolute top-2 right-3 text-[9px] text-slate-600 font-mono">v11</span>
 
     <div class="text-center space-y-1">
       <div class="inline-block bg-amber-600/20 border border-amber-500/30 text-amber-400 p-3 rounded-2xl mb-1">
@@ -39,7 +39,7 @@
         <label class="text-[10px] text-slate-400 ml-1">Senha</label>
         <input type="password" id="login-senha-motorista" placeholder="Sua senha" class="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
       </div>
-      <button type="button" id="btn-entrar" onclick="realizarLoginMotorista()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Entrar como Motorista</button>
+      <button type="button" id="btn-entrar" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Entrar como Motorista</button>
     </div>
 
     <div class="text-center text-[11px] text-slate-500 space-y-2 pt-2 border-t border-slate-800">
@@ -82,7 +82,7 @@
       const senha = inputSenha.value;
 
       if (!cel || !senha) {
-        mostrarErro("Preencha o celular e a senha.");
+        mostrarErro("Por favor, preencha o celular e a senha.");
         return;
       }
 
@@ -90,7 +90,7 @@
       btn.disabled = true;
 
       try {
-        // Consulta no Supabase exatamente igual ao painel admin
+        // Consulta na tabela de usuários do Supabase
         const { data: usuario, error } = await supabaseClient
           .from('usuarios')
           .select('*')
@@ -103,20 +103,20 @@
         }
 
         if (!usuario) {
-          throw new Error("Telefone ou senha incorretos no banco de dados.");
+          throw new Error("Telefone ou senha incorretos.");
         }
 
-        // Valida se o usuário cadastrado é motorista (tipo motorista ou tem veículo preenchido)
+        // Validação estrita de motorista (tipo motorista ou possui veículo cadastrado)
         const isMotorista = usuario.tipo === 'motorista' || (usuario.veiculo_modelo && usuario.veiculo_modelo.trim() !== '');
         if (!isMotorista) {
-          throw new Error("Acesso negado: Este cadastro é de passageiro, não possui veículo associado.");
+          throw new Error("Acesso negado: Este cadastro é de passageiro, não possui perfil de motorista.");
         }
 
         if (usuario.status === 'bloqueado' || usuario.status === 'pendente') {
           throw new Error("Sua conta está bloqueada ou pendente de aprovação.");
         }
 
-        // Cria token e salva no localStorage
+        // Gera token de sessão e salva
         const sessionToken = 'sessao_mot_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
         
         localStorage.removeItem('passageiro_logado');
@@ -126,7 +126,7 @@
         localStorage.setItem('motorista_logado', JSON.stringify(usuario));
         localStorage.setItem('session_token', sessionToken);
         
-        // Redireciona com sucesso
+        // Redireciona para o painel
         window.location.href = 'motorista.html';
 
       } catch (err) {
@@ -136,6 +136,14 @@
         btn.disabled = false;
       }
     }
+
+    // Garante que o evento de clique seja atrelado via script de forma blindada
+    document.addEventListener('DOMContentLoaded', () => {
+      const btnEntrar = document.getElementById('btn-entrar');
+      if (btnEntrar) {
+        btnEntrar.addEventListener('click', realizarLoginMotorista);
+      }
+    });
   </script>
 </body>
 </html>
