@@ -1,486 +1,394 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="dark h-full">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Meu Perfil - Mobilidade Laguna</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs">
+<!-- CONTEÚDO PRINCIPAL DO PERFIL (MODULARIZADO) -->
+<div class="flex-1 overflow-y-auto p-4 space-y-4 max-w-lg mx-auto w-full pb-16 bg-slate-950 text-xs">
 
-  <!-- CABEÇALHO -->
-  <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0 z-40">
-    <div class="flex items-center gap-3">
-      <button onclick="toggleMenuLateral()" class="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800 border border-slate-700">
-        <i class="fa-solid fa-bars text-sm"></i>
-      </button>
-      <h1 class="text-sm font-extrabold text-white">Meu Perfil</h1>
-    </div>
-  </header>
+  <!-- BARRA DE NOTIFICAÇÃO INTERNA -->
+  <div id="perfil-alerta-toast" class="hidden p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 shadow-md">
+    <i id="perfil-alerta-icone" class="fa-solid text-sm"></i>
+    <span id="perfil-alerta-texto" class="flex-1">Mensagem</span>
+  </div>
 
-  <!-- GAVETA DO MENU LATERAL -->
-  <div id="menu-lateral" class="fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
-    <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
-      <div class="flex items-center gap-3">
-        <img id="menu-foto" src="https://ui-avatars.com/api/?name=Usuario" class="w-10 h-10 rounded-full object-cover border border-emerald-500">
-        <div>
-          <h3 id="menu-nome" class="font-bold text-white text-xs">Carregando...</h3>
-          <p id="menu-tipo" class="text-[10px] text-slate-400">-</p>
+  <!-- CARTÃO DE APRESENTAÇÃO -->
+  <div class="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl flex items-center gap-4 relative">
+    <img id="perfil-foto-resumida" src="https://ui-avatars.com/api/?name=Usuario" class="w-16 h-16 rounded-full object-cover border-2 border-emerald-500 shadow">
+    <div class="flex-1">
+      <div class="flex items-center justify-between">
+        <h2 id="perfil-primeiro-nome" class="text-base font-extrabold text-white">-</h2>
+        <div class="flex items-center gap-1 bg-amber-500/20 text-amber-400 border border-amber-500/40 px-2.5 py-1 rounded-full font-bold text-[11px]">
+          <i class="fa-solid fa-star"></i> <span id="perfil-nota">5.0</span>
         </div>
       </div>
-      <button onclick="toggleMenuLateral()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-    </div>
-
-    <div class="flex-1 p-3 space-y-2 overflow-y-auto">
-      <a href="index.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
-        <i class="fa-solid fa-house text-emerald-400 w-5"></i> Mapa / Início
-      </a>
-      <a href="corridas.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
-        <i class="fa-solid fa-clock-rotate-left text-amber-400 w-5"></i> Histórico
-      </a>
-      <a href="perfil.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
-        <i class="fa-solid fa-user text-sky-400 w-5"></i> Meu Perfil
-      </a>
-      
-      <!-- BOTÃO DE SUPORTE NO MENU LATERAL -->
-      <a href="#" id="menu-link-suporte" onclick="abrirModalChatSuporte()" class="hidden w-full items-center justify-between p-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold border border-amber-500/40 transition">
-        <span class="flex items-center gap-3"><i class="fa-solid fa-headset text-amber-400 w-5"></i> Suporte</span>
-        <span class="bg-red-600 text-white text-[9px] px-2 py-0.5 rounded-full font-extrabold animate-pulse">Ativo</span>
-      </a>
-    </div>
-
-    <div class="p-4 border-t border-slate-800">
-      <button onclick="sairConta()" class="w-full bg-red-950/40 text-red-400 font-bold py-2.5 rounded-xl border border-red-800 hover:bg-red-900/40 transition">
-        Sair da Conta
-      </button>
+      <p id="perfil-tipo-badge" class="text-[11px] font-medium mt-0.5">-</p>
     </div>
   </div>
 
-  <!-- CONTEÚDO PRINCIPAL -->
-  <main class="flex-1 overflow-y-auto p-4 space-y-4 max-w-lg mx-auto w-full pb-16">
+  <!-- ABAS INTERNAS -->
+  <div class="flex gap-1.5 bg-slate-900 p-1 rounded-2xl border border-slate-800 text-xs">
+    <button type="button" onclick="mudarAbaPerfil('visualizar')" id="tab-btn-visualizar" class="flex-1 py-2 rounded-xl font-bold bg-emerald-600 text-white transition">
+      <i class="fa-solid fa-id-card mr-1"></i> Dados Completos
+    </button>
+    <button type="button" onclick="mudarAbaPerfil('editar')" id="tab-btn-editar" class="flex-1 py-2 rounded-xl font-bold bg-slate-900 text-slate-400 transition">
+      <i class="fa-solid fa-user-pen mr-1"></i> Editar Dados
+    </button>
+  </div>
 
-    <!-- BARRA DE NOTIFICAÇÃO INTERNA -->
-    <div id="perfil-alerta-toast" class="hidden p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 shadow-md">
-      <i id="perfil-alerta-icone" class="fa-solid text-sm"></i>
-      <span id="perfil-alerta-texto" class="flex-1">Mensagem</span>
-    </div>
-
-    <!-- CARTÃO DE APRESENTAÇÃO -->
-    <div class="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl flex items-center gap-4 relative">
-      <img id="perfil-foto-resumida" src="https://ui-avatars.com/api/?name=Usuario" class="w-16 h-16 rounded-full object-cover border-2 border-emerald-500 shadow">
-      <div class="flex-1">
-        <div class="flex items-center justify-between">
-          <h2 id="perfil-primeiro-nome" class="text-base font-extrabold text-white">-</h2>
-          <div class="flex items-center gap-1 bg-amber-500/20 text-amber-400 border border-amber-500/40 px-2.5 py-1 rounded-full font-bold text-[11px]">
-            <i class="fa-solid fa-star"></i> <span id="perfil-nota">5.0</span>
-          </div>
-        </div>
-        <p id="perfil-tipo-badge" class="text-[11px] font-medium mt-0.5">-</p>
+  <!-- ABA 1: VISUALIZAR DADOS COMPLETOS -->
+  <div id="secao-visualizar" class="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-3 shadow-xl">
+    <h3 class="font-extrabold text-white text-xs border-b border-slate-800 pb-2 flex items-center gap-2">
+      <i class="fa-solid fa-shield-halved text-emerald-400"></i> Informações Cadastrais Completas
+    </h3>
+    <div class="space-y-2 text-xs">
+      <div>
+        <span class="text-[10px] text-slate-400 block">Nome Completo:</span>
+        <span id="view-nome" class="font-bold text-white text-sm">-</span>
       </div>
-    </div>
-
-    <!-- ABAS INTERNAS -->
-    <div class="flex gap-1.5 bg-slate-900 p-1 rounded-2xl border border-slate-800 text-xs">
-      <button type="button" onclick="mudarAbaPerfil('visualizar')" id="tab-btn-visualizar" class="flex-1 py-2 rounded-xl font-bold bg-emerald-600 text-white transition">
-        <i class="fa-solid fa-id-card mr-1"></i> Dados Completos
-      </button>
-      <button type="button" onclick="mudarAbaPerfil('editar')" id="tab-btn-editar" class="flex-1 py-2 rounded-xl font-bold bg-slate-900 text-slate-400 transition">
-        <i class="fa-solid fa-user-pen mr-1"></i> Editar Dados
-      </button>
-    </div>
-
-    <!-- ABA 1: VISUALIZAR DADOS COMPLETOS -->
-    <div id="secao-visualizar" class="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-3 shadow-xl">
-      <h3 class="font-extrabold text-white text-xs border-b border-slate-800 pb-2 flex items-center gap-2">
-        <i class="fa-solid fa-shield-halved text-emerald-400"></i> Informações Cadastrais Completas
-      </h3>
-      <div class="space-y-2 text-xs">
+      <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
         <div>
-          <span class="text-[10px] text-slate-400 block">Nome Completo:</span>
-          <span id="view-nome" class="font-bold text-white text-sm">-</span>
+          <span class="text-[10px] text-slate-400 block">CPF:</span>
+          <span id="view-cpf" class="font-mono text-slate-200">-</span>
         </div>
-        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-          <div>
-            <span class="text-[10px] text-slate-400 block">CPF:</span>
-            <span id="view-cpf" class="font-mono text-slate-200">-</span>
-          </div>
-          <div>
-            <span class="text-[10px] text-slate-400 block">Celular:</span>
-            <span id="view-telefone" class="text-slate-200">-</span>
-          </div>
+        <div>
+          <span class="text-[10px] text-slate-400 block">Celular:</span>
+          <span id="view-telefone" class="text-slate-200">-</span>
         </div>
-        <div class="pt-2 border-t border-slate-800">
-          <span class="text-[10px] text-slate-400 block">Endereço:</span>
-          <span id="view-endereco" class="text-slate-200">-</span>
+      </div>
+      <div class="pt-2 border-t border-slate-800">
+        <span class="text-[10px] text-slate-400 block">Endereço:</span>
+        <span id="view-endereco" class="text-slate-200">-</span>
+      </div>
+      <!-- Bloco de Veículo visível apenas se for motorista -->
+      <div id="view-bloco-veiculo" class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 hidden">
+        <div>
+          <span class="text-[10px] text-slate-400 block">Veículo:</span>
+          <span id="view-veiculo-modelo" class="text-slate-200">-</span>
         </div>
-        <!-- Bloco de Veículo visível apenas se for motorista -->
-        <div id="view-bloco-veiculo" class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 hidden">
-          <div>
-            <span class="text-[10px] text-slate-400 block">Veículo:</span>
-            <span id="view-veiculo-modelo" class="text-slate-200">-</span>
-          </div>
-          <div>
-            <span class="text-[10px] text-slate-400 block">Placa:</span>
-            <span id="view-veiculo-placa" class="font-mono text-emerald-400 font-bold uppercase">-</span>
-          </div>
+        <div>
+          <span class="text-[10px] text-slate-400 block">Placa:</span>
+          <span id="view-veiculo-placa" class="font-mono text-emerald-400 font-bold uppercase">-</span>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- ABA 2: EDITAR DADOS -->
-    <div id="secao-editar" class="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-4 shadow-xl hidden">
-      
-      <!-- PASSO 1: CONFIRMAÇÃO DE SENHA -->
-      <div id="bloco-verificacao-senha" class="space-y-3">
-        <div class="bg-slate-950 p-4 rounded-2xl border border-amber-500/30 text-center space-y-2">
-          <i class="fa-solid fa-lock text-amber-400 text-lg"></i>
-          <h4 class="font-extrabold text-white text-xs">Confirmação de Segurança</h4>
-          <p class="text-[11px] text-slate-400">Digite sua senha atual para desbloquear a edição de dados.</p>
+  <!-- ABA 2: EDITAR DADOS -->
+  <div id="secao-editar" class="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-4 shadow-xl hidden">
+    
+    <!-- PASSO 1: CONFIRMAÇÃO DE SENHA -->
+    <div id="bloco-verificacao-senha" class="space-y-3">
+      <div class="bg-slate-950 p-4 rounded-2xl border border-amber-500/30 text-center space-y-2">
+        <i class="fa-solid fa-lock text-amber-400 text-lg"></i>
+        <h4 class="font-extrabold text-white text-xs">Confirmação de Segurança</h4>
+        <p class="text-[11px] text-slate-400">Digite sua senha atual para desbloquear a edição de dados.</p>
+      </div>
+      <div class="space-y-1">
+        <input type="password" id="input-senha-autenticacao" placeholder="Sua senha atual" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-100 focus:border-amber-500 outline-none text-center">
+      </div>
+      <button type="button" onclick="verificarSenhaParaEditar()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl transition">
+        Desbloquear Edição
+      </button>
+    </div>
+
+    <!-- PASSO 2: FORMULÁRIO DE EDIÇÃO -->
+    <form id="form-editar-perfil" onsubmit="salvarEdicaoPerfil(event)" class="space-y-3 hidden">
+      <div class="bg-emerald-950/30 p-2.5 rounded-xl border border-emerald-500/30 text-[11px] text-emerald-300 flex items-center gap-2">
+        <i class="fa-solid fa-circle-check"></i> <span>Edição desbloqueada com sucesso!</span>
+      </div>
+
+      <div class="space-y-2 bg-slate-950 p-3 rounded-2xl border border-slate-800">
+        <div class="flex justify-between items-center">
+          <span class="text-[10px] text-slate-400 font-bold uppercase">Nome Completo & CPF (Protegidos)</span>
+          <button type="button" onclick="abrirModalChatSuporte()" class="text-[10px] bg-amber-600/20 hover:bg-amber-600/40 text-amber-400 border border-amber-500/40 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1">
+            <i class="fa-solid fa-headset"></i> Suporte / Revisão
+          </button>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <input type="text" id="edit-nome" disabled class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed">
+          <input type="text" id="edit-cpf" disabled class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Celular</label>
+          <input type="text" id="edit-telefone" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
         </div>
         <div class="space-y-1">
-          <input type="password" id="input-senha-autenticacao" placeholder="Sua senha atual" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-100 focus:border-amber-500 outline-none text-center">
+          <label class="text-slate-300 font-medium">Endereço</label>
+          <input type="text" id="edit-endereco" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
         </div>
-        <button type="button" onclick="verificarSenhaParaEditar()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl transition">
-          Desbloquear Edição
-        </button>
       </div>
 
-      <!-- PASSO 2: FORMULÁRIO DE EDIÇÃO -->
-      <form id="form-editar-perfil" onsubmit="salvarEdicaoPerfil(event)" class="space-y-3 hidden">
-        <div class="bg-emerald-950/30 p-2.5 rounded-xl border border-emerald-500/30 text-[11px] text-emerald-300 flex items-center gap-2">
-          <i class="fa-solid fa-circle-check"></i> <span>Edição desbloqueada com sucesso!</span>
+      <!-- Bloco de Veículo na edição -->
+      <div id="edit-bloco-veiculo" class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 hidden">
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Veículo (Modelo)</label>
+          <input type="text" id="edit-veiculo-modelo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
         </div>
-
-        <div class="space-y-2 bg-slate-950 p-3 rounded-2xl border border-slate-800">
-          <div class="flex justify-between items-center">
-            <span class="text-[10px] text-slate-400 font-bold uppercase">Nome Completo & CPF (Protegidos)</span>
-            <button type="button" onclick="abrirModalChatSuporte()" class="text-[10px] bg-amber-600/20 hover:bg-amber-600/40 text-amber-400 border border-amber-500/40 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1">
-              <i class="fa-solid fa-headset"></i> Suporte / Revisão
-            </button>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="edit-nome" disabled class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed">
-            <input type="text" id="edit-cpf" disabled class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed">
-          </div>
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Placa</label>
+          <input type="text" id="edit-veiculo-placa" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 uppercase text-slate-100">
         </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <div class="space-y-1">
-            <label class="text-slate-300 font-medium">Celular</label>
-            <input type="text" id="edit-telefone" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-          </div>
-          <div class="space-y-1">
-            <label class="text-slate-300 font-medium">Endereço</label>
-            <input type="text" id="edit-endereco" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-          </div>
-        </div>
-
-        <!-- Bloco de Veículo na edição visível apenas se for motorista -->
-        <div id="edit-bloco-veiculo" class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 hidden">
-          <div class="space-y-1">
-            <label class="text-slate-300 font-medium">Veículo (Modelo)</label>
-            <input type="text" id="edit-veiculo-modelo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-          </div>
-          <div class="space-y-1">
-            <label class="text-slate-300 font-medium">Placa</label>
-            <input type="text" id="edit-veiculo-placa" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 uppercase text-slate-100">
-          </div>
-        </div>
-
-        <div class="space-y-1 pt-2 border-t border-slate-800">
-          <label class="text-slate-300 font-medium">URL da Foto de Perfil</label>
-          <input type="text" id="edit-foto" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100" placeholder="https://...">
-        </div>
-
-        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-950/50">
-          Salvar Alterações
-        </button>
-      </form>
-    </div>
-
-  </main>
-
-  <!-- MODAL DE CHAT EXCLUSIVO COM O SUPORTE -->
-  <div id="modal-chat-suporte" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl flex flex-col h-[85vh]">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3 shrink-0">
-        <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
-          <i class="fa-solid fa-headset text-amber-400"></i> Chat com o Suporte Administrativo
-        </h3>
-        <button onclick="fecharModalChatSuporte()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
       </div>
 
-      <div id="chat-mensagens-container" class="flex-1 overflow-y-auto space-y-2 p-3 bg-slate-950 rounded-2xl border border-slate-800 text-xs">
-        <p class="text-slate-500 text-center py-4">Carregando histórico do suporte...</p>
+      <div class="space-y-1 pt-2 border-t border-slate-800">
+        <label class="text-slate-300 font-medium">URL da Foto de Perfil</label>
+        <input type="text" id="edit-foto" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100" placeholder="https://...">
       </div>
 
-      <form onsubmit="enviarMensagemSuporte(event)" class="flex gap-2 pt-2 border-t border-slate-800 shrink-0">
-        <input type="text" id="input-msg-suporte" placeholder="Escreva sua mensagem para o suporte..." required class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:border-amber-500 outline-none">
-        <button type="submit" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2.5 rounded-xl font-bold transition">
-          <i class="fa-solid fa-paper-plane"></i>
-        </button>
-      </form>
-    </div>
+      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-950/50">
+        Salvar Alterações
+      </button>
+    </form>
   </div>
 
-  <script>
-    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</div>
 
-    let usuarioLogado = null;
+<!-- MODAL DE CHAT COM O SUPORTE -->
+<div id="modal-chat-suporte" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl flex flex-col h-[85vh]">
+    <div class="flex justify-between items-center border-b border-slate-800 pb-3 shrink-0">
+      <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
+        <i class="fa-solid fa-headset text-amber-400"></i> Chat com o Suporte Administrativo
+      </h3>
+      <button onclick="fecharModalChatSuporte()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+    </div>
 
-    function mostrarAlerta(mensagem, tipo = 'sucesso') {
-      const toast = document.getElementById('perfil-alerta-toast');
-      const texto = document.getElementById('perfil-alerta-texto');
-      const icone = document.getElementById('perfil-alerta-icone');
+    <div id="chat-mensagens-container" class="flex-1 overflow-y-auto space-y-2 p-3 bg-slate-950 rounded-2xl border border-slate-800 text-xs">
+      <p class="text-slate-500 text-center py-4">Carregando histórico do suporte...</p>
+    </div>
 
-      texto.innerText = mensagem;
-      toast.classList.remove('hidden');
+    <form onsubmit="enviarMensagemSuporte(event)" class="flex gap-2 pt-2 border-t border-slate-800 shrink-0">
+      <input type="text" id="input-msg-suporte" placeholder="Escreva sua mensagem para o suporte..." required class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:border-amber-500 outline-none">
+      <button type="submit" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2.5 rounded-xl font-bold transition">
+        <i class="fa-solid fa-paper-plane"></i>
+      </button>
+    </form>
+  </div>
+</div>
 
-      if (tipo === 'sucesso') {
-        toast.className = "p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all shadow-md bg-emerald-950/80 border border-emerald-500/50 text-emerald-300";
-        icone.className = "fa-solid fa-circle-check text-emerald-400 text-sm";
-      } else {
-        toast.className = "p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all shadow-md bg-red-950/80 border border-red-500/50 text-red-300";
-        icone.className = "fa-solid fa-triangle-exclamation text-red-400 text-sm";
-      }
-      setTimeout(() => toast.classList.add('hidden'), 4000);
+<script>
+  let usuarioLogadoPerfil = null;
+
+  function mostrarAlertaPerfil(mensagem, tipo = 'sucesso') {
+    const toast = document.getElementById('perfil-alerta-toast');
+    const texto = document.getElementById('perfil-alerta-texto');
+    const icone = document.getElementById('perfil-alerta-icone');
+    if (!toast) return;
+
+    texto.innerText = mensagem;
+    toast.classList.remove('hidden');
+
+    if (tipo === 'sucesso') {
+      toast.className = "p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all shadow-md bg-emerald-950/80 border border-emerald-500/50 text-emerald-300";
+      icone.className = "fa-solid fa-circle-check text-emerald-400 text-sm";
+    } else {
+      toast.className = "p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all shadow-md bg-red-950/80 border border-red-500/50 text-red-300";
+      icone.className = "fa-solid fa-triangle-exclamation text-red-400 text-sm";
+    }
+    setTimeout(() => toast.classList.add('hidden'), 4000);
+  }
+
+  async function carregarPerfilModular() {
+    const motoristaStorage = localStorage.getItem('motorista_logado');
+    const passageiroStorage = localStorage.getItem('passageiro_logado');
+
+    if (motoristaStorage) {
+      usuarioLogadoPerfil = JSON.parse(motoristaStorage);
+      usuarioLogadoPerfil.tipo = 'motorista';
+    } else if (passageiroStorage) {
+      usuarioLogadoPerfil = JSON.parse(passageiroStorage);
+      usuarioLogadoPerfil.tipo = 'passageiro';
+    } else {
+      return;
     }
 
-    async function carregarPerfil() {
-      // Identifica quem está logado verificando qual chave existe no localStorage
-      const motoristaStorage = localStorage.getItem('motorista_logado');
-      const passageiroStorage = localStorage.getItem('passageiro_logado');
-
-      if (motoristaStorage) {
-        usuarioLogado = JSON.parse(motoristaStorage);
-        usuarioLogado.tipo = 'motorista';
-      } else if (passageiroStorage) {
-        usuarioLogado = JSON.parse(passageiroStorage);
-        usuarioLogado.tipo = 'passageiro';
-      } else {
-        window.location.href = 'auth.html';
-        return;
-      }
-
-      // Busca dados atualizados no Supabase
+    try {
       const { data: usuarioAtualizado } = await supabaseClient
         .from('usuarios')
         .select('*')
-        .eq('id', usuarioLogado.id)
+        .eq('id', usuarioLogadoPerfil.id)
         .single();
 
       if (usuarioAtualizado) {
-        usuarioLogado = { ...usuarioLogado, ...usuarioAtualizado };
+        usuarioLogadoPerfil = { ...usuarioLogadoPerfil, ...usuarioAtualizado };
       }
+    } catch (e) {}
 
+    const nomeCompleto = usuarioLogadoPerfil.nome || 'Usuário';
+    const primeiroNome = nomeCompleto.split(' ')[0];
+    
+    document.getElementById('perfil-primeiro-nome').innerText = primeiroNome;
+    document.getElementById('perfil-foto-resumida').src = usuarioLogadoPerfil.foto_url || 'https://ui-avatars.com/api/?name=' + primeiroNome;
+    document.getElementById('perfil-nota').innerText = usuarioLogadoPerfil.nota || '5.0';
+    
+    const isMotorista = motoristaStorage !== null || usuarioLogadoPerfil.tipo === 'motorista';
+    const badgeTipo = document.getElementById('perfil-tipo-badge');
+    if (isMotorista) {
+      badgeTipo.innerText = 'Motorista Parceiro';
+      badgeTipo.className = 'text-[11px] text-amber-400 font-medium mt-0.5';
+    } else {
+      badgeTipo.innerText = 'Passageiro';
+      badgeTipo.className = 'text-[11px] text-emerald-400 font-medium mt-0.5';
+    }
+
+    document.getElementById('view-nome').innerText = nomeCompleto;
+    document.getElementById('view-cpf').innerText = usuarioLogadoPerfil.cpf || '-';
+    document.getElementById('view-telefone').innerText = usuarioLogadoPerfil.telefone || '-';
+    document.getElementById('view-endereco').innerText = usuarioLogadoPerfil.endereco || 'Não informado';
+
+    const blocoVeiculoView = document.getElementById('view-bloco-veiculo');
+    const blocoVeiculoEdit = document.getElementById('edit-bloco-veiculo');
+
+    if (isMotorista) {
+      blocoVeiculoView.classList.remove('hidden');
+      blocoVeiculoEdit.classList.remove('hidden');
+      document.getElementById('view-veiculo-modelo').innerText = usuarioLogadoPerfil.veiculo_modelo || 'Não informado';
+      document.getElementById('view-veiculo-placa').innerText = usuarioLogadoPerfil.veiculo_placa || 'SEM-0000';
+      document.getElementById('edit-veiculo-modelo').value = usuarioLogadoPerfil.veiculo_modelo || '';
+      document.getElementById('edit-veiculo-placa').value = usuarioLogadoPerfil.veiculo_placa || '';
+    } else {
+      blocoVeiculoView.classList.add('hidden');
+      blocoVeiculoEdit.classList.add('hidden');
+    }
+
+    document.getElementById('edit-nome').value = nomeCompleto;
+    document.getElementById('edit-cpf').value = usuarioLogadoPerfil.cpf || '';
+    document.getElementById('edit-telefone').value = usuarioLogadoPerfil.telefone || '';
+    document.getElementById('edit-endereco').value = usuarioLogadoPerfil.endereco || '';
+    document.getElementById('edit-foto').value = usuarioLogadoPerfil.foto_url || '';
+  }
+
+  function mudarAbaPerfil(aba) {
+    document.getElementById('secao-visualizar').classList.toggle('hidden', aba !== 'visualizar');
+    document.getElementById('secao-editar').classList.toggle('hidden', aba !== 'editar');
+
+    document.getElementById('tab-btn-visualizar').className = aba === 'visualizar' ? 'flex-1 py-2 rounded-xl font-bold bg-emerald-600 text-white transition' : 'flex-1 py-2 rounded-xl font-bold bg-slate-900 text-slate-400 transition';
+    document.getElementById('tab-btn-editar').className = aba === 'editar' ? 'flex-1 py-2 rounded-xl font-bold bg-emerald-600 text-white transition' : 'flex-1 py-2 rounded-xl font-bold bg-slate-900 text-slate-400 transition';
+  }
+
+  function verificarSenhaParaEditar() {
+    const senhaInformada = document.getElementById('input-senha-autenticacao').value.trim();
+    if (!senhaInformada) {
+      mostrarAlertaPerfil("Digite sua senha para continuar.", "erro");
+      return;
+    }
+
+    if (senhaInformada === (usuarioLogadoPerfil.senha || '123456')) {
+      document.getElementById('bloco-verificacao-senha').classList.add('hidden');
+      document.getElementById('form-editar-perfil').classList.remove('hidden');
+      mostrarAlertaPerfil("Senha confirmada! Edição liberada.", "sucesso");
+    } else {
+      mostrarAlertaPerfil("Senha incorreta!", "erro");
+    }
+  }
+
+  function abrirModalChatSuporte() {
+    document.getElementById('modal-chat-suporte').classList.remove('hidden');
+    carregarMensagensSuporte();
+  }
+
+  function fecharModalChatSuporte() {
+    document.getElementById('modal-chat-suporte').classList.add('hidden');
+    carregarPerfilModular();
+  }
+
+  async function carregarMensagensSuporte() {
+    const container = document.getElementById('chat-mensagens-container');
+    container.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Carregando mensagens...</p>';
+
+    try {
       const { data: chamados } = await supabaseClient
         .from('chamados_suporte')
         .select('*')
-        .eq('usuario_id', usuarioLogado.id)
-        .neq('status', 'resolvido');
+        .eq('usuario_id', usuarioLogadoPerfil.id)
+        .order('id', { ascending: true });
 
-      const linkSuporteMenu = document.getElementById('menu-link-suporte');
-      if (chamados && chamados.length > 0) {
-        linkSuporteMenu.classList.remove('hidden');
-        linkSuporteMenu.classList.add('flex');
-      } else {
-        linkSuporteMenu.classList.add('hidden');
-        linkSuporteMenu.classList.remove('flex');
-      }
-
-      const nomeCompleto = usuarioLogado.nome || 'Usuário';
-      const primeiroNome = nomeCompleto.split(' ')[0];
-      
-      document.getElementById('perfil-primeiro-nome').innerText = primeiroNome;
-      document.getElementById('perfil-foto-resumida').src = usuarioLogado.foto_url || 'https://ui-avatars.com/api/?name=' + primeiroNome;
-      document.getElementById('perfil-nota').innerText = usuarioLogado.nota || '5.0';
-      
-      // Validação estrita baseada na chave do storage ou no tipo
-      const isMotorista = motoristaStorage || usuarioLogado.tipo === 'motorista';
-      
-      const badgeTipo = document.getElementById('perfil-tipo-badge');
-      if (isMotorista) {
-        badgeTipo.innerText = 'Motorista Parceiro';
-        badgeTipo.className = 'text-[11px] text-amber-400 font-medium mt-0.5';
-      } else {
-        badgeTipo.innerText = 'Passageiro';
-        badgeTipo.className = 'text-[11px] text-emerald-400 font-medium mt-0.5';
-      }
-
-      document.getElementById('view-nome').innerText = nomeCompleto;
-      document.getElementById('view-cpf').innerText = usuarioLogado.cpf || '-';
-      document.getElementById('view-telefone').innerText = usuarioLogado.telefone || '-';
-      document.getElementById('view-endereco').innerText = usuarioLogado.endereco || 'Não informado';
-
-      const blocoVeiculoView = document.getElementById('view-bloco-veiculo');
-      const blocoVeiculoEdit = document.getElementById('edit-bloco-veiculo');
-
-      if (isMotorista) {
-        blocoVeiculoView.classList.remove('hidden');
-        blocoVeiculoEdit.classList.remove('hidden');
-        document.getElementById('view-veiculo-modelo').innerText = usuarioLogado.veiculo_modelo || 'Não informado';
-        document.getElementById('view-veiculo-placa').innerText = usuarioLogado.veiculo_placa || 'SEM-0000';
-        document.getElementById('edit-veiculo-modelo').value = usuarioLogado.veiculo_modelo || '';
-        document.getElementById('edit-veiculo-placa').value = usuarioLogado.veiculo_placa || '';
-      } else {
-        blocoVeiculoView.classList.add('hidden');
-        blocoVeiculoEdit.classList.add('hidden');
-      }
-
-      document.getElementById('edit-nome').value = nomeCompleto;
-      document.getElementById('edit-cpf').value = usuarioLogado.cpf || '';
-      document.getElementById('edit-telefone').value = usuarioLogado.telefone || '';
-      document.getElementById('edit-endereco').value = usuarioLogado.endereco || '';
-      document.getElementById('edit-foto').value = usuarioLogado.foto_url || '';
-    }
-
-    function mudarAbaPerfil(aba) {
-      document.getElementById('secao-visualizar').classList.toggle('hidden', aba !== 'visualizar');
-      document.getElementById('secao-editar').classList.toggle('hidden', aba !== 'editar');
-
-      document.getElementById('tab-btn-visualizar').className = aba === 'visualizar' ? 'flex-1 py-2 rounded-xl font-bold bg-emerald-600 text-white transition' : 'flex-1 py-2 rounded-xl font-bold bg-slate-900 text-slate-400 transition';
-      document.getElementById('tab-btn-editar').className = aba === 'editar' ? 'flex-1 py-2 rounded-xl font-bold bg-emerald-600 text-white transition' : 'flex-1 py-2 rounded-xl font-bold bg-slate-900 text-slate-400 transition';
-    }
-
-    function verificarSenhaParaEditar() {
-      const senhaInformada = document.getElementById('input-senha-autenticacao').value.trim();
-      if (!senhaInformada) {
-        mostrarAlerta("Digite sua senha para continuar.", "erro");
+      if (!chamados || chamados.length === 0) {
+        container.innerHTML = `<div class="text-center py-6 space-y-2">
+          <p class="text-slate-400">Nenhuma conversa com o suporte iniciada.</p>
+          <p class="text-[10px] text-slate-500">Envie sua mensagem abaixo para solicitar revisão de dados ou ajuda.</p>
+        </div>`;
         return;
       }
 
-      if (senhaInformada === (usuarioLogado.senha || '123456')) {
-        document.getElementById('bloco-verificacao-senha').classList.add('hidden');
-        document.getElementById('form-editar-perfil').classList.remove('hidden');
-        mostrarAlerta("Senha confirmada! Edição liberada.", "sucesso");
-      } else {
-        mostrarAlerta("Senha incorreta!", "erro");
-      }
-    }
-
-    async function abrirModalChatSuporte() {
-      document.getElementById('modal-chat-suporte').classList.remove('hidden');
-      carregarMensagensSuporte();
-    }
-
-    function fecharModalChatSuporte() {
-      document.getElementById('modal-chat-suporte').classList.add('hidden');
-      carregarPerfil();
-    }
-
-    async function carregarMensagensSuporte() {
-      const container = document.getElementById('chat-mensagens-container');
-      container.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Carregando mensagens...</p>';
-
-      try {
-        const { data: chamados } = await supabaseClient
-          .from('chamados_suporte')
-          .select('*')
-          .eq('usuario_id', usuarioLogado.id)
-          .order('id', { ascending: true });
-
-        if (!chamados || chamados.length === 0) {
-          container.innerHTML = `<div class="text-center py-6 space-y-2">
-            <p class="text-slate-400">Nenhuma conversa com o suporte iniciada.</p>
-            <p class="text-[10px] text-slate-500">Envie sua mensagem abaixo para solicitar revisão de dados ou ajuda.</p>
-          </div>`;
-          return;
-        }
-
-        let html = '';
-        chamados.forEach(c => {
+      let html = '';
+      chamados.forEach(c => {
+        html += `
+          <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 space-y-1">
+            <div class="flex justify-between text-[9px] text-slate-400">
+              <span>Solicitação</span>
+              <span class="text-amber-400 font-bold">${c.status || 'Pendente'}</span>
+            </div>
+            <p class="text-slate-200">${c.mensagem || '-'}</p>
+          </div>
+        `;
+        if (c.resposta_admin) {
           html += `
-            <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 space-y-1">
-              <div class="flex justify-between text-[9px] text-slate-400">
-                <span>Solicitação</span>
-                <span class="text-amber-400 font-bold">${c.status || 'Pendente'}</span>
+            <div class="bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-500/30 space-y-1 ml-4">
+              <div class="flex justify-between text-[9px] text-emerald-400 font-bold">
+                <span>Suporte Administrativo</span>
               </div>
-              <p class="text-slate-200">${c.mensagem || '-'}</p>
+              <p class="text-emerald-200">${c.resposta_admin}</p>
             </div>
           `;
-          if (c.resposta_admin) {
-            html += `
-              <div class="bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-500/30 space-y-1 ml-4">
-                <div class="flex justify-between text-[9px] text-emerald-400 font-bold">
-                  <span>Suporte Administrativo</span>
-                </div>
-                <p class="text-emerald-200">${c.resposta_admin}</p>
-              </div>
-            `;
-          }
-        });
+        }
+      });
 
-        container.innerHTML = html;
-        container.scrollTop = container.scrollHeight;
-      } catch (err) {
-        container.innerHTML = '<p class="text-red-400 text-center py-2">Erro ao carregar chat.</p>';
-      }
+      container.innerHTML = html;
+      container.scrollTop = container.scrollHeight;
+    } catch (err) {
+      container.innerHTML = '<p class="text-red-400 text-center py-2">Erro ao carregar chat.</p>';
+    }
+  }
+
+  async function enviarMensagemSuporte(e) {
+    e.preventDefault();
+    const input = document.getElementById('input-msg-suporte');
+    const texto = input.value.trim();
+    if (!texto) return;
+
+    const { error } = await supabaseClient.from('chamados_suporte').insert([{
+      usuario_id: usuarioLogadoPerfil.id,
+      usuario_nome: usuarioLogadoPerfil.nome,
+      mensagem: texto,
+      status: 'pendente'
+    }]);
+
+    if (error) {
+      mostrarAlertaPerfil("Erro ao enviar: " + error.message, "erro");
+    } else {
+      input.value = '';
+      carregarMensagensSuporte();
+      mostrarAlertaPerfil("Mensagem enviada ao suporte!", "sucesso");
+    }
+  }
+
+  async function salvarEdicaoPerfil(e) {
+    e.preventDefault();
+
+    const atualizacao = {
+      telefone: document.getElementById('edit-telefone').value,
+      endereco: document.getElementById('edit-endereco').value,
+      foto_url: document.getElementById('edit-foto').value
+    };
+
+    const isMotorista = localStorage.getItem('motorista_logado') !== null;
+    if (isMotorista) {
+      atualizacao.veiculo_modelo = document.getElementById('edit-veiculo-modelo').value;
+      atualizacao.veiculo_placa = document.getElementById('edit-veiculo-placa').value.toUpperCase();
     }
 
-    async function enviarMensagemSuporte(e) {
-      e.preventDefault();
-      const input = document.getElementById('input-msg-suporte');
-      const texto = input.value.trim();
-      if (!texto) return;
-
-      const { error } = await supabaseClient.from('chamados_suporte').insert([{
-        usuario_id: usuarioLogado.id,
-        usuario_nome: usuarioLogado.nome,
-        mensagem: texto,
-        status: 'pendente'
-      }]);
-
-      if (error) {
-        mostrarAlerta("Erro ao enviar: " + error.message, "erro");
-      } else {
-        input.value = '';
-        carregarMensagensSuporte();
-        mostrarAlerta("Mensagem enviada ao suporte!", "sucesso");
-      }
+    const { error } = await supabaseClient.from('usuarios').update(atualizacao).eq('id', usuarioLogadoPerfil.id);
+    
+    if (error) {
+      mostrarAlertaPerfil("Erro ao salvar: " + error.message, "erro");
+    } else {
+      mostrarAlertaPerfil("Perfil atualizado com sucesso!", "sucesso");
+      const chaveStorage = isMotorista ? 'motorista_logado' : 'passageiro_logado';
+      localStorage.setItem(chaveStorage, JSON.stringify({ ...usuarioLogadoPerfil, ...atualizacao }));
+      setTimeout(() => carregarPerfilModular(), 1200);
     }
+  }
 
-    async function salvarEdicaoPerfil(e) {
-      e.preventDefault();
-
-      const atualizacao = {
-        telefone: document.getElementById('edit-telefone').value,
-        endereco: document.getElementById('edit-endereco').value,
-        foto_url: document.getElementById('edit-foto').value
-      };
-
-      const isMotorista = localStorage.getItem('motorista_logado') !== null;
-      if (isMotorista) {
-        atualizacao.veiculo_modelo = document.getElementById('edit-veiculo-modelo').value;
-        atualizacao.veiculo_placa = document.getElementById('edit-veiculo-placa').value.toUpperCase();
-      }
-
-      const { error } = await supabaseClient.from('usuarios').update(atualizacao).eq('id', usuarioLogado.id);
-      
-      if (error) {
-        mostrarAlerta("Erro ao salvar: " + error.message, "erro");
-      } else {
-        mostrarAlerta("Perfil atualizado com sucesso!", "sucesso");
-        const chaveStorage = isMotorista ? 'motorista_logado' : 'passageiro_logado';
-        localStorage.setItem(chaveStorage, JSON.stringify({ ...usuarioLogado, ...atualizacao }));
-        setTimeout(() => carregarPerfil(), 1200);
-      }
-    }
-
-    function toggleMenuLateral() {
-      document.getElementById('menu-lateral').classList.toggle('-translate-x-full');
-    }
-
-    function sairConta() {
-      localStorage.removeItem('passageiro_logado');
-      localStorage.removeItem('motorista_logado');
-      window.location.href = 'auth.html';
-    }
-
-    window.onload = carregarPerfil;
-  </script>
-</body>
-</html>
+  // Executa imediatamente o carregamento dos dados do perfil ao injetar na tela
+  carregarPerfilModular();
+</script>
