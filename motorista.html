@@ -45,7 +45,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v34</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v35</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -83,13 +83,18 @@
   <!-- ÁREA DINÂMICA -->
   <main id="conteudo-dinamico-app" class="flex-1 relative overflow-y-auto bg-slate-950 flex flex-col"></main>
 
-  <!-- MODAL GLOBAL DE NOVA CORRIDA (FUNCIONA EM QUALQUER ABA) -->
-  <div id="modal-nova-corrida" class="hidden fixed bottom-28 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-amber-500/80 p-4 rounded-3xl shadow-2xl z-[55] space-y-3 max-h-[60vh] overflow-y-auto">
+  <!-- MODAL GLOBAL DE NOVA CORRIDA (COM MINI-MAPA DE PRÉVIA) -->
+  <div id="modal-nova-corrida" class="hidden fixed bottom-24 inset-x-4 bg-slate-900/98 backdrop-blur-md border border-amber-500/80 p-4 rounded-3xl shadow-2xl z-[55] space-y-3 max-h-[80vh] overflow-y-auto">
     <div class="flex items-center justify-between border-b border-slate-800 pb-2">
       <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1.5">
         <i class="fa-solid fa-bell animate-bounce"></i> Novo Chamado Próximo
       </span>
       <span id="corrida-valor" class="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
+    </div>
+
+    <!-- MINI-MAPA DE PRÉVIA DA ROTA -->
+    <div class="w-full h-32 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 relative z-10 shadow-inner">
+      <div id="mapa-previa-modal" class="w-full h-full"></div>
     </div>
 
     <div class="flex items-center gap-3 bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
@@ -161,7 +166,7 @@
     </div>
   </div>
 
-  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS (VISÍVEL APENAS NO RADAR) -->
+  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS -->
   <div id="barra-inferior-notificacao" class="bg-slate-900 border-t border-slate-800 p-3 z-40 shrink-0 shadow-2xl flex flex-col gap-2 transition-all duration-300 cursor-pointer" onclick="toggleExpandirBarra(event)">
     <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto mb-1"></div>
 
@@ -199,7 +204,7 @@
         <p class="text-[10px] text-slate-300">Nenhum aviso de suporte pendente no momento.</p>
       </div>
 
-      <!-- BOTÃO POWER VERMELHO (FICA DENTRO DA BARRA EXPANSÍVEL QUANDO ONLINE) -->
+      <!-- BOTÃO POWER VERMELHO (DENTRO DA BARRA DE NOTIFICAÇÃO QUANDO ONLINE) -->
       <div id="container-btn-desligar-redondo" class="hidden flex justify-center pt-1">
         <button onclick="alternarPowerMotorista(); event.stopPropagation();" class="bg-red-600 hover:bg-red-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition border-2 border-white/20" title="Desligar Aplicativo (Ficar Offline)">
           <i class="fa-solid fa-power-off text-base"></i>
@@ -248,6 +253,7 @@
     let touchStartY = 0;
     let notaSelecionada = 5;
     let abaAtual = 'radar';
+    let mapaPreviaInstancia = null;
 
     function primeiroNome(nomeCompleto) {
       if (!nomeCompleto) return 'Passageiro';
@@ -636,7 +642,38 @@
 
       tocarSomAlerta('novo_pedido');
       document.getElementById('modal-nova-corrida').classList.remove('hidden');
+      
+      // Renderiza o mini-mapa de prévia da rota no modal
+      desenharPreviaRotaModal(corrida);
       iniciarTimer15Segundos();
+    }
+
+    function desenharPreviaRotaModal(corrida) {
+      setTimeout(() => {
+        const containerMapa = document.getElementById('mapa-previa-modal');
+        if (!containerMapa) return;
+
+        if (mapaPreviaInstancia) {
+          mapaPreviaInstancia.remove();
+          mapaPreviaInstancia = null;
+        }
+
+        // Usa a posição atual do GPS ou coordenadas padrão como fallback
+        const latOrigem = (ultimaPosicaoGPS) ? ultimaPosicaoGPS.lat : -28.4835;
+        const lngOrigem = (ultimaPosicaoGPS) ? ultimaPosicaoGPS.lng : -48.7804;
+        const latDestino = latOrigem + 0.012;
+        const lngDestino = lngOrigem + 0.012;
+
+        mapaPreviaInstancia = L.map('mapa-previa-modal', { zoomControl: false, attributionControl: false }).setView([latOrigem, lngOrigem], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapaPreviaInstancia);
+
+        L.marker([latOrigem, lngOrigem]).addTo(mapaPreviaInstancia).bindPopup('Embarque');
+        L.marker([latDestino, lngDestino]).addTo(mapaPreviaInstancia).bindPopup('Destino');
+
+        const linhaRota = L.polyline([[latOrigem, lngOrigem], [latDestino, lngDestino]], { color: '#10b981', weight: 4 });
+        linhaRota.addTo(mapaPreviaInstancia);
+        mapaPreviaInstancia.fitBounds(linhaRota.getBounds(), { padding: [20, 20] });
+      }, 250);
     }
 
     function iniciarTimer15Segundos() {
@@ -835,7 +872,7 @@
         blocoJustificativa.classList.remove('hidden');
       } else {
         textoNota.innerText = "Ruim / Muito Ruim";
-        blocoJustificativa.classList.add('hidden');
+        blocoJustificativa.classList.remove('hidden');
       }
     }
 
