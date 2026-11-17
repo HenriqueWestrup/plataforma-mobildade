@@ -59,11 +59,11 @@
     }
 
     async function realizarLoginMotorista(e) {
-      e.preventDefault(); // Impede o recarregamento padrão da página
+      e.preventDefault(); // Impede qualquer comportamento de recarregamento indesejado (F5)
       document.getElementById('box-erro').classList.add('hidden');
       
-      const cel = document.getElementById('login-celular-motorista').value.trim();
-      const senha = document.getElementById('login-senha-motorista').value;
+      const cel = document.getElementById('login-celular-motorista'].value.trim();
+      const senha = document.getElementById('login-senha-motorista'].value;
       const btn = document.getElementById('btn-entrar');
 
       btn.innerText = "Verificando...";
@@ -71,9 +71,8 @@
 
       try {
         let data = null;
-        let tabelaOrigem = '';
 
-        // 1. Tenta buscar na tabela 'motoristas'
+        // 1. Tenta buscar na tabela específica de motoristas
         const resMotoristas = await supabaseClient
           .from('motoristas')
           .select('*')
@@ -83,9 +82,9 @@
 
         if (resMotoristas.data) {
           data = resMotoristas.data;
-          tabelaOrigem = 'motoristas';
+          data.tipo = 'motorista';
         } else {
-          // 2. Se não achar, tenta na tabela 'usuarios'
+          // 2. Se não achou na tabela 'motoristas', busca na tabela geral 'usuarios' MAS exige que seja motorista (tenha veiculo ou tipo motorista)
           const resUsuarios = await supabaseClient
             .from('usuarios')
             .select('*')
@@ -94,36 +93,34 @@
             .maybeSingle();
 
           if (resUsuarios.data) {
-            data = resUsuarios.data;
-            tabelaOrigem = 'usuarios';
+            const usuarioEncontrado = resUsuarios.data;
+            // Validação de segurança: Passageiro comum não pode logar aqui
+            if (usuarioEncontrado.tipo !== 'motorista' && !usuarioEncontrado.veiculo_modelo) {
+              throw new Error("Esta conta pertence a um passageiro. Acesso negado ao portal do motorista.");
+            }
+            data = usuarioEncontrado;
+            data.tipo = 'motorista';
           }
         }
 
         if (!data) {
-          throw new Error("Telefone ou senha inválidos. Verifique seus dados.");
+          throw new Error("Telefone ou senha de motorista inválidos.");
         }
 
         if (data.status === 'bloqueado' || data.status === 'pendente') {
           throw new Error("Sua conta está bloqueada ou pendente de aprovação.");
         }
 
-        // Gera o token de sessão único
+        // Gera token de sessão
         const sessionToken = 'sessao_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
 
-        // Atualiza o token na tabela exata onde o motorista foi encontrado
-        await supabaseClient
-          .from(tabelaOrigem)
-          .update({ session_token: sessionToken })
-          .eq('id', data.id);
-
-        // Limpa sessões antigas e salva a nova
+        // Limpa sessões anteriores e grava a nova sessão de motorista
         localStorage.removeItem('passageiro_logado');
-        data.tipo = 'motorista';
         data.session_token = sessionToken;
         localStorage.setItem('motorista_logado', JSON.stringify(data));
         localStorage.setItem('session_token', sessionToken);
         
-        // Redireciona com sucesso para o painel do motorista
+        // Redireciona para o painel correto do motorista
         window.location.href = 'motorista.html';
 
       } catch (err) {
