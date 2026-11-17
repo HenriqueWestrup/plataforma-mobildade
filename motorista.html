@@ -27,7 +27,7 @@
     </div>
   </div>
 
-  <!-- TOPO DO APP (IGUAL AO PASSAGEIRO) -->
+  <!-- TOPO DO APP -->
   <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0 z-40">
     <div class="flex items-center gap-3">
       <button onclick="toggleMenuLateral()" class="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800 border border-slate-700">
@@ -45,10 +45,10 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v13</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v14</span>
   </header>
 
-  <!-- GAVETA DO MENU LATERAL (PADRÃO HAMBÚRGUER) -->
+  <!-- GAVETA DO MENU LATERAL -->
   <div id="menu-lateral" class="fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
     <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
       <div class="flex items-center gap-3">
@@ -80,9 +80,8 @@
     </div>
   </div>
 
-  <!-- CONTEÚDO PRINCIPAL (MAPA ABAIXO) -->
+  <!-- CONTEÚDO PRINCIPAL (MAPA) -->
   <main id="app-motorista-container" class="flex-1 relative overflow-hidden bg-slate-950 flex flex-col">
-    <!-- O mapa será injetado aqui -->
     <div id="map-radar" class="w-full h-full absolute inset-0 z-0"></div>
   </main>
 
@@ -93,9 +92,9 @@
     <div id="painel-notificacoes-motorista" class="hidden bg-slate-950 border border-red-500/50 rounded-2xl p-3 space-y-2 animate-pulse shadow-inner">
       <div class="flex items-center gap-2 text-red-400 font-extrabold text-xs">
         <i class="fa-solid fa-circle-exclamation text-sm"></i>
-        <span id="texto-alerta-dinamico">Modo Online Ativo - Procurando Corridas...</span>
+        <span id="texto-alerta-dinamico">Modo Online Ativo - Compartilhando Geolocalização...</span>
       </div>
-      <p id="subtexto-alerta" class-[10px] text-slate-300">Mantenha o aplicativo aberto para receber chamadas na região de Laguna.</p>
+      <p id="subtexto-alerta" class="text-[10px] text-slate-300">Sua posição em tempo real está visível para passageiros próximos em Laguna[cite: 25].</p>
     </div>
 
     <!-- BOTÃO POWER CENTRALIZADO E BARRA DE STATUS -->
@@ -108,7 +107,7 @@
         </div>
       </div>
 
-      <!-- BOTÃO REDONDO FAMOSO ÍCONE DE POWER -->
+      <!-- BOTÃO REDONDO POWER -->
       <button id="btn-power-motorista" onclick="alternarPowerMotorista()" class="w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-xl border-4 border-slate-950 transition transform active:scale-95">
         <i class="fa-solid fa-power-off text-xl"></i>
       </button>
@@ -125,6 +124,8 @@
     let motoristaLogado = null;
     let mapaRadar = null;
     let statusOnline = false;
+    let watchIdGeoloc = null;
+    let marcadorCarro = null;
     let intervaloValidacaoSessao = null;
 
     async function inicializarMotoristaApp() {
@@ -170,12 +171,12 @@
         mapaRadar.invalidateSize();
         return;
       }
-      mapaRadar = L.map('map-radar', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
+      mapaRadar = L.map('map-radar', { zoomControl: false }).setView([latLaguna, lngLaguna], 15);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapaRadar);
       setTimeout(() => mapaRadar.invalidateSize(), 300);
     }
 
-    // BOTÃO POWER: VERDE QUANDO OFFLINE, VERMELHO QUANDO ONLINE COM BARRA DESLIZANDO
+    // BOTÃO POWER: LIGA/DESLIGA GEOLOCALIZAÇÃO E STATUS ONLINE
     function alternarPowerMotorista() {
       statusOnline = !statusOnline;
       const btnPower = document.getElementById('btn-power-motorista');
@@ -187,20 +188,21 @@
       const painelNotif = document.getElementById('painel-notificacoes-motorista');
 
       if (statusOnline) {
-        // MODO ONLINE (Vermelho no Power e Barra de Notificação ativa)
+        // MODO ONLINE
         btnPower.className = "w-14 h-14 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-xl border-4 border-slate-950 transition transform active:scale-95 animate-pulse";
         indicador.className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping";
         pontoTopo.className = "w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse";
         textoTopo.innerText = "Online";
         textoTopo.className = "text-[10px] text-emerald-400 font-bold";
         textoPrincipal.innerText = "Você está Online";
-        subtexto.innerText = "Aguardando chamadas de passageiros";
+        subtexto.innerText = "Transmitindo localização em tempo real";
         
-        // Abre a barra de notificação de baixo para cima com destaque em vermelho oscilante
         painelNotif.classList.remove('hidden');
-        atualizarPresencaSupabase(true);
+        
+        // Ativa o rastreamento GPS em tempo real do aparelho
+        iniciarRastreamentoGPS();
       } else {
-        // MODO OFFLINE (Verde no Power, pronto para ligar)
+        // MODO OFFLINE
         btnPower.className = "w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-xl border-4 border-slate-950 transition transform active:scale-95";
         indicador.className = "w-3 h-3 rounded-full bg-slate-500";
         pontoTopo.className = "w-2 h-2 rounded-full bg-slate-500 inline-block";
@@ -209,17 +211,72 @@
         textoPrincipal.innerText = "Você está Offline";
         subtexto.innerText = "Toque no botão power para ficar online";
         
-        // Fecha a barra de notificação
         painelNotif.classList.add('hidden');
-        atualizarPresencaSupabase(false);
+        
+        // Desativa o GPS e marca offline no Supabase
+        pararRastreamentoGPS();
       }
     }
 
-    async function atualizarPresencaSupabase(online) {
-      if (!motoristaLogado) return;
-      try {
-        await supabaseClient.from('usuarios').update({ online: online }).eq('id', motoristaLogado.id);
-      } catch (e) {}
+    function iniciarRastreamentoGPS() {
+      if (!navigator.geolocation) {
+        alert("Geolocalização não é suportada pelo seu navegador/aparelho.");
+        return;
+      }
+
+      // Ícone personalizado de carrinho para o motorista no mapa
+      const iconeCarro = L.divIcon({
+        className: 'custom-car-marker',
+        html: '<div style="background-color: #f59e0b; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #fff;"><i class="fa-solid fa-car text-sm"></i></div>',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+
+      watchIdGeoloc = navigator.geolocation.watchPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+
+          // Atualiza o mapa centralizando no carro do motorista
+          if (mapaRadar) {
+            mapaRadar.setView([lat, lng], 16);
+            if (marcadorCarro) {
+              marcadorCarro.setLatLng([lat, lng]);
+            } else {
+              marcadorCarro = L.marker([lat, lng], { icon: iconeCarro }).addTo(mapaRadar).bindPopup("Sua Posição Atual");
+            }
+          }
+
+          // Envia a geolocalização e status online para o Supabase em tempo real
+          if (motoristaLogado) {
+            await supabaseClient.from('usuarios').update({
+              online: true,
+              lat: lat,
+              lng: lng
+            }).eq('id', motoristaLogado.id);
+          }
+        },
+        (error) => {
+          console.error("Erro no GPS:", error);
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+      );
+    }
+
+    async function pararRastreamentoGPS() {
+      if (watchIdGeoloc !== null) {
+        navigator.geolocation.clearWatch(watchIdGeoloc);
+        watchIdGeoloc = null;
+      }
+
+      if (marcadorCarro && mapaRadar) {
+        mapaRadar.removeLayer(marcadorCarro);
+        marcadorCarro = null;
+      }
+
+      if (motoristaLogado) {
+        await supabaseClient.from('usuarios').update({ online: false }).eq('id', motoristaLogado.id);
+      }
     }
 
     function toggleMenuLateral() {
@@ -230,9 +287,6 @@
       toggleMenuLateral();
       if (aba === 'perfil') window.location.href = 'perfil.html';
       if (aba === 'historico') window.location.href = 'historico-motorista.html';
-      if (aba === 'radar') {
-        // Já está no radar
-      }
     }
 
     function abrirSuporteBloqueio() {
@@ -240,9 +294,7 @@
     }
 
     async function sairConta() {
-      if (motoristaLogado) {
-        await supabaseClient.from('usuarios').update({ online: false }).eq('id', motoristaLogado.id);
-      }
+      await pararRastreamentoGPS();
       clearInterval(intervaloValidacaoSessao);
       localStorage.clear();
       window.location.href = 'auth-motorista.html';
