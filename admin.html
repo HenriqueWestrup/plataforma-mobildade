@@ -100,7 +100,6 @@
 
     <!-- SEÇÃO 2: PASSAGEIROS -->
     <div id="secao-usuarios" class="space-y-3 hidden">
-      <!-- BARRA DE BUSCA -->
       <div class="relative">
         <i class="fa-solid fa-search absolute left-3.5 top-3 text-slate-400"></i>
         <input type="text" id="input-busca-passageiro" oninput="renderizarAdmin()" placeholder="Buscar passageiro por nome, CPF ou celular..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-slate-100 outline-none focus:border-emerald-500">
@@ -119,11 +118,10 @@
 
   </main>
 
-  <!-- MODAL DE EDIÇÃO AVANÇADA (COM ABAS INTERNAS) -->
+  <!-- MODAL DE EDIÇÃO AVANÇADA -->
   <div id="modal-edicao" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
       
-      <!-- BARRA DE NOTIFICAÇÃO INTERNA DO MODAL -->
       <div id="modal-alerta-toast" class="hidden p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all shadow-md">
         <i id="modal-alerta-icone" class="fa-solid text-sm"></i>
         <span id="modal-alerta-texto" class="flex-1">Mensagem de aviso aqui</span>
@@ -136,7 +134,6 @@
         <button onclick="fecharModalEdicao()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
       </div>
 
-      <!-- ID DO USUÁRIO -->
       <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
         <div>
           <span class="text-[10px] text-slate-400 block">ID Único no Banco:</span>
@@ -147,7 +144,6 @@
         </div>
       </div>
 
-      <!-- ABAS INTERNAS DO MODAL -->
       <div class="grid grid-cols-4 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px]">
         <button type="button" onclick="mudarAbaModal('dados')" id="tab-btn-dados" class="py-2 rounded-lg font-bold bg-emerald-600 text-white transition">Dados</button>
         <button type="button" onclick="mudarAbaModal('viagens')" id="tab-btn-viagens" class="py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition">Viagens</button>
@@ -159,7 +155,6 @@
         <input type="hidden" id="edit-id">
         <input type="hidden" id="edit-tabela">
 
-        <!-- CONTEÚDO DA ABA 1: DADOS PESSOAIS -->
         <div id="modal-conteudo-dados" class="space-y-3">
           <div class="flex items-center gap-3 pb-2 border-b border-slate-800">
             <img id="edit-foto-preview" class="w-14 h-14 rounded-full object-cover border border-emerald-500">
@@ -203,14 +198,12 @@
           </div>
         </div>
 
-        <!-- CONTEÚDO DA ABA 2: VIAGENS E GANHOS -->
         <div id="modal-conteudo-viagens" class="space-y-3 hidden">
           <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 max-h-60 overflow-y-auto" id="detalhes-historico-usuario">
             <p class="text-slate-500 text-center py-4">Carregando viagens e ganhos...</p>
           </div>
         </div>
 
-        <!-- CONTEÚDO DA ABA 3: CHAT -->
         <div id="modal-conteudo-chat" class="space-y-3 hidden">
           <div class="space-y-2">
             <h4 class="font-extrabold text-white text-xs flex items-center gap-1.5">
@@ -222,7 +215,6 @@
           </div>
         </div>
 
-        <!-- CONTEÚDO DA ABA 4: STATUS E SENHA -->
         <div id="modal-conteudo-status" class="space-y-3 hidden">
           <div class="space-y-2 bg-slate-950 p-3 rounded-2xl border border-slate-800">
             <label class="text-slate-300 font-bold block mb-1">Status da Conta</label>
@@ -232,13 +224,11 @@
               <button type="button" onclick="definirStatusModal('bloqueado')" id="btn-status-bloqueado" class="py-2 rounded-xl font-bold bg-slate-900 text-slate-400 border border-slate-800">Bloqueado</button>
             </div>
             <input type="hidden" id="edit-status-valor" value="aprovado">
-            <p class="text-[10px] text-slate-400 mt-1">Contas suspensas/bloqueadas exibirão aviso de conta suspensa temporariamente ao tentar iniciar corridas.</p>
           </div>
 
           <div class="space-y-1.5 bg-slate-950/60 p-3 rounded-2xl border border-amber-500/20">
             <label class="text-amber-400 font-bold flex items-center justify-between">
               <span><i class="fa-solid fa-key mr-1"></i> Senha Temporária</span>
-              <span class="text-[9px] text-slate-400 font-normal">(Opcional)</span>
             </label>
             <div class="flex gap-1.5">
               <input type="text" id="edit-senha-temp" placeholder="Gerar..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold tracking-wider text-center">
@@ -252,38 +242,7 @@
           <button type="button" onclick="fecharModalEdicao()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl">Cancelar</button>
           <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl">Salvar Alterações</button>
         </div>
-
-        <div class="pt-2">
-          <button type="button" onclick="abrirConfirmacaoExclusao()" class="w-full bg-red-950/40 hover:bg-red-900/40 text-red-400 border border-red-800 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
-            <i class="fa-solid fa-trash-can"></i> Excluir Usuário Permanentemente
-          </button>
-        </div>
       </form>
-    </div>
-  </div>
-
-  <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO -->
-  <div id="modal-confirmar-exclusao" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-red-500/40 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
-      <div class="text-center space-y-2">
-        <div class="w-12 h-12 bg-red-600/20 border border-red-500/40 text-red-400 rounded-2xl flex items-center justify-center mx-auto">
-          <i class="fa-solid fa-triangle-exclamation text-xl"></i>
-        </div>
-        <h3 class="text-sm font-extrabold text-white">Confirmar Exclusão Definitiva</h3>
-        <p class="text-[11px] text-slate-400">
-          Você está prestes a apagar <strong id="nome-usuario-exclusao" class="text-red-400">-</strong> e todo o histórico. Digite a <strong>Senha Mestre</strong>:
-        </p>
-      </div>
-
-      <div class="space-y-2">
-        <input type="password" id="input-senha-mestre-exclusao" placeholder="Senha Mestre Admin" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-center text-slate-100 focus:border-red-500 outline-none">
-        <p id="erro-senha-exclusao" class="text-red-400 text-[10px] font-semibold hidden text-center">Senha mestre incorreta!</p>
-      </div>
-
-      <div class="flex gap-2">
-        <button type="button" onclick="fecharConfirmacaoExclusao()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl">Cancelar</button>
-        <button type="button" onclick="executarExclusaoComSenha()" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl">Confirmar</button>
-      </div>
     </div>
   </div>
 
@@ -329,6 +288,26 @@
     let dadosGlobaisSuporte = [];
     let abaAdminAtual = 'motoristas';
     let subAbaMotorista = 'todos';
+    let canalRealtimeAdmin = null;
+
+    function tocarSomAlertaAdmin() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const agora = audioCtx.currentTime;
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, agora); // D5
+        osc.frequency.setValueAtTime(880.00, agora + 0.2); // A5
+        gain.gain.setValueAtTime(0.3, agora);
+        gain.gain.exponentialRampToValueAtTime(0.01, agora + 0.6);
+        osc.start(agora);
+        osc.stop(agora + 0.6);
+      } catch (e) {}
+    }
 
     function mostrarAlertaModal(mensagem, tipo = 'sucesso') {
       const toast = document.getElementById('modal-alerta-toast');
@@ -353,6 +332,7 @@
       if (sessionStorage.getItem('admin_autenticado') === 'true') {
         document.getElementById('tela-login-admin').classList.add('hidden');
         carregarDadosAdmin();
+        iniciarEscutaRealtimeAdmin();
       } else {
         document.getElementById('tela-login-admin').classList.remove('hidden');
       }
@@ -369,12 +349,14 @@
         erroEl.classList.add('hidden');
         document.getElementById('tela-login-admin').classList.add('hidden');
         carregarDadosAdmin();
+        iniciarEscutaRealtimeAdmin();
       } else {
         erroEl.classList.remove('hidden');
       }
     }
 
     function sairAdmin() {
+      if (canalRealtimeAdmin) supabaseClient.removeChannel(canalRealtimeAdmin);
       sessionStorage.removeItem('admin_autenticado');
       window.location.href = 'auth.html';
     }
@@ -418,13 +400,28 @@
     async function carregarDadosAdmin() {
       try {
         const { data: resUsu } = await supabaseClient.from('usuarios').select('*');
-        const { data: resSup } = await supabaseClient.from('chamados_suporte').select('*');
+        
+        const { data: resCorridasSuporte } = await supabaseClient
+          .from('corridas')
+          .select(`
+            id,
+            origem,
+            destino,
+            valor,
+            avaliacao,
+            motivo_avaliacao,
+            created_at,
+            motorista:motorista_id(nome, telefone),
+            passageiro:passageiro_id(nome, telefone)
+          `)
+          .lt('avaliacao', 5)
+          .order('id', { ascending: false });
 
         const usuariosTotais = resUsu || [];
         
         dadosGlobaisMotoristas = usuariosTotais.filter(u => u.tipo === 'motorista' || u.veiculo_modelo);
         dadosGlobaisUsuarios = usuariosTotais.filter(u => u.tipo !== 'motorista' && !u.veiculo_modelo);
-        dadosGlobaisSuporte = resSup || [];
+        dadosGlobaisSuporte = resCorridasSuporte || [];
 
         document.getElementById('count-aba-motoristas').innerText = dadosGlobaisMotoristas.length;
         document.getElementById('count-aba-passageiros').innerText = dadosGlobaisUsuarios.length;
@@ -436,8 +433,22 @@
       }
     }
 
+    function iniciarEscutaRealtimeAdmin() {
+      if (canalRealtimeAdmin) supabaseClient.removeChannel(canalRealtimeAdmin);
+
+      canalRealtimeAdmin = supabaseClient
+        .channel('public:corridas_admin_suporte_realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'corridas' }, payload => {
+          if (payload.new && payload.new.avaliacao && payload.new.avaliacao < 5) {
+            tocarSomAlertaAdmin();
+            carregarDadosAdmin();
+          }
+        })
+        .subscribe();
+    }
+
     function atualizarContadorSuporte() {
-      const pendentes = dadosGlobaisSuporte.filter(s => s.status !== 'resolvido').length;
+      const pendentes = dadosGlobaisSuporte.length;
       const badge = document.getElementById('badge-contador-suporte');
       if (pendentes > 0) {
         badge.innerText = `+${pendentes}`;
@@ -478,13 +489,12 @@
         if (listaAlvo.length === 0) {
           container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista cadastrado.</div>`;
         } else {
-          container.innerHTML = listaAlvo.map(m => gerarCardAdmin(m, 'usuarios')).join('');
+          container.innerHTML = listaAlvo.map(m => gerarCardAdmin(m)).join('');
         }
       } else if (abaAdminAtual === 'usuarios') {
         const container = document.getElementById('lista-admin-passageiros');
         const termoBusca = (document.getElementById('input-busca-passageiro')?.value || '').toLowerCase().trim();
 
-        // Filtra por termo de busca se houver
         let passageirosFiltrados = dadosGlobaisUsuarios.filter(u => {
           const nome = (u.nome || '').toLowerCase();
           const cpf = (u.cpf || '').toLowerCase();
@@ -492,33 +502,37 @@
           return nome.includes(termoBusca) || cpf.includes(termoBusca) || tel.includes(termoBusca);
         });
 
-        // Ordena alfabeticamente por nome e coloca os online no topo
         passageirosFiltrados.sort((a, b) => {
           const aOnline = (a.online === true) ? 1 : 0;
           const bOnline = (b.online === true) ? 1 : 0;
-          if (aOnline !== bOnline) return bOnline - aOnline; // Online primeiro
-          return (a.nome || '').localeCompare(b.nome || ''); // Ordem alfabética
+          if (aOnline !== bOnline) return bOnline - aOnline;
+          return (a.nome || '').localeCompare(b.nome || '');
         });
 
         if (passageirosFiltrados.length === 0) {
           container.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro encontrado.</div>';
         } else {
-          container.innerHTML = passageirosFiltrados.map(u => gerarCardAdmin(u, 'usuarios')).join('');
+          container.innerHTML = passageirosFiltrados.map(u => gerarCardAdmin(u)).join('');
         }
       } else if (abaAdminAtual === 'suporte') {
         const container = document.getElementById('lista-admin-suporte');
         if (dadosGlobaisSuporte.length === 0) {
-          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum chamado pendente.</div>`;
+          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhuma avaliação abaixo de 5 estrelas registrada.</div>`;
         } else {
           container.innerHTML = dadosGlobaisSuporte.map(s => `
             <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40 space-y-2 shadow">
               <div class="flex justify-between items-start">
-                <h3 class="font-extrabold text-white text-xs">${s.usuario_nome || s.nome_usuario || 'Usuário'}</h3>
-                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-400">${s.status || 'Pendente'}</span>
+                <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1">
+                  <i class="fa-solid fa-star"><b>${s.avaliacao}</b> Estrelas</i>
+                </span>
+                <span class="text-[10px] text-slate-400">Corrida #${s.id}</span>
               </div>
-              <p class="text-slate-300 text-[11px]">${s.mensagem || s.descricao || 'Solicitação aberta.'}</p>
-              <div class="flex gap-2 pt-2 border-t border-slate-800">
-                <button onclick="resolverSuporte('${s.id}')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded-xl font-bold">Marcar como Resolvido</button>
+              <div class="text-[11px] space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <p><strong>Passageiro:</strong> ${s.passageiro?.nome || 'Desconhecido'} (${s.passageiro?.telefone || '-'})</p>
+                <p><strong>Motorista:</strong> ${s.motorista?.nome || 'Desconhecido'} (${s.motorista?.telefone || '-'})</p>
+                <p><strong>De:</strong> ${s.origem || '-'}</p>
+                <p><strong>Para:</strong> ${s.destino || '-'}</p>
+                <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${s.motivo_avaliacao || 'Nenhuma observação informada.'}</p>
               </div>
             </div>
           `).join('');
@@ -526,7 +540,7 @@
       }
     }
 
-    function gerarCardAdmin(user, tabela) {
+    function gerarCardAdmin(user) {
       const status = user.status || 'aprovado';
       const isBloqueado = status === 'bloqueado';
       const isPendente = status === 'pendente';
@@ -552,8 +566,8 @@
             </div>
           </div>
           <div class="flex gap-2 pt-2 border-t border-slate-800 text-[11px]">
-            <button onclick="abrirModalEdicao('${user.id}', 'usuarios')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 rounded-xl">Editar Perfil / Ver Histórico</button>
-            ${isBloqueado ? `<button onclick="mudarStatusConta('${user.id}', 'usuarios', 'aprovado')" class="bg-emerald-600/20 text-emerald-400 px-3 py-2 rounded-xl font-bold">Desbloquear</button>` : `<button onclick="mudarStatusConta('${user.id}', 'usuarios', 'bloqueado')" class="bg-red-600/20 text-red-400 px-3 py-2 rounded-xl font-bold">Bloquear</button>`}
+            <button onclick="abrirModalEdicao('${user.id}')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 rounded-xl">Editar Perfil / Ver Histórico</button>
+            ${isBloqueado ? `<button onclick="mudarStatusConta('${user.id}', 'aprovado')" class="bg-emerald-600/20 text-emerald-400 px-3 py-2 rounded-xl font-bold">Desbloquear</button>` : `<button onclick="mudarStatusConta('${user.id}', 'bloqueado')" class="bg-red-600/20 text-red-400 px-3 py-2 rounded-xl font-bold">Bloquear</button>`}
           </div>
         </div>
       `;
@@ -578,18 +592,17 @@
       const bBloq = document.getElementById('btn-status-bloqueado');
 
       bAtivo.className = "py-2 rounded-xl font-bold " + (status === 'aprovado' ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
-      bAnalise.className = "py-2 rounded-xl font-bold " + (status === 'pendente' ? "bg-amber-600/20 text-amber-400 border border-amber-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
+      bAnalise.className = "py-2 rounded-xl font-bold " + (status === 'pendente' ? "bg-amber-600/20 text-amber-400 border border-emerald-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
       bBloq.className = "py-2 rounded-xl font-bold " + (status === 'bloqueado' ? "bg-red-600/20 text-red-400 border border-red-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
     }
 
-    async function abrirModalEdicao(id, tabela) {
+    async function abrirModalEdicao(id) {
       const user = [...dadosGlobaisMotoristas, ...dadosGlobaisUsuarios].find(item => item.id == id);
       if (!user) return;
 
       document.getElementById('modal-alerta-toast').classList.add('hidden');
       document.getElementById('edit-id').value = user.id;
       document.getElementById('edit-id-display').innerText = user.id;
-      document.getElementById('edit-tabela').value = 'usuarios';
       document.getElementById('edit-nome').value = user.nome || '';
       document.getElementById('edit-cpf').value = user.cpf || '';
       document.getElementById('edit-telefone').value = user.telefone || '';
@@ -666,6 +679,7 @@
               </div>
               <p class="text-slate-300 truncate"><strong>De:</strong> ${c.origem || 'N/D'}</p>
               <p class="text-slate-300 truncate"><strong>Para:</strong> ${c.destino || 'N/D'}</p>
+              ${c.avaliacao ? `<p class="text-amber-400 text-[10px]"><strong>Avaliação:</strong> ${c.avaliacao} estrelas ${c.motivo_avaliacao ? '- ' + c.motivo_avaliacao : ''}</p>` : ''}
             </div>
           `;
         });
@@ -727,69 +741,10 @@
       }
     }
 
-    function gerarSenhaTemporaria() {
-      const senhaGerada = Math.floor(100000 + Math.random() * 900000).toString();
-      document.getElementById('edit-senha-temp').value = senhaGerada;
-      mostrarAlertaModal("Senha temporária gerada!", "sucesso");
-    }
-
-    function copiarSenhaTemporaria() {
-      const campo = document.getElementById('edit-senha-temp');
-      if (!campo.value) gerarSenhaTemporaria();
-      navigator.clipboard.writeText(campo.value);
-      mostrarAlertaModal("Senha copiada!", "sucesso");
-    }
-
-    function abrirConfirmacaoExclusao() {
-      const nomeUsuario = document.getElementById('edit-nome').value;
-      document.getElementById('nome-usuario-exclusao').innerText = nomeUsuario;
-      document.getElementById('input-senha-mestre-exclusao').value = '';
-      document.getElementById('erro-senha-exclusao').classList.add('hidden');
-      document.getElementById('modal-confirmar-exclusao').classList.remove('hidden');
-    }
-
-    function fecharConfirmacaoExclusao() {
-      document.getElementById('modal-confirmar-exclusao').classList.add('hidden');
-    }
-
-    async function executarExclusaoComSenha() {
-      const senhaDigitada = document.getElementById('input-senha-mestre-exclusao').value;
-      const erroEl = document.getElementById('erro-senha-exclusao');
-
-      if (senhaDigitada !== obterSenhaMestre()) {
-        erroEl.classList.remove('hidden');
-        return;
-      }
-
-      erroEl.classList.add('hidden');
-      const id = document.getElementById('edit-id').value;
-
-      try {
-        await supabaseClient.from('corridas').delete().or(`passageiro_id.eq.${id},motorista_id.eq.${id}`);
-        await supabaseClient.from('chamados_suporte').delete().eq('usuario_id', id);
-        const { error } = await supabaseClient.from('usuarios').delete().eq('id', id);
-        
-        if (error) {
-          mostrarAlertaModal("Erro ao excluir: " + error.message, "erro");
-        } else {
-          fecharConfirmacaoExclusao();
-          fecharModalEdicao();
-          carregarDadosAdmin();
-        }
-      } catch (err) {
-        mostrarAlertaModal("Erro inesperado: " + err.message, "erro");
-      }
-    }
-
-    async function mudarStatusConta(id, tabela, novoStatus) {
+    async function mudarStatusConta(id, novoStatus) {
       const { error } = await supabaseClient.from('usuarios').update({ status: novoStatus }).eq('id', id);
       if (error) alert("Erro ao atualizar status: " + error.message);
       else carregarDadosAdmin();
-    }
-
-    async function resolverSuporte(idChamado) {
-      await supabaseClient.from('chamados_suporte').update({ status: 'resolvido' }).eq('id', idChamado);
-      carregarDadosAdmin();
     }
 
     window.onload = verificarSessaoAdmin;
