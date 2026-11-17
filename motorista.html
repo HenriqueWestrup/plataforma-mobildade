@@ -7,7 +7,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Leaflet CSS e JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
@@ -48,7 +47,7 @@
     <span class="text-[9px] text-slate-600 font-mono pr-1">v41</span>
   </header>
 
-  <!-- GAVETA DO MENU LATERAL (SEM OPÇÃO DE SUPORTE CONFORME SOLICITADO) -->
+  <!-- GAVETA DO MENU LATERAL -->
   <div id="menu-lateral" class="fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
     <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
       <div class="flex items-center gap-3">
@@ -125,13 +124,12 @@
     </div>
   </div>
 
-  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS (COM CENTRAL DE SUPORTE INTEGRADA) -->
+  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS -->
   <div id="barra-inferior-notificacao" class="bg-slate-900 border-t border-slate-800 p-3 z-40 shrink-0 shadow-2xl flex flex-col gap-2 transition-all duration-300 cursor-pointer" onclick="toggleExpandirBarra(event)">
     <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto mb-1"></div>
 
     <div id="conteudo-gaveta-notificacao" class="flex flex-col gap-3 max-h-0 overflow-hidden transition-all duration-300">
       
-      <!-- DETALHES DA CORRIDA ATIVA / EM ANDAMENTO -->
       <div id="bloco-detalhes-corrida-ativa" class="hidden bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
         <div class="space-y-1 text-xs text-slate-300">
           <p><strong>Embarque:</strong> <span id="ativa-origem" class="text-white">-</span></p>
@@ -153,7 +151,6 @@
         </div>
       </div>
 
-      <!-- PAINEL DE COBRANÇA E AVALIAÇÃO -->
       <div id="bloco-cobranca-avaliacao" class="hidden bg-slate-950 border border-emerald-500/50 rounded-2xl p-3 space-y-3">
         <div class="text-center space-y-1 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
           <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Cobrar do Passageiro</span>
@@ -504,21 +501,19 @@
         .subscribe();
     }
 
+    // CARREGAMENTO UNIFICADO DO HISTÓRICO NA BARRA INFERIOR DO MOTORISTA
     async function carregarHistoricoBarraInferiorMotorista() {
       const container = document.getElementById('lista-historico-suporte-motorista');
       if (!container) return;
 
       try {
-        let msgs = [];
-        const res1 = await supabaseClient.from('mensagens_suporte').select('*').eq('usuario_id', motoristaLogado.id).order('id', { ascending: false });
-        if (res1.data && res1.data.length > 0) {
-          msgs = res1.data;
-        } else {
-          const res2 = await supabaseClient.from('mensagens_suporte_app').select('*').eq('usuario_id', motoristaLogado.id).order('id', { ascending: false });
-          if (res2.data) msgs = res2.data;
-        }
+        const { data: msgs, error } = await supabaseClient
+          .from('mensagens_suporte')
+          .select('*')
+          .eq('usuario_id', motoristaLogado.id)
+          .order('id', { ascending: false });
 
-        if (msgs.length === 0) {
+        if (error || !msgs || msgs.length === 0) {
           container.innerHTML = '<p class="text-slate-500 text-center py-1">Nenhuma notificação de suporte no momento.</p>';
           return;
         }
@@ -557,16 +552,13 @@
       container.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Carregando...</p>';
 
       try {
-        let msgs = [];
-        const res1 = await supabaseClient.from('mensagens_suporte').select('*').eq('usuario_id', motoristaLogado.id).order('id', { ascending: false });
-        if (res1.data && res1.data.length > 0) {
-          msgs = res1.data;
-        } else {
-          const res2 = await supabaseClient.from('mensagens_suporte_app').select('*').eq('usuario_id', motoristaLogado.id).order('id', { ascending: false });
-          if (res2.data) msgs = res2.data;
-        }
+        const { data: msgs, error } = await supabaseClient
+          .from('mensagens_suporte')
+          .select('*')
+          .eq('usuario_id', motoristaLogado.id)
+          .order('id', { ascending: false });
 
-        if (msgs.length === 0) {
+        if (error || !msgs || msgs.length === 0) {
           container.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma mensagem anterior.</p>';
           return;
         }
@@ -594,10 +586,7 @@
           lido: false
         };
 
-        const res = await supabaseClient.from('mensagens_suporte').insert([payload]);
-        if (res.error) {
-          await supabaseClient.from('mensagens_suporte_app').insert([payload]);
-        }
+        await supabaseClient.from('mensagens_suporte').insert([payload]);
 
         document.getElementById('sup-motorista-input-mensagem').value = '';
         carregarHistoricoModalMotorista();

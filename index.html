@@ -47,7 +47,7 @@
     <span class="text-[9px] text-slate-600 font-mono pr-1">v19</span>
   </header>
 
-  <!-- GAVETA DO MENU LATERAL (COM OPÇÃO DE SUPORTE) -->
+  <!-- GAVETA DO MENU LATERAL -->
   <div id="menu-lateral" class="fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
     <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
       <div class="flex items-center gap-3">
@@ -70,7 +70,6 @@
       <a href="perfil.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
         <i class="fa-solid fa-user text-sky-400 w-5"></i> Meu Perfil
       </a>
-      <!-- NOVA OPÇÃO DE SUPORTE NO MENU HAMBÚRGUER -->
       <button onclick="abrirModalSuporteGeral()" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <i class="fa-solid fa-headset text-emerald-400 w-5"></i> Suporte & Mensagens
       </button>
@@ -91,7 +90,7 @@
     </div>
   </main>
 
-  <!-- MODAL DE SUPORTE E NOTIFICAÇÕES COM ASSUNTO VINCULADO -->
+  <!-- MODAL DE SUPORTE E NOTIFICAÇÕES -->
   <div id="modal-suporte-passageiro" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -218,21 +217,20 @@
       document.getElementById('modal-suporte-passageiro').classList.add('hidden');
     }
 
+    // CARREGAMENTO UNIFICADO DO HISTÓRICO DE SUPORTE
     async function carregarHistoricoMensagensSuporte() {
       const container = document.getElementById('sup-historico-lista');
+      if (!container) return;
       container.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Carregando...</p>';
 
       try {
-        let msgs = [];
-        const res1 = await supabaseClient.from('mensagens_suporte').select('*').eq('usuario_id', usuarioLogado.id).order('id', { ascending: false });
-        if (res1.data && res1.data.length > 0) {
-          msgs = res1.data;
-        } else {
-          const res2 = await supabaseClient.from('mensagens_suporte_app').select('*').eq('usuario_id', usuarioLogado.id).order('id', { ascending: false });
-          if (res2.data) msgs = res2.data;
-        }
+        const { data: msgs, error } = await supabaseClient
+          .from('mensagens_suporte')
+          .select('*')
+          .eq('usuario_id', usuarioLogado.id)
+          .order('id', { ascending: false });
 
-        if (msgs.length === 0) {
+        if (error || !msgs || msgs.length === 0) {
           container.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma mensagem anterior no suporte.</p>';
           return;
         }
@@ -260,10 +258,7 @@
           lido: false
         };
 
-        const res = await supabaseClient.from('mensagens_suporte').insert([payload]);
-        if (res.error) {
-          await supabaseClient.from('mensagens_suporte_app').insert([payload]);
-        }
+        await supabaseClient.from('mensagens_suporte').insert([payload]);
 
         document.getElementById('sup-input-mensagem').value = '';
         carregarHistoricoMensagensSuporte();
