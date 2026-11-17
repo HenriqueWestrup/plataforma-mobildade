@@ -45,7 +45,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v36</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v37</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -465,13 +465,18 @@
           .select('*, passageiro:passageiro_id(nome, foto_url, nota)')
           .eq('motorista_id', motoristaLogado.id)
           .in('status', ['aceito', 'a_caminho', 'no_local', 'em_andamento'])
+          .order('id', { ascending: false })
           .limit(1);
 
         if (data && data.length > 0) {
           corridaAtiva = data[0];
           exibirPainelCorridaAtiva();
+        } else {
+          limparCorridaAtivaLocal();
         }
-      } catch (e) {}
+      } catch (e) {
+        limparCorridaAtivaLocal();
+      }
     }
 
     function alternarPowerMotorista() {
@@ -668,7 +673,6 @@
           mapaPreviaInstancia = null;
         }
 
-        // Tenta obter coordenadas reais dos endereços ou usa fallback baseado na posição atual do GPS
         let latOrigem = (ultimaPosicaoGPS) ? ultimaPosicaoGPS.lat : -28.4835;
         let lngOrigem = (ultimaPosicaoGPS) ? ultimaPosicaoGPS.lng : -48.7804;
         let latParada = null;
@@ -676,7 +680,6 @@
         let latDestino = latOrigem + 0.015;
         let lngDestino = lngOrigem + 0.015;
 
-        // Função auxiliar para converter endereço em coordenadas via Nominatim (OpenStreetMap)
         async function geocode(endereco) {
           try {
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}`);
@@ -708,20 +711,16 @@
 
         let pontosRota = [[latOrigem, lngOrigem]];
 
-        // Marcador de Embarque
         L.marker([latOrigem, lngOrigem]).addTo(mapaPreviaInstancia).bindPopup('Embarque');
 
-        // Se houver parada, adiciona o ponto e o marcador intermediário
         if (latParada && lngParada) {
           pontosRota.push([latParada, lngParada]);
           L.marker([latParada, lngParada]).addTo(mapaPreviaInstancia).bindPopup('Parada');
         }
 
-        // Marcador de Destino Final
         pontosRota.push([latDestino, lngDestino]);
         L.marker([latDestino, lngDestino]).addTo(mapaPreviaInstancia).bindPopup('Destino Final');
 
-        // Desenha a linha da rota conectando todos os pontos
         const linhaRota = L.polyline(pontosRota, { color: '#10b981', weight: 4, opacity: 0.9 });
         linhaRota.addTo(mapaPreviaInstancia);
         mapaPreviaInstancia.fitBounds(linhaRota.getBounds(), { padding: [25, 25] });
