@@ -576,8 +576,8 @@
             const nomePass = s.passageiro?.nome || 'Passageiro Desconhecido';
             const dataCorrida = s.criado_em ? new Date(s.criado_em).toLocaleDateString('pt-BR') : '-';
 
-            // Card exatamente com o formato visual idêntico ao do print do histórico de ocorrências
-            const botaoAcao = subAbaSuporteAtual === 'novas' 
+            // Botões de Ação na aba Suporte: Analisar (se novo) e Atalho Direto para Responder no Modal do Passageiro/Motorista
+            const botaoAcaoStatus = subAbaSuporteAtual === 'novas' 
               ? `<button onclick="alterarStatusSuporte(${s.id}, 'analise')" class="flex-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-spinner"></i> Analisar (Mover para Em Análise)</button>`
               : `<button onclick="alterarStatusSuporte(${s.id}, 'resolvido')" class="flex-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-check"></i> Concluir / Resolver Chamado</button>`;
 
@@ -596,14 +596,14 @@
                   <p class="text-[10px] text-slate-500 pt-1 border-t border-slate-800">Rota: ${s.origem || '-'} ➔ ${s.destino || '-'}</p>
                 </div>
 
-                <!-- ATALHOS DE AÇÃO E PERFIS -->
+                <!-- ATALHOS DE AÇÃO E RESPOSTA DIRETA NO MODAL -->
                 <div class="flex flex-col gap-2 pt-1">
                   <div class="flex gap-2">
-                    ${botaoAcao}
+                    ${botaoAcaoStatus}
                   </div>
                   <div class="flex gap-2">
-                    ${idPassageiro ? `<button onclick="abrirModalEdicao('${idPassageiro}')" class="flex-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-user"></i> Ver Perfil Passageiro</button>` : ''}
-                    ${idMotorista ? `<button onclick="abrirModalEdicao('${idMotorista}')" class="flex-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-car"></i> Ver Perfil Motorista</button>` : ''}
+                    ${idPassageiro ? `<button onclick="abrirModalEdicaoComAbaSuporte('${idPassageiro}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 shadow"><i class="fa-solid fa-headset"></i> Responder Passageiro (Abrir Modal)</button>` : ''}
+                    ${idMotorista ? `<button onclick="abrirModalEdicaoComAbaSuporte('${idMotorista}')" class="flex-1 bg-amber-600 hover:bg-amber-500 text-white py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 shadow"><i class="fa-solid fa-car"></i> Responder Motorista (Abrir Modal)</button>` : ''}
                   </div>
                 </div>
               </div>
@@ -729,6 +729,12 @@
       
       carregarHistoricoEGanhosModal(id, isMotorista ? 'motoristas' : 'usuarios');
       carregarHistoricoSuporteModal(user);
+    }
+
+    // Função dedicada para abrir o modal direto na aba "Suporte" do usuário ao clicar no atalho da notificação
+    async function abrirModalEdicaoComAbaSuporte(id) {
+      await abrirModalEdicao(id);
+      mudarAbaModal('suporte');
     }
 
     function fecharModalEdicao() {
