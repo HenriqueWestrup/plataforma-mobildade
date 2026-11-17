@@ -59,7 +59,7 @@
     }
 
     async function realizarLoginMotorista(e) {
-      e.preventDefault();
+      e.preventDefault(); // Impede o recarregamento padrão da página
       document.getElementById('box-erro').classList.add('hidden');
       
       const cel = document.getElementById('login-celular-motorista').value.trim();
@@ -70,49 +70,64 @@
       btn.disabled = true;
 
       try {
-        let { data, error } = await supabaseClient
+        let data = null;
+        let tabelaOrigem = '';
+
+        // 1. Tenta buscar na tabela 'motoristas'
+        const resMotoristas = await supabaseClient
           .from('motoristas')
           .select('*')
           .eq('telefone', cel)
           .eq('senha', senha)
-          .single();
+          .maybeSingle();
 
-        if (error || !data) {
+        if (resMotoristas.data) {
+          data = resMotoristas.data;
+          tabelaOrigem = 'motoristas';
+        } else {
+          // 2. Se não achar, tenta na tabela 'usuarios'
           const resUsuarios = await supabaseClient
             .from('usuarios')
             .select('*')
             .eq('telefone', cel)
             .eq('senha', senha)
-            .single();
-          
-          if (!resUsuarios.error && resUsuarios.data) {
+            .maybeSingle();
+
+          if (resUsuarios.data) {
             data = resUsuarios.data;
-          } else {
-            throw new Error("Telefone ou senha inválidos. Verifique os dados informados.");
+            tabelaOrigem = 'usuarios';
           }
         }
 
-        if (data.status === 'bloqueado' || data.status === 'pendente') {
-          throw new Error("Sua conta está bloqueada ou pendente de aprovação pelo Administrador.");
+        if (!data) {
+          throw new Error("Telefone ou senha inválidos. Verifique seus dados.");
         }
 
-        // Gera token de sessão único
+        if (data.status === 'bloqueado' || data.status === 'pendente') {
+          throw new Error("Sua conta está bloqueada ou pendente de aprovação.");
+        }
+
+        // Gera o token de sessão único
         const sessionToken = 'sessao_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
 
-        // Atualiza no banco (tabela motoristas ou usuarios)
-        const tabelaAlvo = data.tipo_cadastro === 'motorista' || await supabaseClient.from('motoristas').select('id').eq('id', data.id).then(r => r.data.length > 0) ? 'motoristas' : 'usuarios';
-        await supabaseClient.from(tabelaAlvo).update({ session_token: sessionToken }).eq('id', data.id);
+        // Atualiza o token na tabela exata onde o motorista foi encontrado
+        await supabaseClient
+          .from(tabelaOrigem)
+          .update({ session_token: sessionToken })
+          .eq('id', data.id);
 
+        // Limpa sessões antigas e salva a nova
         localStorage.removeItem('passageiro_logado');
         data.tipo = 'motorista';
         data.session_token = sessionToken;
         localStorage.setItem('motorista_logado', JSON.stringify(data));
         localStorage.setItem('session_token', sessionToken);
         
+        // Redireciona com sucesso para o painel do motorista
         window.location.href = 'motorista.html';
 
       } catch (err) {
-        mostrarErro(err.message || "Erro de conexão ao tentar autenticar. Tente novamente.");
+        mostrarErro(err.message || "Erro de conexão ao tentar autenticar.");
         btn.innerText = "Entrar como Motorista";
         btn.disabled = false;
       }
