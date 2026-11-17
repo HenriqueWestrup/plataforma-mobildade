@@ -9,6 +9,16 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    @keyframes oscilarVermelho {
+      0% { border-color: rgba(239, 68, 68, 0.4); background-color: rgba(127, 29, 29, 0.4); }
+      50% { border-color: rgba(239, 68, 68, 1); background-color: rgba(153, 27, 27, 0.9); }
+      100% { border-color: rgba(239, 68, 68, 0.4); background-color: rgba(127, 29, 29, 0.4); }
+    }
+    .alerta-bloqueio-animado {
+      animation: oscilarVermelho 0.6s ease-in-out infinite;
+    }
+  </style>
 </head>
 <body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs relative select-none">
 
@@ -44,7 +54,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v41</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v42</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -181,12 +191,12 @@
         </button>
       </div>
 
-      <!-- CENTRAL DE AVISOS E SUPORTE NA BARRA INFERIOR -->
+      <!-- CENTRAL DE NOTIFICAÇÕES E AVISOS NA BARRA INFERIOR -->
       <div id="bloco-central-avisos" class="bg-slate-950 border border-emerald-500/40 rounded-2xl p-3 space-y-2.5 shadow-inner" onclick="event.stopPropagation();">
         <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
           <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-xs">
             <i class="fa-solid fa-headset text-sm"></i>
-            <span>Suporte & Notificações da Central</span>
+            <span>Central de Notificações e Avisos</span>
           </div>
           <button onclick="abrirSuporteAssuntoMotorista('Suporte Geral')" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold">
             <i class="fa-solid fa-paper-plane mr-1"></i> Contato Direto
@@ -455,12 +465,18 @@
 
       const estadoOnlineSalvo = localStorage.getItem('motorista_online');
       if (estadoOnlineSalvo === 'true') {
-        statusOnline = true;
-        document.getElementById('container-btn-desligar-redondo').classList.remove('hidden');
-        document.getElementById('status-luz-indicadora').className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping";
-        if (!corridaAtiva) iniciarOscilacaoStatus();
-        iniciarRastreamentoGPS();
-        iniciarEscutaPedidos();
+        // Validação de segurança ao iniciar o app caso estivesse salvo online mas esteja bloqueado
+        if (motoristaLogado.status === 'bloqueado' || motoristaLogado.status === 'pendente') {
+          statusOnline = false;
+          localStorage.setItem('motorista_online', 'false');
+        } else {
+          statusOnline = true;
+          document.getElementById('container-btn-desligar-redondo').classList.remove('hidden');
+          document.getElementById('status-luz-indicadora').className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping";
+          if (!corridaAtiva) iniciarOscilacaoStatus();
+          iniciarRastreamentoGPS();
+          iniciarEscutaPedidos();
+        }
         if (typeof sincronizarEstadoRadar === 'function') sincronizarEstadoRadar();
       }
     }
@@ -489,6 +505,12 @@
             motoristaLogado = payload.new;
             if (motoristaLogado.status === 'bloqueado' || motoristaLogado.status === 'pendente') {
               document.getElementById('banner-bloqueio').classList.remove('hidden');
+              if (statusOnline) {
+                // Força ficar offline imediatamente se receber bloqueio em tempo real
+                statusOnline = false;
+                localStorage.setItem('motorista_online', 'false');
+                pararRastreamentoGPS();
+              }
             } else {
               document.getElementById('banner-bloqueio').classList.add('hidden');
             }
@@ -514,7 +536,7 @@
           .order('id', { ascending: false });
 
         if (error || !msgs || msgs.length === 0) {
-          container.innerHTML = '<p class="text-slate-500 text-center py-1">Nenhuma notificação de suporte no momento.</p>';
+          container.innerHTML = '<p class="text-slate-500 text-center py-1">Nenhum aviso ou reporte pendente.</p>';
           return;
         }
 
@@ -631,7 +653,27 @@
       }
     }
 
-    function alternarPowerMotorista() {
+    // FUNÇÃO PRINCIPAL DE ALTERNAR O POWER (LIGAR/DESLIGAR O APLICATIVO) COM TRAVA DE CONTA BLOQUEADA
+    async function alternarPowerMotorista() {
+      // VERIFICAÇÃO DE BLOQUEIO OU PENDÊNCIA ANTES DE LIGAR
+      if (motoristaLogado && (motoristaLogado.status === 'bloqueado' || motoristaLogado.status === 'pendente')) {
+        // Expande a barra se estiver fechada
+        setGavetaAberta(true);
+        
+        // Adiciona classe de oscilação vermelha por 3 segundos na central de avisos / barra inferior
+        const blocoAvisos = document.getElementById('bloco-central-avisos');
+        blocoAvisos.classList.add('alerta-bloqueio-animado');
+        
+        mostrarToastAdmin("Conta suspensa ou bloqueada! Não é permitido ativar o aplicativo.", "erro");
+        tocarSomAlerta('cancelado');
+
+        setTimeout(() => {
+          blocoAvisos.classList.remove('alerta-bloqueio-animado');
+        }, 3000);
+
+        return; // Interrompe a execução impedindo de ficar online
+      }
+
       statusOnline = !statusOnline;
       localStorage.setItem('motorista_online', statusOnline);
 
