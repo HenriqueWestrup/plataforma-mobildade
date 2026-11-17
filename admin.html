@@ -425,7 +425,7 @@
       localStorage.setItem('admin_master_pass', nova);
       msgEl.innerText = "Senha mestre atualizada com sucesso!";
       msgEl.className = "text-emerald-400 text-[11px] font-semibold text-center";
-      msgEl.classList.remove('hidden');
+      msgEl.classList.add('hidden');
       setTimeout(() => fecharModalSenhaMestre(), 1500);
     }
 
@@ -433,6 +433,7 @@
       try {
         const { data: resUsu } = await supabaseClient.from('usuarios').select('*');
         
+        // Consulta robusta corrigida para garantir o vínculo correto com as tabelas de motorista e passageiro
         const { data: resCorridasSuporte } = await supabaseClient
           .from('corridas')
           .select(`
@@ -446,8 +447,8 @@
             motorista_id,
             passageiro_id,
             criado_em,
-            motorista:motorista_id(id, nome, telefone),
-            passageiro:passageiro_id(id, nome, telefone)
+            motorista:usuarios!corridas_motorista_id_fkey(id, nome, telefone),
+            passageiro:usuarios!corridas_passageiro_id_fkey(id, nome, telefone)
           `)
           .lt('avaliacao_motorista', 5)
           .order('id', { ascending: false });
@@ -483,7 +484,7 @@
     }
 
     function atualizarContadorSuporte() {
-      // Contabiliza apenas as novas notificações que não estão em análise nem resolvidas
+      // Conta as notificações pendentes que não estão em análise nem resolvidas
       const novas = dadosGlobaisSuporte.filter(s => !s.status_suporte || s.status_suporte === 'novo');
       const badge = document.getElementById('badge-contador-suporte');
       if (novas.length > 0) {
@@ -619,7 +620,6 @@
           .eq('id', corridaId);
 
         if (error) {
-          // Caso a coluna status_suporte não exista ainda no banco, simulamos localmente para não travar
           const item = dadosGlobaisSuporte.find(s => s.id === corridaId);
           if (item) item.status_suporte = novoStatus;
           renderizarAdmin();
@@ -818,8 +818,8 @@
           .from('corridas')
           .select(`
             *,
-            motorista:motorista_id(id, nome),
-            passageiro:passageiro_id(id, nome)
+            motorista:usuarios!corridas_motorista_id_fkey(id, nome),
+            passageiro:usuarios!corridas_passageiro_id_fkey(id, nome)
           `)
           .or(`motorista_id.eq.${user.id},passageiro_id.eq.${user.id}`)
           .lt('avaliacao_motorista', 5)
