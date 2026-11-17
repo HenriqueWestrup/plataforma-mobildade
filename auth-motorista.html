@@ -10,8 +10,11 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-center items-center p-4">
 
-  <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-5">
+  <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-5 relative">
     
+    <!-- MARCAÇÃO DA VERSÃO DISCRETA -->
+    <span class="absolute top-2 right-3 text-[9px] text-slate-600 font-mono">v8</span>
+
     <div class="text-center space-y-1">
       <div class="inline-block bg-amber-600/20 border border-amber-500/30 text-amber-400 p-3 rounded-2xl mb-1">
         <i class="fa-solid fa-car text-xl"></i>
@@ -54,25 +57,44 @@
     function mostrarErro(mensagem) {
       const box = document.getElementById('box-erro');
       const texto = document.getElementById('texto-erro');
-      texto.innerText = mensagem;
-      box.classList.remove('hidden');
+      if (box && texto) {
+        texto.innerText = mensagem;
+        box.classList.remove('hidden');
+      } else {
+        alert(mensagem); // Fallback caso o elemento não exista
+      }
     }
 
-    async function realizarLoginMotorista(e) {
-      e.preventDefault(); // Impede qualquer comportamento de recarregamento indesejado (F5)
-      document.getElementById('box-erro').classList.add('hidden');
+    async function realizarLoginMotorista(event) {
+      if (event) event.preventDefault(); // Garante o bloqueio de recarregamento
       
-      const cel = document.getElementById('login-celular-motorista'].value.trim();
-      const senha = document.getElementById('login-senha-motorista'].value;
+      const boxErro = document.getElementById('box-erro');
+      if (boxErro) boxErro.classList.add('hidden');
+      
+      const inputCel = document.getElementById('login-celular-motorista');
+      const inputSenha = document.getElementById('login-senha-motorista');
       const btn = document.getElementById('btn-entrar');
+
+      if (!inputCel || !inputSenha) {
+        mostrarErro("Erro interno: Campos de formulário não encontrados.");
+        return false;
+      }
+
+      const cel = inputCel.value.trim();
+      const senha = inputSenha.value;
+
+      if (!cel || !senha) {
+        mostrarErro("Preencha o celular e a senha.");
+        return false;
+      }
 
       btn.innerText = "Verificando...";
       btn.disabled = true;
 
       try {
-        let data = null;
+        let dadosMotorista = null;
 
-        // 1. Tenta buscar na tabela específica de motoristas
+        // 1. Tenta buscar na tabela 'motoristas'
         const resMotoristas = await supabaseClient
           .from('motoristas')
           .select('*')
@@ -80,11 +102,10 @@
           .eq('senha', senha)
           .maybeSingle();
 
-        if (resMotoristas.data) {
-          data = resMotoristas.data;
-          data.tipo = 'motorista';
+        if (resMotoristas && resMotoristas.data) {
+          dadosMotorista = resMotoristas.data;
         } else {
-          // 2. Se não achou na tabela 'motoristas', busca na tabela geral 'usuarios' MAS exige que seja motorista (tenha veiculo ou tipo motorista)
+          // 2. Se não achou, busca na tabela 'usuarios' validando se é motorista
           const resUsuarios = await supabaseClient
             .from('usuarios')
             .select('*')
@@ -92,42 +113,44 @@
             .eq('senha', senha)
             .maybeSingle();
 
-          if (resUsuarios.data) {
-            const usuarioEncontrado = resUsuarios.data;
-            // Validação de segurança: Passageiro comum não pode logar aqui
-            if (usuarioEncontrado.tipo !== 'motorista' && !usuarioEncontrado.veiculo_modelo) {
-              throw new Error("Esta conta pertence a um passageiro. Acesso negado ao portal do motorista.");
+          if (resUsuarios && resUsuarios.data) {
+            const usr = resUsuarios.data;
+            if (usr.tipo !== 'motorista' && !usr.veiculo_modelo) {
+              throw new Error("Esta conta não é de um motorista cadastrado.");
             }
-            data = usuarioEncontrado;
-            data.tipo = 'motorista';
+            dadosMotorista = usr;
           }
         }
 
-        if (!data) {
-          throw new Error("Telefone ou senha de motorista inválidos.");
+        if (!dadosMotorista) {
+          throw new Error("Telefone ou senha inválidos para motorista.");
         }
 
-        if (data.status === 'bloqueado' || data.status === 'pendente') {
+        if (dadosMotorista.status === 'bloqueado' || dadosMotorista.status === 'pendente') {
           throw new Error("Sua conta está bloqueada ou pendente de aprovação.");
         }
 
-        // Gera token de sessão
-        const sessionToken = 'sessao_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-
-        // Limpa sessões anteriores e grava a nova sessão de motorista
+        // Sucesso: Salva e redireciona
+        const sessionToken = 'sessao_mot_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+        
         localStorage.removeItem('passageiro_logado');
-        data.session_token = sessionToken;
-        localStorage.setItem('motorista_logado', JSON.stringify(data));
+        dadosMotorista.tipo = 'motorista';
+        dadosMotorista.session_token = sessionToken;
+        
+        localStorage.setItem('motorista_logado', JSON.stringify(dadosMotorista));
         localStorage.setItem('session_token', sessionToken);
         
-        // Redireciona para o painel correto do motorista
         window.location.href = 'motorista.html';
+        return false;
 
       } catch (err) {
+        console.error("Erro no login:", err);
         mostrarErro(err.message || "Erro de conexão ao tentar autenticar.");
         btn.innerText = "Entrar como Motorista";
         btn.disabled = false;
       }
+
+      return false;
     }
   </script>
 </body>
