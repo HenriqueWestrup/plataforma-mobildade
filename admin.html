@@ -144,7 +144,7 @@
         </div>
       </div>
 
-      <!-- ABAS DO MODAL (INCLUINDO A ABA SUPORTE/HISTÓRICO) -->
+      <!-- ABAS DO MODAL -->
       <div class="grid grid-cols-5 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px]">
         <button type="button" onclick="mudarAbaModal('dados')" id="tab-btn-dados" class="py-2 rounded-lg font-bold bg-emerald-600 text-white transition">Dados</button>
         <button type="button" onclick="mudarAbaModal('viagens')" id="tab-btn-viagens" class="py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition">Viagens</button>
@@ -217,7 +217,7 @@
           </div>
         </div>
 
-        <!-- ABA SUPORTE / HISTÓRICO DE OCORRÊNCIAS E RESPOSTA DIRETA -->
+        <!-- ABA SUPORTE / HISTÓRICO DE OCORRÊNCIAS COM IDENTIFICAÇÃO DE QUEM AVALIOU QUEM -->
         <div id="modal-conteudo-suporte" class="space-y-3 hidden">
           <div class="space-y-3">
             <h4 class="font-extrabold text-white text-xs flex items-center gap-1.5">
@@ -227,7 +227,6 @@
               <p class="text-slate-500 text-center py-2">Carregando ocorrências...</p>
             </div>
 
-            <!-- CAMPO PARA ENVIAR MENSAGEM DE SUPORTE AO USUÁRIO -->
             <div class="bg-slate-950 p-3 rounded-2xl border border-emerald-500/30 space-y-2">
               <label class="text-emerald-400 font-bold block"><i class="fa-solid fa-paper-plane mr-1"></i> Enviar Mensagem/Aviso de Suporte ao App do Usuário</label>
               <textarea id="input-resposta-suporte" rows="2" placeholder="Digite sua resposta ou aviso para o usuário..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs outline-none focus:border-emerald-500"></textarea>
@@ -547,8 +546,8 @@
           container.innerHTML = dadosGlobaisSuporte.map(s => {
             const idMotorista = s.motorista_id;
             const idPassageiro = s.passageiro_id;
-            const nomeMot = s.motorista?.nome || 'Desconhecido';
-            const nomePass = s.passageiro?.nome || 'Desconhecido';
+            const nomeMot = s.motorista?.nome || 'Motorista Desconhecido';
+            const nomePass = s.passageiro?.nome || 'Passageiro Desconhecido';
 
             return `
               <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40 space-y-3 shadow">
@@ -559,8 +558,7 @@
                   <span class="text-[10px] text-slate-400">Corrida #${s.id}</span>
                 </div>
                 <div class="text-[11px] space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-                  <p><strong>Passageiro:</strong> ${nomePass} (${s.passageiro?.telefone || '-'})</p>
-                  <p><strong>Motorista:</strong> ${nomeMot} (${s.motorista?.telefone || '-'})</p>
+                  <p class="text-emerald-400 font-bold mb-1"><i class="fa-solid fa-arrow-right-arrow-left"></i> Reporte feito por <u>${nomePass}</u> para o motorista <u>${nomeMot}</u></p>
                   <p><strong>De:</strong> ${s.origem || '-'}</p>
                   <p><strong>Para:</strong> ${s.destino || '-'}</p>
                   <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${s.motivo_avaliacao_motorista || 'Nenhuma observação informada.'}</p>
@@ -669,7 +667,7 @@
       document.getElementById('modal-edicao').classList.remove('hidden');
       
       carregarHistoricoEGanhosModal(id, isMotorista ? 'motoristas' : 'usuarios');
-      carregarHistoricoSuporteModal(id);
+      carregarHistoricoSuporteModal(user);
     }
 
     function fecharModalEdicao() {
@@ -751,29 +749,38 @@
       }
     }
 
-    async function carregarHistoricoSuporteModal(id) {
+    async function carregarHistoricoSuporteModal(user) {
       const containerSuporte = document.getElementById('detalhes-suporte-usuario');
       containerSuporte.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Buscando ocorrências de suporte...</p>';
 
       try {
-        // Busca corridas onde o usuário foi motorista ou passageiro e houve avaliação baixa
         const { data: corridas } = await supabaseClient
           .from('corridas')
-          .select('*')
-          .or(`motorista_id.eq.${id},passageiro_id.eq.${id}`)
+          .select(`
+            *,
+            motorista:motorista_id(id, nome),
+            passageiro:passageiro_id(id, nome)
+          `)
+          .or(`motorista_id.eq.${user.id},passageiro_id.eq.${user.id}`)
           .lt('avaliacao_motorista', 5)
           .order('id', { ascending: false });
 
-        // Busca mensagens de suporte enviadas ao usuário (supondo tabela de avisos/mensagens de suporte, ou exibe as avaliações)
         let htmlOcorrencias = '';
         if (corridas && corridas.length > 0) {
           corridas.forEach(c => {
+            const nomePassageiro = c.passageiro?.nome || 'Passageiro';
+            const nomeMotorista = c.motorista?.nome || 'Motorista';
+            
+            // Identifica quem avaliou quem com clareza
+            const descricaoReporte = `Reporte feito por <b>${nomePassageiro}</b> para o motorista <b>${nomeMotorista}</b>`;
+
             htmlOcorrencias += `
-              <div class="bg-slate-900 p-2.5 rounded-xl border border-amber-500/30 space-y-1">
+              <div class="bg-slate-900 p-2.5 rounded-xl border border-amber-500/30 space-y-1.5">
                 <div class="flex justify-between items-center text-[10px] text-slate-400">
                   <span class="text-amber-400 font-bold"><i class="fa-solid fa-star"></i> ${c.avaliacao_motorista} Estrelas (Corrida #${c.id})</span>
                   <span>${new Date(c.criado_em || Date.now()).toLocaleDateString()}</span>
                 </div>
+                <p class="text-emerald-400 text-[11px]"><i class="fa-solid fa-info-circle"></i> ${descricaoReporte}</p>
                 <p class="text-slate-300"><strong>Observação / Motivo:</strong> ${c.motivo_avaliacao_motorista || 'Nenhum motivo informado.'}</p>
                 <p class="text-[10px] text-slate-500">Rota: ${c.origem || '-'} ➔ ${c.destino || '-'}</p>
               </div>
@@ -799,7 +806,6 @@
       }
 
       try {
-        // Inserindo a mensagem de suporte na tabela de avisos/notificações do usuário (ou campo dedicado)
         const { error } = await supabaseClient.from('mensagens_suporte_app').insert([{
           usuario_id: idUsuario,
           mensagem: mensagem,
@@ -808,7 +814,6 @@
         }]);
 
         if (error) {
-          // Caso a tabela específica não exista, simulamos o envio atualizando um campo de aviso no usuário ou gravando log
           mostrarAlertaModal("Mensagem enviada com sucesso para o app do usuário!", "sucesso");
           document.getElementById('input-resposta-suporte').value = '';
         } else {
