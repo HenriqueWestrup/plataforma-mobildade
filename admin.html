@@ -66,15 +66,18 @@
     </div>
   </header>
 
-  <!-- ABAS PRINCIPAIS DO ADMIN -->
-  <div class="bg-slate-900 border-b border-slate-800 px-4 py-2 flex gap-2 shrink-0">
-    <button onclick="mudarAbaAdmin('motoristas')" id="btn-aba-motoristas" class="flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-emerald-600 text-white transition">
+  <!-- AS 4 ABAS PRINCIPAIS DO ADMIN -->
+  <div class="bg-slate-900 border-b border-slate-800 px-3 py-2 grid grid-cols-4 gap-1.5 shrink-0 text-[11px]">
+    <button onclick="mudarAbaAdmin('motoristas')" id="btn-aba-motoristas" class="py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition text-center truncate">
       <i class="fa-solid fa-car mr-1"></i> Motoristas (<span id="count-aba-motoristas">0</span>)
     </button>
-    <button onclick="mudarAbaAdmin('usuarios')" id="btn-aba-usuarios" class="flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-slate-800 text-slate-400 transition">
+    <button onclick="mudarAbaAdmin('usuarios')" id="btn-aba-usuarios" class="py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate">
       <i class="fa-solid fa-users mr-1"></i> Passageiros (<span id="count-aba-passageiros">0</span>)
     </button>
-    <button onclick="mudarAbaAdmin('suporte')" id="btn-aba-suporte" class="relative flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-slate-800 text-slate-400 transition">
+    <button onclick="mudarAbaAdmin('viagens')" id="btn-aba-viagens" class="py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate">
+      <i class="fa-solid fa-route mr-1"></i> Viagens (<span id="count-aba-viagens">0</span>)
+    </button>
+    <button onclick="mudarAbaAdmin('suporte')" id="btn-aba-suporte" class="relative py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate">
       <i class="fa-solid fa-headset mr-1"></i> Suporte
       <span id="badge-contador-suporte" class="hidden absolute -top-1 -right-1 bg-red-600 text-white text-[9px] px-1.5 py-0.5 rounded-full font-extrabold animate-pulse">+0</span>
     </button>
@@ -83,16 +86,8 @@
   <!-- CONTEÚDO COM SCROLL -->
   <main class="flex-1 overflow-y-auto p-4 space-y-4 pb-16">
     
-    <!-- SEÇÃO 1: MOTORISTAS -->
+    <!-- SEÇÃO 1: MOTORISTAS (Lista única ordenada: online no topo) -->
     <div id="secao-motoristas" class="space-y-3">
-      <div class="flex gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
-        <button onclick="mudarSubAbaMotorista('todos')" id="sub-btn-todos" class="flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-emerald-600/20 text-emerald-400 border border-emerald-500/30">
-          Todos (<span id="count-mot-todos">0</span>)
-        </button>
-        <button onclick="mudarSubAbaMotorista('online')" id="sub-btn-online" class="flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-400">
-          Online (<span id="count-mot-online">0</span>)
-        </button>
-      </div>
       <div id="lista-admin-motoristas" class="space-y-3">
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Carregando motoristas...</div>
       </div>
@@ -109,7 +104,14 @@
       </div>
     </div>
 
-    <!-- SEÇÃO 3: SUPORTE CENTRAL -->
+    <!-- SEÇÃO 3: VIAGENS EM ANDAMENTO -->
+    <div id="secao-viagens" class="space-y-3 hidden">
+      <div id="lista-admin-viagens-ativas" class="space-y-3">
+        <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhuma viagem em andamento no momento.</div>
+      </div>
+    </div>
+
+    <!-- SEÇÃO 4: SUPORTE CENTRAL -->
     <div id="secao-suporte" class="space-y-3 hidden">
       <div id="lista-admin-suporte" class="space-y-3">
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum chamado de suporte pendente.</div>
@@ -217,7 +219,7 @@
           </div>
         </div>
 
-        <!-- ABA SUPORTE / HISTÓRICO DE OCORRÊNCIAS COM IDENTIFICAÇÃO DE QUEM AVALIOU QUEM -->
+        <!-- ABA SUPORTE / HISTÓRICO DE OCORRÊNCIAS -->
         <div id="modal-conteudo-suporte" class="space-y-3 hidden">
           <div class="space-y-3">
             <h4 class="font-extrabold text-white text-xs flex items-center gap-1.5">
@@ -308,8 +310,8 @@
     let dadosGlobaisMotoristas = [];
     let dadosGlobaisUsuarios = [];
     let dadosGlobaisSuporte = [];
+    let dadosGlobaisViagensAtivas = [];
     let abaAdminAtual = 'motoristas';
-    let subAbaMotorista = 'todos';
     let canalRealtimeAdmin = null;
 
     function tocarSomAlertaAdmin() {
@@ -441,14 +443,34 @@
           .lt('avaliacao_motorista', 5)
           .order('id', { ascending: false });
 
+        // Busca de viagens ativas / em andamento
+        const { data: resViagensAtivas } = await supabaseClient
+          .from('corridas')
+          .select(`
+            id,
+            origem,
+            destino,
+            valor,
+            status,
+            motorista_id,
+            passageiro_id,
+            criado_em,
+            motorista:motorista_id(id, nome, telefone, veiculo_modelo, veiculo_placa),
+            passageiro:passageiro_id(id, nome, telefone)
+          `)
+          .in('status', ['aceita', 'em_andamento', 'em_curso', 'pendente'])
+          .order('id', { ascending: false });
+
         const usuariosTotais = resUsu || [];
         
         dadosGlobaisMotoristas = usuariosTotais.filter(u => u.tipo === 'motorista' || u.veiculo_modelo);
         dadosGlobaisUsuarios = usuariosTotais.filter(u => u.tipo !== 'motorista' && !u.veiculo_modelo);
         dadosGlobaisSuporte = resCorridasSuporte || [];
+        dadosGlobaisViagensAtivas = resViagensAtivas || [];
 
         document.getElementById('count-aba-motoristas').innerText = dadosGlobaisMotoristas.length;
         document.getElementById('count-aba-passageiros').innerText = dadosGlobaisUsuarios.length;
+        document.getElementById('count-aba-viagens').innerText = dadosGlobaisViagensAtivas.length;
 
         atualizarContadorSuporte();
         renderizarAdmin();
@@ -461,12 +483,12 @@
       if (canalRealtimeAdmin) supabaseClient.removeChannel(canalRealtimeAdmin);
 
       canalRealtimeAdmin = supabaseClient
-        .channel('public:corridas_admin_suporte_realtime')
+        .channel('public:corridas_admin_realtime')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'corridas' }, payload => {
           if (payload.new && payload.new.avaliacao_motorista && payload.new.avaliacao_motorista < 5) {
             tocarSomAlertaAdmin();
-            carregarDadosAdmin();
           }
+          carregarDadosAdmin();
         })
         .subscribe();
     }
@@ -484,36 +506,34 @@
 
     function mudarAbaAdmin(aba) {
       abaAdminAtual = aba;
-      document.getElementById('btn-aba-motoristas').className = aba === 'motoristas' ? 'flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-emerald-600 text-white transition' : 'flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-slate-800 text-slate-400 transition';
-      document.getElementById('btn-aba-usuarios').className = aba === 'usuarios' ? 'flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-emerald-600 text-white transition' : 'flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-slate-800 text-slate-400 transition';
-      document.getElementById('btn-aba-suporte').className = aba === 'suporte' ? 'relative flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-emerald-600 text-white transition' : 'relative flex-1 py-2 px-3 rounded-xl font-bold text-xs bg-slate-800 text-slate-400 transition';
+      document.getElementById('btn-aba-motoristas').className = aba === 'motoristas' ? 'py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition text-center truncate' : 'py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate';
+      document.getElementById('btn-aba-usuarios').className = aba === 'usuarios' ? 'py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition text-center truncate' : 'py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate';
+      document.getElementById('btn-aba-viagens').className = aba === 'viagens' ? 'py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition text-center truncate' : 'py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate';
+      document.getElementById('btn-aba-suporte').className = aba === 'suporte' ? 'relative py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition text-center truncate' : 'relative py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate';
 
       document.getElementById('secao-motoristas').classList.toggle('hidden', aba !== 'motoristas');
       document.getElementById('secao-usuarios').classList.toggle('hidden', aba !== 'usuarios');
+      document.getElementById('secao-viagens').classList.toggle('hidden', aba !== 'viagens');
       document.getElementById('secao-suporte').classList.toggle('hidden', aba !== 'suporte');
-      renderizarAdmin();
-    }
-
-    function mudarSubAbaMotorista(sub) {
-      subAbaMotorista = sub;
-      document.getElementById('sub-btn-todos').className = sub === 'todos' ? 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-400';
-      document.getElementById('sub-btn-online').className = sub === 'online' ? 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'flex-1 py-1.5 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-400';
       renderizarAdmin();
     }
 
     function renderizarAdmin() {
       if (abaAdminAtual === 'motoristas') {
-        const onlineList = dadosGlobaisMotoristas.filter(m => m.online === true || m.status === 'aprovado');
-        document.getElementById('count-mot-todos').innerText = dadosGlobaisMotoristas.length;
-        document.getElementById('count-mot-online').innerText = onlineList.length;
-
-        const listaAlvo = subAbaMotorista === 'online' ? onlineList : dadosGlobaisMotoristas;
         const container = document.getElementById('lista-admin-motoristas');
 
-        if (listaAlvo.length === 0) {
+        // Ordenação: Online sempre no topo
+        let motoristasOrdenados = [...dadosGlobaisMotoristas].sort((a, b) => {
+          const aOnline = (a.online === true) ? 1 : 0;
+          const bOnline = (b.online === true) ? 1 : 0;
+          if (aOnline !== bOnline) return bOnline - aOnline;
+          return (a.nome || '').localeCompare(b.nome || '');
+        });
+
+        if (motoristasOrdenados.length === 0) {
           container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista cadastrado.</div>`;
         } else {
-          container.innerHTML = listaAlvo.map(m => gerarCardAdmin(m)).join('');
+          container.innerHTML = motoristasOrdenados.map(m => gerarCardAdmin(m)).join('');
         }
       } else if (abaAdminAtual === 'usuarios') {
         const container = document.getElementById('lista-admin-passageiros');
@@ -537,6 +557,41 @@
           container.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro encontrado.</div>';
         } else {
           container.innerHTML = passageirosFiltrados.map(u => gerarCardAdmin(u)).join('');
+        }
+      } else if (abaAdminAtual === 'viagens') {
+        const container = document.getElementById('lista-admin-viagens-ativas');
+
+        if (dadosGlobaisViagensAtivas.length === 0) {
+          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhuma viagem em andamento no momento.</div>`;
+        } else {
+          container.innerHTML = dadosGlobaisViagensAtivas.map(v => {
+            const nomePass = v.passageiro?.nome || 'Passageiro não informado';
+            const nomeMot = v.motorista?.nome || 'Aguardando Motorista';
+            const valor = Number(v.valor || 15.0).toFixed(2);
+            const statusViagem = v.status || 'em_andamento';
+
+            return `
+              <div class="bg-slate-900 p-4 rounded-2xl border border-emerald-500/40 space-y-2.5 shadow">
+                <div class="flex justify-between items-center">
+                  <span class="text-xs font-extrabold text-emerald-400"><i class="fa-solid fa-route mr-1"></i> Viagem #${v.id}</span>
+                  <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400 uppercase">${statusViagem}</span>
+                </div>
+                <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-1 text-[11px]">
+                  <p class="text-slate-200"><strong>Passageiro:</strong> ${nomePass}</p>
+                  <p class="text-slate-200"><strong>Motorista:</strong> ${nomeMot}</p>
+                  <p class="text-slate-300 truncate"><strong>De:</strong> ${v.origem || '-'}</p>
+                  <p class="text-slate-300 truncate"><strong>Para:</strong> ${v.destino || '-'}</p>
+                </div>
+                <div class="flex justify-between items-center text-xs pt-1">
+                  <span class="text-emerald-400 font-extrabold">R$ ${valor}</span>
+                  <div class="flex gap-2">
+                    ${v.passageiro_id ? `<button onclick="abrirModalEdicao('${v.passageiro_id}')" class="bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 px-3 py-1.5 rounded-xl font-bold"><i class="fa-solid fa-user"></i> Passageiro</button>` : ''}
+                    ${v.motorista_id ? `<button onclick="abrirModalEdicao('${v.motorista_id}')" class="bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-xl font-bold"><i class="fa-solid fa-car"></i> Motorista</button>` : ''}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
         }
       } else if (abaAdminAtual === 'suporte') {
         const container = document.getElementById('lista-admin-suporte');
@@ -771,7 +826,6 @@
             const nomePassageiro = c.passageiro?.nome || 'Passageiro';
             const nomeMotorista = c.motorista?.nome || 'Motorista';
             
-            // Identifica quem avaliou quem com clareza
             const descricaoReporte = `Reporte feito por <b>${nomePassageiro}</b> para o motorista <b>${nomeMotorista}</b>`;
 
             htmlOcorrencias += `
