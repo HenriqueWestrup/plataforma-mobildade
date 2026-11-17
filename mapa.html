@@ -3,7 +3,7 @@
   <div id="map" class="absolute inset-0 w-full h-full z-0"></div>
 
   <!-- PAINEL FLUTUANTE DE SOLICITAÇÃO DE CORRIDA -->
-  <div class="absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-slate-800 p-4 rounded-2xl space-y-3 shadow-2xl z-10">
+  <div id="painel-solicitacao" class="absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-slate-800 p-4 rounded-2xl space-y-3 shadow-2xl z-10">
     
     <!-- CAMPO ORIGEM -->
     <div class="relative">
@@ -34,7 +34,7 @@
       <span id="valor-estimado" class="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
     </div>
 
-    <!-- SELEÇÃO DE FORMA DE PAGAMENTO (PIX / DINHEIRO) -->
+    <!-- SELEÇÃO DE FORMA DE PAGAMENTO -->
     <div class="grid grid-cols-2 gap-2 pt-1">
       <button type="button" onclick="selecionarPagamento('PIX')" id="btn-pay-pix" class="bg-emerald-600/20 border border-emerald-500 text-emerald-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2">
         <i class="fa-solid fa-qrcode"></i> PIX
@@ -49,13 +49,32 @@
       <i class="fa-solid fa-car-side"></i> Chamar Motorista
     </button>
   </div>
+
+  <!-- PAINEL DE ESPERA / BUSCA DE MOTORISTA (COM TIMER DE 3 MINUTOS E CANCELAMENTO) -->
+  <div id="painel-espera-corrida" class="hidden absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-amber-500/50 p-5 rounded-2xl space-y-4 shadow-2xl z-20 text-center">
+    <div class="w-12 h-12 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-full flex items-center justify-center mx-auto animate-spin">
+      <i class="fa-solid fa-radar text-xl"></i>
+    </div>
+    <div class="space-y-1">
+      <h3 class="font-extrabold text-white text-sm">Procurando Motorista Próximo...</h3>
+      <p class="text-[11px] text-slate-400">Aguardando aceitação dos motoristas online na região.</p>
+    </div>
+
+    <!-- CONTADOR REGRESSIVO DE 3 MINUTOS -->
+    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center px-4">
+      <span class="text-slate-400 text-xs">Tempo restante:</span>
+      <span id="timer-regressivo" class="font-mono text-amber-400 font-bold text-sm">03:00</span>
+    </div>
+
+    <!-- BOTÃO DE CANCELAMENTO ANTES DE O MOTORISTA ACEITAR -->
+    <button onclick="cancelarBuscaCorrida()" class="w-full bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+      <i class="fa-solid fa-xmark"></i> Cancelar Corrida
+    </button>
+  </div>
 </div>
 
-<!-- Importação local do SDK do Supabase caso o arquivo rode isolado -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-  // Inicialização independente do Supabase para evitar o erro de fetch
   const SUPABASE_URL_MAPA = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
   const SUPABASE_ANON_KEY_MAPA = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
   const supabaseMapa = window.supabase ? window.supabase.createClient(SUPABASE_URL_MAPA, SUPABASE_ANON_KEY_MAPA) : null;
@@ -66,6 +85,10 @@
   let coordsOrigem = null;
   let coordsDestino = null;
   let formaPagamentoSelecionada = 'PIX';
+  let marcadoresMotoristas = {};
+  let intervaloRadarMotoristas = null;
+  let timerIntervalId = null;
+  let corridaAtualId = null;
 
   function inicializarMapa() {
     if (mapaLeaflet) {
@@ -76,7 +99,7 @@
     const latLaguna = -28.4811;
     const lngLaguna = -48.7811;
 
-    mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 13);
+    mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
@@ -86,6 +109,59 @@
 
     setTimeout(() => mapaLeaflet.invalidateSize(), 200);
     usarMinhaLocalizacao();
+    iniciarRadarMotoristasOnline();
+  }
+
+  // BUSCA E EXIBE MOTORISTAS ONLINE EM TEMPO REAL NO MAPA
+  async function iniciarRadarMotoristasOnline() {
+    if (!supabaseMapa) return;
+
+    atualizarPosicoesMotoristas();
+    intervaloRadarMotoristas = setInterval(atualizarPosicoesMotoristas, 5000);
+  }
+
+  async function atualizarPosicoesMotoristas() {
+    try {
+      const { data: motoristas, error } = await supabaseMapa
+        .from('usuarios')
+        .select('id, nome, lat, lng, online, veiculo_modelo, veiculo_placa')
+        .eq('online', true);
+
+      if (error || !motoristas) return;
+
+      const idsAtuais = motoristas.map(m => m.id);
+
+      // Remove motoristas que ficaram offline do mapa
+      Object.keys(marcadoresMotoristas).forEach(id => {
+        if (!idsAtuais.includes(id)) {
+          mapaLeaflet.removeLayer(marcadoresMotoristas[id]);
+          delete marcadoresMotoristas[id];
+        }
+      });
+
+      // Ícone personalizado de carrinho para os motoristas disponiveis
+      const iconeCarroMapa = L.divIcon({
+        className: 'custom-car-radar',
+        html: '<div style="background-color: #10b981; color: #fff; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.6); border: 2px solid #fff;"><i class="fa-solid fa-car text-xs"></i></div>',
+        iconSize: [34, 34],
+        iconAnchor: [17, 17]
+      });
+
+      motoristas.forEach(m => {
+        if (m.lat && m.lng) {
+          if (marcadoresMotoristas[m.id]) {
+            marcadoresMotoristas[m.id].setLatLng([m.lat, m.lng]);
+          } else {
+            const marcador = L.marker([m.lat, m.lng], { icon: iconeCarroMapa })
+              .addTo(mapaLeaflet)
+              .bindPopup(`<b>Motorista:</b> ${m.nome}<br><b>Veículo:</b> ${m.veiculo_modelo || 'Padrão'} (${m.veiculo_placa || 'SEM-PLACA'})`);
+            marcadoresMotoristas[m.id] = marcador;
+          }
+        }
+      });
+    } catch (err) {
+      console.error("Erro ao atualizar radar de motoristas:", err);
+    }
   }
 
   function selecionarPagamento(tipo) {
@@ -126,7 +202,7 @@
               document.getElementById('origem-corrida').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
             });
         },
-        () => { console.log("GPS indisponível."); },
+        () => {},
         { enableHighAccuracy: true }
       );
     }
@@ -154,9 +230,7 @@
         </div>
       `).join('');
       container.classList.remove('hidden');
-    } catch (e) {
-      console.error("Erro no autocomplete:", e);
-    }
+    } catch (e) {}
   }
 
   function selecionarEndereco(nome, lat, lon, tipo) {
@@ -222,6 +296,7 @@
     mapaLeaflet.fitBounds(bounds, { padding: [50, 50] });
   }
 
+  // CHAMADA DE CORRIDA COM TIMER DE 3 MINUTOS E OPÇÃO DE CANCELAMENTO
   async function chamarMotorista() {
     const origem = document.getElementById('origem-corrida').value;
     const destino = document.getElementById('destino-corrida').value;
@@ -242,26 +317,75 @@
     }
 
     const clienteSupabaseAtivo = supabaseMapa || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
-
     if (!clienteSupabaseAtivo) {
       alert("Erro crítico: Conexão com o banco de dados indisponível.");
       return;
     }
 
-    const { error } = await clienteSupabaseAtivo.from('corridas').insert([{
+    // Insere a corrida com status 'procurando'
+    const { data, error } = await clienteSupabaseAtivo.from('corridas').insert([{
       passageiro_id: dadosUsuario.id,
       origem: origem,
       destino: destino,
       valor: valorNumerico,
       forma_pagamento: String(formaPagamentoSelecionada || 'PIX'),
       status: 'procurando'
-    }]);
+    }]).select().single();
 
     if (error) {
       alert("Erro ao solicitar corrida: " + error.message);
     } else {
-      alert(`Corrida solicitada com sucesso! Pagamento via ${formaPagamentoSelecionada}. Buscando motorista próximo...`);
+      corridaAtualId = data.id;
+      
+      // Oculta painel de pedido e exibe o painel de espera com timer de 3 minutos
+      document.getElementById('painel-solicitacao').classList.add('hidden');
+      document.getElementById('painel-espera-corrida').classList.remove('hidden');
+
+      iniciarTimerEsperaCorrida();
     }
+  }
+
+  function iniciarTimerEsperaCorrida() {
+    let tempoRestante = 180; // 3 minutos em segundos
+    const display = document.getElementById('timer-regressivo');
+
+    if (timerIntervalId) clearInterval(timerIntervalId);
+
+    timerIntervalId = setInterval(async () => {
+      let minutos = Math.floor(tempoRestante / 60);
+      let segundos = tempoRestante % 60;
+
+      display.innerText = `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+
+      if (tempoRestante <= 0) {
+        clearInterval(timerIntervalId);
+        alert("Tempo limite de 3 minutos esgotado sem motoristas aceitarem. A busca foi encerrada.");
+        
+        if (corridaAtualId && supabaseMapa) {
+          await supabaseMapa.from('corridas').update({ status: 'expirado' }).eq('id', corridaAtualId);
+        }
+        
+        resetarPainelCorrida();
+      }
+      tempoRestante--;
+    }, 1000);
+  }
+
+  async function cancelarBuscaCorrida() {
+    if (timerIntervalId) clearInterval(timerIntervalId);
+
+    if (corridaAtualId && supabaseMapa) {
+      await supabaseMapa.from('corridas').update({ status: 'cancelado' }).eq('id', corridaAtualId);
+    }
+
+    alert("Corrida cancelada com sucesso.");
+    resetarPainelCorrida();
+  }
+
+  function resetarPainelCorrida() {
+    corridaAtualId = null;
+    document.getElementById('painel-espera-corrida').classList.add('hidden');
+    document.getElementById('painel-solicitacao').classList.remove('hidden');
   }
 
   setTimeout(inicializarMapa, 100);
