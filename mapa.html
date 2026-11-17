@@ -124,7 +124,7 @@
     }
   }
 
-  // BUSCA AMPLIADA: Removeu a trava restritiva de Laguna para abranger qualquer território digitado
+  // Busca ampliada para qualquer território sem travas regionais
   async function buscarSugestoes(termo, tipo) {
     const container = document.getElementById(`sugestoes-${tipo}`);
     if (termo.length < 3) {
@@ -234,7 +234,6 @@
       return;
     }
 
-    // Verifica se o supabaseClient está disponível na página principal
     if (typeof supabaseClient === 'undefined') {
       alert("Erro de conexão com o banco de dados. Recarregue a página.");
       return;
