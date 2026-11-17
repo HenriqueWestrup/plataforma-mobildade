@@ -172,7 +172,7 @@
           <button type="button" onclick="fecharModalAtendimentoSuporte()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl transition">
             Fechar
           </button>
-          <button type="button" onclick="enviarRespostaENotificarSuporte()" class="flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-1.5">
+          <button type="button" onclick="enviarRespostaENotificarSuporteModal()" class="flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-1.5">
             <i class="fa-solid fa-paper-plane"></i> Salvar e Notificar Usuário
           </button>
         </div>
@@ -280,18 +280,18 @@
           </div>
         </div>
 
-        <!-- ABA SUPORTE / HISTÓRICO DE OCORRÊNCIAS -->
+        <!-- ABA SUPORTE / HISTÓRICO DE OCORRÊNCIAS E RESPOSTAS -->
         <div id="modal-conteudo-suporte" class="space-y-3 hidden">
           <div class="space-y-3">
             <h4 class="font-extrabold text-white text-xs flex items-center gap-1.5">
-              <i class="fa-solid fa-headset text-emerald-400"></i> Histórico de Ocorrências e Suporte com o Usuário
+              <i class="fa-solid fa-headset text-emerald-400"></i> Histórico de Ocorrências e Respostas de Suporte
             </h4>
             <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-3 max-h-52 overflow-y-auto" id="detalhes-suporte-usuario">
-              <p class="text-slate-500 text-center py-2">Carregando ocorrências...</p>
+              <p class="text-slate-500 text-center py-2">Carregando ocorrências e histórico...</p>
             </div>
 
             <div class="bg-slate-950 p-3 rounded-2xl border border-emerald-500/30 space-y-2">
-              <label class="text-emerald-400 font-bold block"><i class="fa-solid fa-paper-plane mr-1"></i> Enviar Mensagem/Aviso de Suporte ao App do Usuário</label>
+              <label class="text-emerald-400 font-bold block"><i class="fa-solid fa-paper-plane mr-1"></i> Enviar Resposta / Notificação ao App do Usuário</label>
               <textarea id="input-resposta-suporte" rows="2" placeholder="Digite sua resposta ou aviso para o usuário..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs outline-none focus:border-emerald-500"></textarea>
               <button type="button" onclick="enviarMensagemSuporteUsuario()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl transition shadow">
                 Salvar e Notificar Usuário
@@ -399,6 +399,11 @@
       const texto = document.getElementById(`${targetPrefix}-texto`);
       const icone = document.getElementById(`${targetPrefix}-icone`);
 
+      if (!toast || !texto || !icone) {
+        alert(mensagem);
+        return;
+      }
+
       texto.innerText = mensagem;
       toast.classList.remove('hidden');
 
@@ -478,7 +483,7 @@
       localStorage.setItem('admin_master_pass', nova);
       msgEl.innerText = "Senha mestre atualizada com sucesso!";
       msgEl.className = "text-emerald-400 text-[11px] font-semibold text-center";
-      msgEl.classList.remove('hidden');
+      msgEl.classList.hidden = false;
       setTimeout(() => fecharModalSenhaMestre(), 1500);
     }
 
@@ -695,7 +700,7 @@
     }
 
     // =========================================================================
-    // FUNÇÕES DO MODAL EXCLUSIVO DE ATENDIMENTO DENTRO DA ABA SUPORTE
+    // MODAL EXCLUSIVO DE ATENDIMENTO NA ABA SUPORTE
     // =========================================================================
     async function abrirModalAtendimentoSuporte(corridaId) {
       const s = dadosGlobaisSuporte.find(item => String(item.id) === String(corridaId));
@@ -720,15 +725,15 @@
 
       document.getElementById('modal-atendimento-suporte').classList.remove('hidden');
 
-      await carregarHistoricoMensagensSuporteUsuario(idDestinatario);
+      await carregarHistoricoMensagensSuporteUsuario(idDestinatario, 'sup-modal-historico-msgs');
     }
 
     function fecharModalAtendimentoSuporte() {
       document.getElementById('modal-atendimento-suporte').classList.add('hidden');
     }
 
-    async function carregarHistoricoMensagensSuporteUsuario(usuarioId) {
-      const container = document.getElementById('sup-modal-historico-msgs');
+    async function carregarHistoricoMensagensSuporteUsuario(usuarioId, containerId) {
+      const container = document.getElementById(containerId);
       if (!usuarioId) {
         container.innerHTML = '<p class="text-slate-500 text-center py-2">Usuário não identificado.</p>';
         return;
@@ -737,19 +742,24 @@
       container.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Carregando histórico...</p>';
 
       try {
-        const { data: msgs, error } = await supabaseClient
-          .from('mensagens_suporte_app')
-          .select('*')
-          .eq('usuario_id', usuarioId)
-          .order('id', { ascending: false });
+        // Tenta buscar na tabela 'mensagens_suporte' ou 'mensagens_suporte_app'
+        let msgs = [];
+        const res1 = await supabaseClient.from('mensagens_suporte').select('*').eq('usuario_id', usuarioId).order('id', { ascending: false });
+        if (res1.data && res1.data.length > 0) {
+          msgs = res1.data;
+        } else {
+          const res2 = await supabaseClient.from('mensagens_suporte_app').select('*').eq('usuario_id', usuarioId).order('id', { ascending: false });
+          if (res2.data) msgs = res2.data;
+        }
 
-        if (error || !msgs || msgs.length === 0) {
+        if (msgs.length === 0) {
           container.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma resposta enviada anteriormente para este usuário.</p>';
           return;
         }
 
         container.innerHTML = msgs.map(m => {
-          const dataFormatada = m.criado_em ? new Date(m.criado_em).toLocaleString('pt-BR') : 'Enviada';
+          const dataFormatada = m.criado_em || m.created_at ? new Date(m.criado_em || m.created_at).toLocaleString('pt-BR') : 'Enviada';
+          const textoMsg = m.mensagem || m.texto || '-';
           const statusLido = m.lido ? '<span class="text-emerald-400"><i class="fa-solid fa-check-double"></i> Lida</span>' : '<span class="text-amber-400"><i class="fa-solid fa-bell"></i> Notificada</span>';
           return `
             <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 space-y-1 text-[11px]">
@@ -757,7 +767,7 @@
                 <span>${dataFormatada}</span>
                 ${statusLido}
               </div>
-              <p class="text-slate-200">${m.mensagem}</p>
+              <p class="text-slate-200">${textoMsg}</p>
             </div>
           `;
         }).join('');
@@ -766,7 +776,7 @@
       }
     }
 
-    async function enviarRespostaENotificarSuporte() {
+    async function enviarRespostaENotificarSuporteModal() {
       const idUsuario = document.getElementById('sup-modal-usuario-id').value;
       const corridaId = document.getElementById('sup-modal-corrida-ref').value;
       const mensagem = document.getElementById('sup-modal-input-resposta').value.trim();
@@ -781,16 +791,21 @@
       }
 
       try {
-        // 1. Grava a resposta na tabela de mensagens de suporte com lido: false para disparar notificação no app do usuário
-        const { error } = await supabaseClient.from('mensagens_suporte_app').insert([{
+        // Grava na tabela principal 'mensagens_suporte' e também em 'mensagens_suporte_app' para garantir compatibilidade total
+        const payload = {
           usuario_id: idUsuario,
-          corrida_id: corridaId || null,
+          corrida_id: corridaId ? Number(corridaId) : null,
           mensagem: mensagem,
           remetente: 'admin',
           lido: false
-        }]);
+        };
 
-        // 2. Atualiza também um campo de notificação pendente no registro do usuário caso o app monitore a tabela 'usuarios'
+        const insertRes = await supabaseClient.from('mensagens_suporte').insert([payload]);
+        if (insertRes.error) {
+          await supabaseClient.from('mensagens_suporte_app').insert([payload]);
+        }
+
+        // Atualiza o registro do usuário para notificar o app
         await supabaseClient
           .from('usuarios')
           .update({
@@ -799,13 +814,9 @@
           })
           .eq('id', idUsuario);
 
-        if (error) {
-          console.warn("Aviso ao inserir em mensagens_suporte_app:", error.message);
-        }
-
         mostrarAlertaModal("Resposta salva e usuário notificado com sucesso!", "sucesso", "suporte-modal");
         document.getElementById('sup-modal-input-resposta').value = '';
-        await carregarHistoricoMensagensSuporteUsuario(idUsuario);
+        await carregarHistoricoMensagensSuporteUsuario(idUsuario, 'sup-modal-historico-msgs');
       } catch (err) {
         mostrarAlertaModal("Erro ao salvar resposta: " + err.message, "erro", "suporte-modal");
       }
@@ -987,7 +998,7 @@
 
     async function carregarHistoricoSuporteModal(user) {
       const containerSuporte = document.getElementById('detalhes-suporte-usuario');
-      containerSuporte.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Buscando ocorrências de suporte...</p>';
+      containerSuporte.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Buscando ocorrências e histórico de suporte...</p>';
 
       try {
         const { data: corridas } = await supabaseClient
@@ -1006,7 +1017,6 @@
           corridas.forEach(c => {
             const nomePassageiro = c.passageiro?.nome || 'Passageiro';
             const nomeMotorista = c.motorista?.nome || 'Motorista';
-            
             const descricaoReporte = `Reporte feito por <b>${nomePassageiro}</b> para o motorista <b>${nomeMotorista}</b>`;
 
             htmlOcorrencias += `
@@ -1025,7 +1035,29 @@
           htmlOcorrencias = '<p class="text-slate-500 text-center py-2">Nenhuma ocorrência de suporte registrada para este usuário.</p>';
         }
 
-        containerSuporte.innerHTML = htmlOcorrencias;
+        // Busca também o histórico de mensagens enviadas ao usuário
+        let msgs = [];
+        const res1 = await supabaseClient.from('mensagens_suporte').select('*').eq('usuario_id', user.id).order('id', { ascending: false });
+        if (res1.data && res1.data.length > 0) {
+          msgs = res1.data;
+        } else {
+          const res2 = await supabaseClient.from('mensagens_suporte_app').select('*').eq('usuario_id', user.id).order('id', { ascending: false });
+          if (res2.data) msgs = res2.data;
+        }
+
+        let htmlMsgs = '';
+        if (msgs.length > 0) {
+          htmlMsgs = `<div class="pt-3 border-t border-slate-800 space-y-2">
+            <span class="text-[11px] font-bold text-emerald-400 block"><i class="fa-solid fa-comments mr-1"></i> Histórico de Respostas Enviadas:</span>` +
+            msgs.map(m => `
+              <div class="bg-slate-900 p-2 rounded-lg text-[10px] text-slate-300 border border-slate-800">
+                <span class="text-slate-400 block text-[9px]">${m.criado_em || m.created_at ? new Date(m.criado_em || m.created_at).toLocaleString('pt-BR') : 'Enviada'}</span>
+                <p class="text-white mt-0.5">${m.mensagem || m.texto || '-'}</p>
+              </div>
+            `).join('') + `</div>`;
+        }
+
+        containerSuporte.innerHTML = htmlOcorrencias + htmlMsgs;
       } catch (e) {
         containerSuporte.innerHTML = '<p class="text-red-400 text-center py-2">Erro ao carregar histórico de suporte.</p>';
       }
@@ -1041,12 +1073,17 @@
       }
 
       try {
-        await supabaseClient.from('mensagens_suporte_app').insert([{
+        const payload = {
           usuario_id: idUsuario,
           mensagem: mensagem,
           remetente: 'admin',
           lido: false
-        }]);
+        };
+
+        const insertRes = await supabaseClient.from('mensagens_suporte').insert([payload]);
+        if (insertRes.error) {
+          await supabaseClient.from('mensagens_suporte_app').insert([payload]);
+        }
 
         await supabaseClient
           .from('usuarios')
@@ -1058,8 +1095,11 @@
 
         mostrarAlertaModal("Resposta salva e usuário notificado no aplicativo!", "sucesso");
         document.getElementById('input-resposta-suporte').value = '';
+        
+        const user = [...dadosGlobaisMotoristas, ...dadosGlobaisUsuarios].find(item => item.id == idUsuario);
+        if (user) carregarHistoricoSuporteModal(user);
       } catch (err) {
-        mostrarAlertaModal("Erro ao enviar mensagem.", "erro");
+        mostrarAlertaModal("Erro ao enviar mensagem: " + err.message, "erro");
       }
     }
 
