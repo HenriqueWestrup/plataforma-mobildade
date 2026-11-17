@@ -45,7 +45,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v35</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v36</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -83,8 +83,8 @@
   <!-- ÁREA DINÂMICA -->
   <main id="conteudo-dinamico-app" class="flex-1 relative overflow-y-auto bg-slate-950 flex flex-col"></main>
 
-  <!-- MODAL GLOBAL DE NOVA CORRIDA (COM MINI-MAPA DE PRÉVIA) -->
-  <div id="modal-nova-corrida" class="hidden fixed bottom-24 inset-x-4 bg-slate-900/98 backdrop-blur-md border border-amber-500/80 p-4 rounded-3xl shadow-2xl z-[55] space-y-3 max-h-[80vh] overflow-y-auto">
+  <!-- MODAL GLOBAL DE NOVA CORRIDA (COM FUNDO SÓLIDO E MINI-MAPA DE ROTA COMPLETA) -->
+  <div id="modal-nova-corrida" class="hidden fixed bottom-24 inset-x-4 bg-slate-900 border-2 border-amber-500 p-4 rounded-3xl shadow-2xl z-[55] space-y-3 max-h-[80vh] overflow-y-auto">
     <div class="flex items-center justify-between border-b border-slate-800 pb-2">
       <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1.5">
         <i class="fa-solid fa-bell animate-bounce"></i> Novo Chamado Próximo
@@ -92,8 +92,8 @@
       <span id="corrida-valor" class="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
     </div>
 
-    <!-- MINI-MAPA DE PRÉVIA DA ROTA -->
-    <div class="w-full h-32 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 relative z-10 shadow-inner">
+    <!-- MINI-MAPA DE PRÉVIA DA ROTA (EMBARQUE, PARADA E DESTINO) -->
+    <div class="w-full h-36 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 relative z-10 shadow-inner">
       <div id="mapa-previa-modal" class="w-full h-full"></div>
     </div>
 
@@ -106,7 +106,8 @@
     </div>
 
     <div class="space-y-1.5 text-xs text-slate-300">
-      <p><strong>Origem:</strong> <span id="corrida-origem" class="text-white">-</span></p>
+      <p><strong>Embarque:</strong> <span id="corrida-origem" class="text-white">-</span></p>
+      <p id="bloco-parada-modal" class="hidden"><strong>Parada:</strong> <span id="corrida-parada" class="text-amber-200">-</span></p>
       <p><strong>Destino:</strong> <span id="corrida-destino" class="text-white">-</span></p>
       <p><strong>Pagamento:</strong> <span id="corrida-pagamento" class="text-amber-300 font-bold">-</span></p>
     </div>
@@ -123,7 +124,7 @@
   </div>
 
   <!-- MODAL DE CONCLUSÃO E AVALIAÇÃO -->
-  <div id="modal-conclusao-corrida" class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[60] flex flex-col justify-between p-6 overflow-y-auto">
+  <div id="modal-conclusao-corrida" class="hidden fixed inset-0 bg-slate-950 z-[60] flex flex-col justify-between p-6 overflow-y-auto">
     <div class="text-center space-y-2 pt-4">
       <div class="w-14 h-14 bg-emerald-500/20 border border-emerald-500 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-2xl shadow-lg">
         <i class="fa-solid fa-circle-check"></i>
@@ -637,19 +638,28 @@
 
       document.getElementById('corrida-origem').innerText = corrida.origem || '-';
       document.getElementById('corrida-destino').innerText = corrida.destino || '-';
+      
+      const blocoParadaModal = document.getElementById('bloco-parada-modal');
+      if (corrida.parada) {
+        document.getElementById('corrida-parada').innerText = corrida.parada;
+        blocoParadaModal.classList.remove('hidden');
+      } else {
+        blocoParadaModal.classList.add('hidden');
+      }
+
       document.getElementById('corrida-valor').innerText = `R$ ${(corrida.valor || 15.0).toFixed(2).replace('.', ',')}`;
       document.getElementById('corrida-pagamento').innerText = corrida.forma_pagamento || 'PIX';
 
       tocarSomAlerta('novo_pedido');
       document.getElementById('modal-nova-corrida').classList.remove('hidden');
       
-      // Renderiza o mini-mapa de prévia da rota no modal
+      // Renderiza o mini-mapa com a rota real (Embarque, Parada e Destino)
       desenharPreviaRotaModal(corrida);
       iniciarTimer15Segundos();
     }
 
-    function desenharPreviaRotaModal(corrida) {
-      setTimeout(() => {
+    async function desenharPreviaRotaModal(corrida) {
+      setTimeout(async () => {
         const containerMapa = document.getElementById('mapa-previa-modal');
         if (!containerMapa) return;
 
@@ -658,22 +668,64 @@
           mapaPreviaInstancia = null;
         }
 
-        // Usa a posição atual do GPS ou coordenadas padrão como fallback
-        const latOrigem = (ultimaPosicaoGPS) ? ultimaPosicaoGPS.lat : -28.4835;
-        const lngOrigem = (ultimaPosicaoGPS) ? ultimaPosicaoGPS.lng : -48.7804;
-        const latDestino = latOrigem + 0.012;
-        const lngDestino = lngOrigem + 0.012;
+        // Tenta obter coordenadas reais dos endereços ou usa fallback baseado na posição atual do GPS
+        let latOrigem = (ultimaPosicaoGPS) ? ultimaPosicaoGPS.lat : -28.4835;
+        let lngOrigem = (ultimaPosicaoGPS) ? ultimaPosicaoGPS.lng : -48.7804;
+        let latParada = null;
+        let lngParada = null;
+        let latDestino = latOrigem + 0.015;
+        let lngDestino = lngOrigem + 0.015;
 
-        mapaPreviaInstancia = L.map('mapa-previa-modal', { zoomControl: false, attributionControl: false }).setView([latOrigem, lngOrigem], 14);
+        // Função auxiliar para converter endereço em coordenadas via Nominatim (OpenStreetMap)
+        async function geocode(endereco) {
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}`);
+            const dados = await res.json();
+            if (dados && dados.length > 0) {
+              return { lat: parseFloat(dados[0].lat), lon: parseFloat(dados[0].lon) };
+            }
+          } catch(e) {}
+          return null;
+        }
+
+        if (corrida.origem) {
+          const coordsOrigem = await geocode(corrida.origem);
+          if (coordsOrigem) { latOrigem = coordsOrigem.lat; lngOrigem = coordsOrigem.lon; }
+        }
+
+        if (corrida.destino) {
+          const coordsDestino = await geocode(corrida.destino);
+          if (coordsDestino) { latDestino = coordsDestino.lat; lngDestino = coordsDestino.lon; }
+        }
+
+        if (corrida.parada) {
+          const coordsParada = await geocode(corrida.parada);
+          if (coordsParada) { latParada = coordsParada.lat; lngParada = coordsParada.lon; }
+        }
+
+        mapaPreviaInstancia = L.map('mapa-previa-modal', { zoomControl: false, attributionControl: false }).setView([latOrigem, lngOrigem], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapaPreviaInstancia);
 
-        L.marker([latOrigem, lngOrigem]).addTo(mapaPreviaInstancia).bindPopup('Embarque');
-        L.marker([latDestino, lngDestino]).addTo(mapaPreviaInstancia).bindPopup('Destino');
+        let pontosRota = [[latOrigem, lngOrigem]];
 
-        const linhaRota = L.polyline([[latOrigem, lngOrigem], [latDestino, lngDestino]], { color: '#10b981', weight: 4 });
+        // Marcador de Embarque
+        L.marker([latOrigem, lngOrigem]).addTo(mapaPreviaInstancia).bindPopup('Embarque');
+
+        // Se houver parada, adiciona o ponto e o marcador intermediário
+        if (latParada && lngParada) {
+          pontosRota.push([latParada, lngParada]);
+          L.marker([latParada, lngParada]).addTo(mapaPreviaInstancia).bindPopup('Parada');
+        }
+
+        // Marcador de Destino Final
+        pontosRota.push([latDestino, lngDestino]);
+        L.marker([latDestino, lngDestino]).addTo(mapaPreviaInstancia).bindPopup('Destino Final');
+
+        // Desenha a linha da rota conectando todos os pontos
+        const linhaRota = L.polyline(pontosRota, { color: '#10b981', weight: 4, opacity: 0.9 });
         linhaRota.addTo(mapaPreviaInstancia);
-        mapaPreviaInstancia.fitBounds(linhaRota.getBounds(), { padding: [20, 20] });
-      }, 250);
+        mapaPreviaInstancia.fitBounds(linhaRota.getBounds(), { padding: [25, 25] });
+      }, 300);
     }
 
     function iniciarTimer15Segundos() {
@@ -872,7 +924,7 @@
         blocoJustificativa.classList.remove('hidden');
       } else {
         textoNota.innerText = "Ruim / Muito Ruim";
-        blocoJustificativa.classList.remove('hidden');
+        blocoJustificativa.classList.add('hidden');
       }
     }
 
