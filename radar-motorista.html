@@ -20,9 +20,9 @@
 <script>
   var mapaRadarInstancia = null;
   var marcadorCarroRadar = null;
+  var camadaRotaRadar = null;
 
   function inicializarModuloMapaRadar() {
-    // Coordenada inicial padrão (Brasil), mas imediatamente ajustada para a posição GPS do usuário
     const latInicial = (typeof ultimaPosicaoGPS !== 'undefined' && ultimaPosicaoGPS) ? ultimaPosicaoGPS.lat : -15.793889;
     const lngInicial = (typeof ultimaPosicaoGPS !== 'undefined' && ultimaPosicaoGPS) ? ultimaPosicaoGPS.lng : -47.882778;
     const zoomInicial = (typeof ultimaPosicaoGPS !== 'undefined' && ultimaPosicaoGPS) ? 16 : 4;
@@ -39,7 +39,6 @@
       if (mapaRadarInstancia) mapaRadarInstancia.invalidateSize();
     }, 250);
 
-    // Tenta obter a localização imediata do dispositivo ao abrir o mapa
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((pos) => {
         atualizarPosicaoNoMapaRadar(pos.coords.latitude, pos.coords.longitude);
@@ -59,13 +58,30 @@
       iconAnchor: [18, 18]
     });
 
-    mapaRadarInstancia.setView([lat, lng], 16);
+    if (!corridaAtiva) {
+      mapaRadarInstancia.setView([lat, lng], 16);
+    }
 
     if (marcadorCarroRadar) {
       marcadorCarroRadar.setLatLng([lat, lng]);
     } else {
       marcadorCarroRadar = L.marker([lat, lng], { icon: iconeCarro }).addTo(mapaRadarInstancia).bindPopup("Sua Posição");
     }
+  }
+
+  function desenharRotaNoRadar(origemCoords, destinoCoords, paradaCoords = null) {
+    if (!mapaRadarInstancia) return;
+
+    if (camadaRotaRadar) {
+      mapaRadarInstancia.removeLayer(camadaRotaRadar);
+    }
+
+    let pontos = [origemCoords];
+    if (paradaCoords) pontos.push(paradaCoords);
+    pontos.push(destinoCoords);
+
+    camadaRotaRadar = L.polyline(pontos, { color: '#10b981', weight: 5, opacity: 0.8 }).addTo(mapaRadarInstancia);
+    mapaRadarInstancia.fitBounds(camadaRotaRadar.getBounds(), { padding: [50, 50] });
   }
 
   function removerMarcadorCarroRadar() {
@@ -96,6 +112,5 @@
     }
   }
 
-  // Inicializa o mapa assim que o módulo é injetado
   inicializarModuloMapaRadar();
 </script>
