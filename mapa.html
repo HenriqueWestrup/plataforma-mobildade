@@ -2,6 +2,11 @@
   <!-- CONTAINER DO MAPA LEAFLET -->
   <div id="map" class="absolute inset-0 w-full h-full z-0"></div>
 
+  <!-- BOTÃO FLUTUANTE DE CENTRALIZAR MAPA -->
+  <button onclick="centralizarNoUsuario()" title="Centralizar no GPS" class="absolute right-4 top-4 bg-slate-900/90 hover:bg-slate-800 text-emerald-400 border border-slate-700 w-11 h-11 rounded-2xl shadow-2xl z-20 flex items-center justify-center transition">
+    <i class="fa-solid fa-location-crosshairs text-base"></i>
+  </button>
+
   <!-- PAINEL FLUTUANTE DE SOLICITAÇÃO DE CORRIDA -->
   <div id="painel-solicitacao" class="absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-slate-800 p-4 rounded-2xl space-y-3 shadow-2xl z-10">
     
@@ -81,6 +86,7 @@
   let mapaLeaflet = null;
   let marcadorOrigem = null;
   let marcadorDestino = null;
+  let polylineRota = null;
   let coordsOrigem = null;
   let coordsDestino = null;
   let formaPagamentoSelecionada = 'PIX';
@@ -100,7 +106,7 @@
 
     mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
 
-    // Camada padrão do OpenStreetMap (Livre, sem chave de API e sem marcas d'água)[cite: 21]
+    // Camada padrão do OpenStreetMap (Livre, sem chave de API e sem marcas d'água)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors'
@@ -111,7 +117,15 @@
     iniciarRadarMotoristasOnline();
   }
 
-  // BUSCA E EXIBE MOTORISTAS ONLINE EM TEMPO REAL NO MAPA DO PASSAGEIRO
+  function centralizarNoUsuario() {
+    if (coordsOrigem && mapaLeaflet) {
+      mapaLeaflet.setView([coordsOrigem.lat, coordsOrigem.lng], 16);
+    } else {
+      usarMinhaLocalizacao();
+    }
+  }
+
+  // BUSCA E EXIBE MOTORISTAS ONLINE EM TEMPO REAL NO MAPA (APENAS ÍCONE, SEM DADOS)
   async function iniciarRadarMotoristasOnline() {
     if (!supabaseMapa) return;
     atualizarPosicoesMotoristas();
@@ -123,7 +137,7 @@
     try {
       const { data: motoristas, error } = await supabaseMapa
         .from('usuarios')
-        .select('id, nome, lat, lng, online, veiculo_modelo, veiculo_placa')
+        .select('id, lat, lng, online')
         .eq('online', true);
 
       if (error || !motoristas) return;
@@ -149,9 +163,8 @@
           if (marcadoresMotoristas[m.id]) {
             marcadoresMotoristas[m.id].setLatLng([m.lat, m.lng]);
           } else {
-            const marcador = L.marker([m.lat, m.lng], { icon: iconeCarroMapa })
-              .addTo(mapaLeaflet)
-              .bindPopup(`<b>Motorista:</b> ${m.nome}<br><b>Veículo:</b> ${m.veiculo_modelo || 'Padrão'} (${m.veiculo_placa || 'SEM-PLACA'})`);
+            // Sem bindPopup para ocultar dados e nomes ao clicar
+            const marcador = L.marker([m.lat, m.lng], { icon: iconeCarroMapa }).addTo(mapaLeaflet);
             marcadoresMotoristas[m.id] = marcador;
           }
         }
@@ -269,9 +282,42 @@
     container.appendChild(div);
   }
 
-  function calcularRotaEValor() {
+  async function calcularRotaEValor() {
     if (!coordsOrigem || !coordsDestino) return;
 
+    // Busca a rota real usando OSRM para desenhar a linha no mapa
+    try {
+      const urlOsrm = `https://router.project-osrm.org/route/v1/driving/${coordsOrigem.lng},${coordsOrigem.lat};${coordsDestino.lng},${coordsDestino.lat}?overview=full&geometries=geojson`;
+      const res = await fetch(urlOsrm);
+      const data = await res.json();
+
+      if (data && data.routes && data.routes.length > 0) {
+        const route = data.routes[0];
+        const coordenadasGeo = route.geometry.coordinates.map(c => [c[1], c[0]]); // Inverte para Leaflet [lat, lng]
+
+        if (polylineRota) mapaLeaflet.removeLayer(polylineRota);
+
+        polylineRota = L.polyline(coordenadasGeo, {
+          color: '#10b981',
+          weight: 5,
+          opacity: 0.8
+        }).addTo(mapaLeaflet);
+
+        const distanciaKm = route.distance / 1000;
+        let valorCalculado = 5.0 + (distanciaKm * 3.50);
+        if (valorCalculado < 10.0) valorCalculado = 10.0;
+
+        document.getElementById('valor-estimado').innerText = `R$ ${valorCalculado.toFixed(2).replace('.', ',')}`;
+        document.getElementById('bloco-estimativa').classList.remove('hidden');
+
+        mapaLeaflet.fitBounds(polylineRota.getBounds(), { padding: [60, 60] });
+        return;
+      }
+    } catch (e) {
+      console.error("Erro ao calcular rota OSRM:", e);
+    }
+
+    // Fallback matemático caso falhe a API de rotas
     const R = 6371;
     const dLat = (coordsDestino.lat - coordsOrigem.lat) * Math.PI / 180;
     const dLon = (coordsDestino.lng - coordsOrigem.lng) * Math.PI / 180;
@@ -362,6 +408,7 @@
   }
 
   async function cancelarBuscaCorrida() {
+    if (timerIntervalId) clearInterval(timerIdentifier = timerIntervalId);
     if (timerIntervalId) clearInterval(timerIntervalId);
 
     if (corridaAtualId && supabaseMapa) {
