@@ -12,8 +12,8 @@
 
   <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-5 relative">
     
-    <!-- MARCAÇÃO DA VERSÃO DISCRETA -->
-    <span class="absolute top-2 right-3 text-[9px] text-slate-600 font-mono">v8</span>
+    <!-- VERSÃO DISCRETA -->
+    <span class="absolute top-2 right-3 text-[9px] text-slate-600 font-mono">v9</span>
 
     <div class="text-center space-y-1">
       <div class="inline-block bg-amber-600/20 border border-amber-500/30 text-amber-400 p-3 rounded-2xl mb-1">
@@ -29,18 +29,18 @@
       <span id="texto-erro">Erro ao realizar login.</span>
     </div>
 
-    <!-- LOGIN -->
-    <form class="space-y-4 text-xs" onsubmit="realizarLoginMotorista(event)">
+    <!-- LOGIN (Alterado para button onclick para evitar qualquer comportamento padrão de submit/F5) -->
+    <div class="space-y-4 text-xs">
       <div>
         <label class="text-[10px] text-slate-400 ml-1">Celular / Telefone</label>
-        <input type="tel" id="login-celular-motorista" required placeholder="(00) 00000-0000" class="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
+        <input type="tel" id="login-celular-motorista" placeholder="(00) 00000-0000" class="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
       </div>
       <div>
         <label class="text-[10px] text-slate-400 ml-1">Senha</label>
-        <input type="password" id="login-senha-motorista" required placeholder="Sua senha" class="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
+        <input type="password" id="login-senha-motorista" placeholder="Sua senha" class="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
       </div>
-      <button type="submit" id="btn-entrar" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Entrar como Motorista</button>
-    </form>
+      <button type="button" id="btn-entrar" onclick="realizarLoginMotorista()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Entrar como Motorista</button>
+    </div>
 
     <div class="text-center text-[11px] text-slate-500 space-y-2 pt-2 border-t border-slate-800">
       <div class="flex justify-center gap-4">
@@ -61,13 +61,11 @@
         texto.innerText = mensagem;
         box.classList.remove('hidden');
       } else {
-        alert(mensagem); // Fallback caso o elemento não exista
+        alert(mensagem);
       }
     }
 
-    async function realizarLoginMotorista(event) {
-      if (event) event.preventDefault(); // Garante o bloqueio de recarregamento
-      
+    async function realizarLoginMotorista() {
       const boxErro = document.getElementById('box-erro');
       if (boxErro) boxErro.classList.add('hidden');
       
@@ -77,7 +75,7 @@
 
       if (!inputCel || !inputSenha) {
         mostrarErro("Erro interno: Campos de formulário não encontrados.");
-        return false;
+        return;
       }
 
       const cel = inputCel.value.trim();
@@ -85,72 +83,67 @@
 
       if (!cel || !senha) {
         mostrarErro("Preencha o celular e a senha.");
-        return false;
+        return;
       }
 
       btn.innerText = "Verificando...";
       btn.disabled = true;
 
       try {
-        let dadosMotorista = null;
-
-        // 1. Tenta buscar na tabela 'motoristas'
-        const resMotoristas = await supabaseClient
-          .from('motoristas')
+        // Busca unificada na tabela 'usuarios' do painel admin
+        const { data: usuario, error } = await supabaseClient
+          .from('usuarios')
           .select('*')
           .eq('telefone', cel)
           .eq('senha', senha)
           .maybeSingle();
 
-        if (resMotoristas && resMotoristas.data) {
-          dadosMotorista = resMotoristas.data;
-        } else {
-          // 2. Se não achou, busca na tabela 'usuarios' validando se é motorista
-          const resUsuarios = await supabaseClient
-            .from('usuarios')
-            .select('*')
-            .eq('telefone', cel)
-            .eq('senha', senha)
-            .maybeSingle();
-
-          if (resUsuarios && resUsuarios.data) {
-            const usr = resUsuarios.data;
-            if (usr.tipo !== 'motorista' && !usr.veiculo_modelo) {
-              throw new Error("Esta conta não é de um motorista cadastrado.");
-            }
-            dadosMotorista = usr;
-          }
+        if (error) {
+          throw new Error("Erro de consulta ao banco: " + error.message);
         }
 
-        if (!dadosMotorista) {
-          throw new Error("Telefone ou senha inválidos para motorista.");
+        if (!usuario) {
+          throw new Error("Celular ou senha incorretos.");
         }
 
-        if (dadosMotorista.status === 'bloqueado' || dadosMotorista.status === 'pendente') {
-          throw new Error("Sua conta está bloqueada ou pendente de aprovação.");
+        // Validação idêntica à do painel admin: verifica se é motorista (tipo motorista ou tem veículo)
+        const isMotorista = usuario.tipo === 'motorista' || usuario.veiculo_modelo;
+        if (!isMotorista) {
+          throw new Error("Acesso negado: esta conta é de passageiro, não de motorista.");
         }
 
-        // Sucesso: Salva e redireciona
+        if (usuario.status === 'bloqueado' || usuario.status === 'pendente') {
+          throw new Error("Sua conta está bloqueada ou pendente de aprovação pelo admin.");
+        }
+
+        // Gera token de sessão única
         const sessionToken = 'sessao_mot_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
         
+        try {
+          await supabaseClient
+            .from('usuarios')
+            .update({ session_token: sessionToken })
+            .eq('id', usuario.id);
+        } catch (updErr) {
+          console.warn("Não foi possível atualizar o token no banco:", updErr);
+        }
+
+        // Salva os dados no navegador e redireciona
         localStorage.removeItem('passageiro_logado');
-        dadosMotorista.tipo = 'motorista';
-        dadosMotorista.session_token = sessionToken;
+        usuario.tipo = 'motorista';
+        usuario.session_token = sessionToken;
         
-        localStorage.setItem('motorista_logado', JSON.stringify(dadosMotorista));
+        localStorage.setItem('motorista_logado', JSON.stringify(usuario));
         localStorage.setItem('session_token', sessionToken);
         
         window.location.href = 'motorista.html';
-        return false;
 
       } catch (err) {
         console.error("Erro no login:", err);
-        mostrarErro(err.message || "Erro de conexão ao tentar autenticar.");
+        mostrarErro(err.message || "Erro desconhecido ao tentar entrar.");
         btn.innerText = "Entrar como Motorista";
         btn.disabled = false;
       }
-
-      return false;
     }
   </script>
 </body>
