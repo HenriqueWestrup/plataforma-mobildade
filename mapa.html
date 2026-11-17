@@ -100,11 +100,10 @@
 
     mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
 
-    // Camada CartoDB Dark (Sem exigir chave de API paga)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Camada padrão do OpenStreetMap (Livre, sem chave de API e sem marcas d'água)[cite: 21]
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      subdomains: 'abcd',
-      attribution: '&copy; OpenStreetMap &copy; CARTO'
+      attribution: '&copy; OpenStreetMap contributors'
     }).addTo(mapaLeaflet);
 
     setTimeout(() => mapaLeaflet.invalidateSize(), 300);
