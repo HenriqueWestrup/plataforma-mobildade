@@ -45,6 +45,7 @@
         </div>
       </div>
     </div>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v16</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -125,18 +126,31 @@
       carregarModuloMapa();
     }
 
+    // CORREÇÃO: Carrega o mapa.html e executa os scripts internos corretamente
     async function carregarModuloMapa() {
       const mainApp = document.getElementById('main-app');
       try {
         const response = await fetch('mapa.html');
         if (!response.ok) throw new Error('Falha ao carregar mapa');
         const htmlMapa = await response.text();
-        mainApp.innerHTML = htmlMapa;
         
-        if (typeof inicializarMapa === 'function') {
-           inicializarMapa();
-        }
+        mainApp.innerHTML = htmlMapa;
+
+        // Extrai e executa as tags <script> contidas no mapa.html dinamicamente
+        const scripts = mainApp.querySelectorAll('script');
+        scripts.forEach(scriptAntigo => {
+          const novoScript = document.createElement('script');
+          if (scriptAntigo.src) {
+            novoScript.src = scriptAntigo.src;
+          } else {
+            novoScript.textContent = scriptAntigo.textContent;
+          }
+          document.body.appendChild(novoScript);
+          scriptAntigo.remove();
+        });
+
       } catch (error) {
+        console.error(error);
         mainApp.innerHTML = '<div class="flex-1 flex justify-center items-center text-red-400">Erro ao carregar o módulo do mapa.</div>';
       }
     }
