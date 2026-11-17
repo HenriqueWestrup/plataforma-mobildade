@@ -56,9 +56,6 @@
       </div>
     </div>
     <div class="flex gap-2">
-      <button onclick="abrirModalSenhaMestre()" title="Alterar Senha Mestre" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-2 rounded-xl font-bold border border-slate-700">
-        <i class="fa-solid fa-key"></i>
-      </button>
       <button onclick="carregarDadosAdmin()" title="Atualizar Dados" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl font-bold border border-slate-700">
         <i class="fa-solid fa-rotate"></i>
       </button>
@@ -117,30 +114,11 @@
   <!-- MODAL DE ATENDIMENTO DIRETO DE SUPORTE -->
   <div id="modal-atendimento-suporte" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-lg rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-      
-      <div id="suporte-modal-toast" class="hidden p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all shadow-md">
-        <i id="suporte-modal-icone" class="fa-solid text-sm"></i>
-        <span id="suporte-modal-texto" class="flex-1"></span>
-      </div>
-
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
           <i class="fa-solid fa-headset text-emerald-400"></i> Atendimento de Suporte
         </h3>
         <button onclick="fecharModalAtendimentoSuporte()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
-      </div>
-
-      <div class="bg-slate-950 p-3.5 rounded-2xl border border-amber-500/30 space-y-1.5 text-[11px]">
-        <div class="flex justify-between items-center">
-          <span id="sup-modal-estrelas" class="text-amber-400 font-extrabold"></span>
-          <span id="sup-modal-corrida-id" class="text-[10px] text-slate-500 font-mono"></span>
-        </div>
-        <p id="sup-modal-titulo-reporte" class="text-emerald-400 font-bold"></p>
-        <p id="sup-modal-rota" class="text-slate-400 text-[10px]"></p>
-        <div class="pt-1.5 border-t border-slate-800/80">
-          <span class="text-slate-400 font-semibold block text-[10px]">Observação registrada:</span>
-          <p id="sup-modal-observacao" class="text-red-300 font-medium mt-0.5"></p>
-        </div>
       </div>
 
       <div class="space-y-1.5">
@@ -168,19 +146,12 @@
           </button>
         </div>
       </div>
-
     </div>
   </div>
 
   <!-- MODAL DE EDIÇÃO AVANÇADA / GESTÃO DE PERFIL -->
   <div id="modal-edicao" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-      
-      <div id="modal-alerta-toast" class="hidden p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all shadow-md">
-        <i id="modal-alerta-icone" class="fa-solid text-sm"></i>
-        <span id="modal-alerta-texto" class="flex-1">Mensagem de aviso aqui</span>
-      </div>
-
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
           <i class="fa-solid fa-user-pen text-emerald-400"></i> Gestão de Perfil do Usuário
@@ -188,120 +159,24 @@
         <button onclick="fecharModalEdicao()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
       </div>
 
-      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-        <div>
-          <span class="text-[10px] text-slate-400 block">ID Único no Banco:</span>
-          <span id="edit-id-display" class="font-mono text-emerald-400 font-bold select-all text-[11px]">-</span>
+      <div class="space-y-3">
+        <h4 class="font-extrabold text-white text-xs flex items-center gap-1.5">
+          <i class="fa-solid fa-headset text-emerald-400"></i> Histórico de Ocorrências e Respostas de Suporte
+        </h4>
+        <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-3 max-h-52 overflow-y-auto" id="detalhes-suporte-usuario">
+          <p class="text-slate-500 text-center py-2">Carregando ocorrências e histórico...</p>
         </div>
-        <div class="text-right">
-          <span id="edit-tipo-badge" class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Motorista Parceiro</span>
+        <div class="bg-slate-950 p-3 rounded-2xl border border-emerald-500/30 space-y-2">
+          <label class="text-emerald-400 font-bold block"><i class="fa-solid fa-paper-plane mr-1"></i> Enviar Resposta / Notificação ao App do Usuário</label>
+          <textarea id="input-resposta-suporte" rows="2" placeholder="Digite sua resposta ou aviso para o usuário..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs outline-none focus:border-emerald-500"></textarea>
+          <button type="button" onclick="enviarMensagemSuporteUsuario()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl transition shadow">
+            Salvar e Notificar Usuário
+          </button>
         </div>
       </div>
-
-      <div class="grid grid-cols-5 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px]">
-        <button type="button" onclick="mudarAbaModal('dados')" id="tab-btn-dados" class="py-2 rounded-lg font-bold bg-emerald-600 text-white transition">Dados</button>
-        <button type="button" onclick="mudarAbaModal('viagens')" id="tab-btn-viagens" class="py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition">Viagens</button>
-        <button type="button" onclick="mudarAbaModal('chat')" id="tab-btn-chat" class="py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition">Chat</button>
-        <button type="button" onclick="mudarAbaModal('suporte')" id="tab-btn-suporte" class="py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition">Suporte</button>
-        <button type="button" onclick="mudarAbaModal('status')" id="tab-btn-status" class="py-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition">Status</button>
+      <div class="flex pt-2">
+        <button type="button" onclick="fecharModalEdicao()" class="w-full bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl">Fechar</button>
       </div>
-
-      <form id="form-editar-usuario" onsubmit="salvarEdicaoUsuario(event)" class="space-y-4 text-xs">
-        <input type="hidden" id="edit-id">
-        <input type="hidden" id="edit-tabela">
-
-        <div id="modal-conteudo-dados" class="space-y-3">
-          <div class="flex items-center gap-3 pb-2 border-b border-slate-800">
-            <img id="edit-foto-preview" class="w-14 h-14 rounded-full object-cover border border-emerald-500">
-            <div>
-              <p class="font-bold text-white uppercase text-[10px]">Conta Verificada</p>
-              <p class="text-[10px] text-slate-400">Painel Administrativo</p>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div class="space-y-1">
-              <label class="text-slate-300 font-medium">Nome Completo</label>
-              <input type="text" id="edit-nome" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-            </div>
-            <div class="space-y-1">
-              <label class="text-slate-300 font-medium">CPF</label>
-              <input type="text" id="edit-cpf" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div class="space-y-1">
-              <label class="text-slate-300 font-medium">Celular</label>
-              <input type="text" id="edit-telefone" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-            </div>
-            <div class="space-y-1">
-              <label class="text-slate-300 font-medium">Endereço</label>
-              <input type="text" id="edit-endereco" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-            </div>
-          </div>
-          <div id="edit-bloco-veiculo" class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 hidden">
-            <div class="space-y-1">
-              <label class="text-slate-300 font-medium">Veículo</label>
-              <input type="text" id="edit-veiculo-modelo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-            </div>
-            <div class="space-y-1">
-              <label class="text-slate-300 font-medium">Placa</label>
-              <input type="text" id="edit-veiculo-placa" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 uppercase text-slate-100">
-            </div>
-          </div>
-        </div>
-
-        <div id="modal-conteudo-viagens" class="space-y-3 hidden">
-          <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 max-h-60 overflow-y-auto" id="detalhes-historico-usuario">
-            <p class="text-slate-500 text-center py-4">Carregando viagens e ganhos...</p>
-          </div>
-        </div>
-
-        <div id="modal-conteudo-chat" class="space-y-3 hidden">
-          <div class="space-y-2">
-            <h4 class="font-extrabold text-white text-xs flex items-center gap-1.5">
-              <i class="fa-solid fa-comments text-amber-400"></i> Histórico de Mensagens (Chat)
-            </h4>
-            <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 max-h-48 overflow-y-auto" id="detalhes-chat-usuario">
-              <p class="text-slate-500 text-center py-2">Carregando mensagens...</p>
-            </div>
-          </div>
-        </div>
-
-        <div id="modal-conteudo-suporte" class="space-y-3 hidden">
-          <div class="space-y-3">
-            <h4 class="font-extrabold text-white text-xs flex items-center gap-1.5">
-              <i class="fa-solid fa-headset text-emerald-400"></i> Histórico de Ocorrências e Respostas de Suporte
-            </h4>
-            <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-3 max-h-52 overflow-y-auto" id="detalhes-suporte-usuario">
-              <p class="text-slate-500 text-center py-2">Carregando ocorrências e histórico...</p>
-            </div>
-            <div class="bg-slate-950 p-3 rounded-2xl border border-emerald-500/30 space-y-2">
-              <label class="text-emerald-400 font-bold block"><i class="fa-solid fa-paper-plane mr-1"></i> Enviar Resposta / Notificação ao App do Usuário</label>
-              <textarea id="input-resposta-suporte" rows="2" placeholder="Digite sua resposta ou aviso para o usuário..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs outline-none focus:border-emerald-500"></textarea>
-              <button type="button" onclick="enviarMensagemSuporteUsuario()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl transition shadow">
-                Salvar e Notificar Usuário
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div id="modal-conteudo-status" class="space-y-3 hidden">
-          <div class="space-y-2 bg-slate-950 p-3 rounded-2xl border border-slate-800">
-            <label class="text-slate-300 font-bold block mb-1">Status da Conta</label>
-            <div class="grid grid-cols-3 gap-2">
-              <button type="button" onclick="definirStatusModal('aprovado')" id="btn-status-ativo" class="py-2 rounded-xl font-bold bg-emerald-600/20 text-emerald-400 border border-emerald-500/30">Ativo</button>
-              <button type="button" onclick="definirStatusModal('pendente')" id="btn-status-analise" class="py-2 rounded-xl font-bold bg-slate-900 text-slate-400 border border-slate-800">Em Análise</button>
-              <button type="button" onclick="definirStatusModal('bloqueado')" id="btn-status-bloqueado" class="py-2 rounded-xl font-bold bg-slate-900 text-slate-400 border border-slate-800">Bloqueado</button>
-            </div>
-            <input type="hidden" id="edit-status-valor" value="aprovado">
-          </div>
-        </div>
-
-        <div class="flex gap-2 pt-3 border-t border-slate-800">
-          <button type="button" onclick="fecharModalEdicao()" class="flex-1 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl">Cancelar</button>
-          <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl">Salvar Alterações</button>
-        </div>
-      </form>
     </div>
   </div>
 
@@ -318,7 +193,6 @@
     let dadosGlobaisSuporte = [];
     let dadosGlobaisViagensAtivas = [];
     let abaAdminAtual = 'motoristas';
-    let canalRealtimeAdmin = null;
 
     function autenticarAdmin(e) {
       e.preventDefault();
@@ -340,21 +214,51 @@
 
     async function carregarDadosAdmin() {
       try {
-        const { data: resUsu } = await supabaseClient.from('usuarios').select('*');
-        // CORREÇÃO: Buscando corridas com notas baixas dadas por motorista ou passageiro
-        const { data: resCorridasSuporte } = await supabaseClient
+        // Carrega usuários de forma segura e separada
+        const { data: resUsu, error: errUsu } = await supabaseClient.from('usuarios').select('*');
+        if (errUsu) console.error("Erro ao carregar usuários:", errUsu);
+
+        // Carrega corridas ativas/gerais para a aba de viagens
+        const { data: resViagens, error: errViagens } = await supabaseClient
           .from('corridas')
           .select(`*, motorista:motorista_id(id, nome, telefone), passageiro:passageiro_id(id, nome, telefone)`)
-          .or('avaliacao_motorista.lt.5,avaliacao_passageiro.lt.5')
+          .in('status', ['procurando', 'aceito', 'a_caminho', 'no_local', 'em_andamento'])
           .order('id', { ascending: false });
+        if (errViagens) console.error("Erro ao carregar viagens:", errViagens);
+
+        // Carrega histórico de suporte de forma isolada para evitar travar as outras abas
+        const { data: resCorridasSuporte, error: errSup } = await supabaseClient
+          .from('corridas')
+          .select(`*, motorista:motorista_id(id, nome, telefone), passageiro:passageiro_id(id, nome, telefone)`)
+          .not('avaliacao_motorista', 'is', null)
+          .order('id', { ascending: false });
+        if (errSup) console.error("Erro ao carregar suporte:", errSup);
 
         const usuariosTotais = resUsu || [];
         dadosGlobaisMotoristas = usuariosTotais.filter(u => u.tipo === 'motorista' || u.veiculo_modelo);
         dadosGlobaisUsuarios = usuariosTotais.filter(u => u.tipo !== 'motorista' && !u.veiculo_modelo);
-        dadosGlobaisSuporte = resCorridasSuporte || [];
+        
+        // Filtra apenas avaliações baixas ou ocorrências de suporte válidas
+        dadosGlobaisSuporte = (resCorridasSuporte || []).filter(s => (s.avaliacao_motorista && s.avaliacao_motorista < 5) || (s.avaliacao_passageiro && s.avaliacao_passageiro < 5));
+        dadosGlobaisViagensAtivas = resViagens || [];
+
+        // Atualiza contadores nas abas
+        document.getElementById('count-aba-motoristas').innerText = dadosGlobaisMotoristas.length;
+        document.getElementById('count-aba-passageiros').innerText = dadosGlobaisUsuarios.length;
+        document.getElementById('count-aba-viagens').innerText = dadosGlobaisViagensAtivas.length;
+
+        const badgeSuporte = document.getElementById('badge-contador-suporte');
+        if (dadosGlobaisSuporte.length > 0) {
+          badgeSuporte.innerText = `+${dadosGlobaisSuporte.length}`;
+          badgeSuporte.classList.remove('hidden');
+        } else {
+          badgeSuporte.classList.add('hidden');
+        }
 
         renderizarAdmin();
-      } catch (e) {}
+      } catch (e) {
+        console.error("Erro geral ao carregar dados:", e);
+      }
     }
 
     function mudarAbaAdmin(aba) {
@@ -363,11 +267,71 @@
       document.getElementById('secao-usuarios').classList.toggle('hidden', aba !== 'usuarios');
       document.getElementById('secao-viagens').classList.toggle('hidden', aba !== 'viagens');
       document.getElementById('secao-suporte').classList.toggle('hidden', aba !== 'suporte');
+
+      document.getElementById('btn-aba-motoristas').className = aba === 'motoristas' ? 'py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition text-center truncate' : 'py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate';
+      document.getElementById('btn-aba-usuarios').className = aba === 'usuarios' ? 'py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition text-center truncate' : 'py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate';
+      document.getElementById('btn-aba-viagens').className = aba === 'viagens' ? 'py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition text-center truncate' : 'py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate';
+      document.getElementById('btn-aba-suporte').className = aba === 'suporte' ? 'relative py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition text-center truncate' : 'relative py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate';
+
       renderizarAdmin();
     }
 
     function renderizarAdmin() {
-      if (abaAdminAtual === 'suporte') {
+      if (abaAdminAtual === 'motoristas') {
+        const container = document.getElementById('lista-admin-motoristas');
+        if (dadosGlobaisMotoristas.length === 0) {
+          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista cadastrado.</div>`;
+        } else {
+          container.innerHTML = dadosGlobaisMotoristas.map(m => `
+            <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex justify-between items-center">
+              <div>
+                <h4 class="font-bold text-white">${m.nome || 'Sem Nome'}</h4>
+                <p class="text-[10px] text-slate-400">Tel: ${m.telefone || '-'} | Veículo: ${m.veiculo_modelo || 'Não informado'}</p>
+              </div>
+              <button onclick="abrirModalEdicao('${m.id}')" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-3 py-1.5 rounded-xl font-bold border border-slate-700">Gerenciar</button>
+            </div>
+          `).join('');
+        }
+      } else if (abaAdminAtual === 'usuarios') {
+        const termoBusca = (document.getElementById('input-busca-passageiro').value || '').toLowerCase();
+        const container = document.getElementById('lista-admin-passageiros');
+        const filtrados = dadosGlobaisUsuarios.filter(u => 
+          (u.nome && u.nome.toLowerCase().includes(termoBusca)) || 
+          (u.telefone && u.telefone.includes(termoBusca)) || 
+          (u.cpf && u.cpf.includes(termoBusca))
+        );
+
+        if (filtrados.length === 0) {
+          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro encontrado.</div>`;
+        } else {
+          container.innerHTML = filtrados.map(u => `
+            <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex justify-between items-center">
+              <div>
+                <h4 class="font-bold text-white">${u.nome || 'Sem Nome'}</h4>
+                <p class="text-[10px] text-slate-400">Tel: ${u.telefone || '-'} | CPF: ${u.cpf || '-'}</p>
+              </div>
+              <button onclick="abrirModalEdicao('${u.id}')" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-3 py-1.5 rounded-xl font-bold border border-slate-700">Gerenciar</button>
+            </div>
+          `).join('');
+        }
+      } else if (abaAdminAtual === 'viagens') {
+        const container = document.getElementById('lista-admin-viagens-ativas');
+        if (dadosGlobaisViagensAtivas.length === 0) {
+          container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhuma viagem em andamento no momento.</div>`;
+        } else {
+          container.innerHTML = dadosGlobaisViagensAtivas.map(v => `
+            <div class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 space-y-1.5">
+              <div class="flex justify-between items-center text-[10px]">
+                <span class="text-emerald-400 font-bold uppercase">Viagem #${v.id} (${v.status})</span>
+                <span class="text-slate-400">R$ ${(v.valor || 0).toFixed(2)}</span>
+              </div>
+              <p class="text-slate-200"><strong>Passageiro:</strong> ${v.passageiro?.nome || 'Desconhecido'}</p>
+              <p class="text-slate-200"><strong>Motorista:</strong> ${v.motorista?.nome || 'Aguardando aceitação'}</p>
+              <p class="text-slate-400 text-[10px]">De: ${v.origem} → Para: ${v.destino}</p>
+            </div>
+          `).join('');
+        }
+      } else if (abaAdminAtual === 'suporte') {
         const container = document.getElementById('lista-admin-suporte');
         if (dadosGlobaisSuporte.length === 0) {
           container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum chamado pendente.</div>`;
@@ -375,8 +339,6 @@
           container.innerHTML = dadosGlobaisSuporte.map(s => {
             const nomeMot = s.motorista?.nome || 'Motorista';
             const nomePass = s.passageiro?.nome || 'Passageiro';
-            
-            // Verifica se a nota baixa foi do motorista ou do passageiro
             const notaExibida = (s.avaliacao_motorista < 5) ? s.avaliacao_motorista : s.avaliacao_passageiro;
             const observacao = s.motivo_avaliacao_motorista || s.motivo_avaliacao_passageiro || 'Sem observação.';
             const autorRelato = (s.avaliacao_motorista < 5) ? `Passageiro (${nomePass})` : `Motorista (${nomeMot})`;
