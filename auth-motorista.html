@@ -20,11 +20,23 @@
       <p class="text-xs text-slate-400">Entre com celular e senha para trabalhar</p>
     </div>
 
+    <!-- CAIXA DE ALERTA DE ERRO VISUAL (Oculta por padrão) -->
+    <div id="box-erro" class="hidden bg-red-950/80 border border-red-600 text-red-200 text-xs p-3 rounded-xl flex items-center gap-2">
+      <i class="fa-solid fa-triangle-exclamation text-red-400 text-base shrink-0"></i>
+      <span id="texto-erro">Erro ao realizar login.</span>
+    </div>
+
     <!-- LOGIN -->
     <form class="space-y-4 text-xs" onsubmit="realizarLoginMotorista(event)">
-      <input type="tel" id="login-celular-motorista" required placeholder="Celular" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100">
-      <input type="password" id="login-senha-motorista" required placeholder="Senha" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100">
-      <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Entrar como Motorista</button>
+      <div>
+        <label class="text-[10px] text-slate-400 ml-1">Celular / Telefone</label>
+        <input type="tel" id="login-celular-motorista" required placeholder="(00) 00000-0000" class="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
+      </div>
+      <div>
+        <label class="text-[10px] text-slate-400 ml-1">Senha</label>
+        <input type="password" id="login-senha-motorista" required placeholder="Sua senha" class="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
+      </div>
+      <button type="submit" id="btn-entrar" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Entrar como Motorista</button>
     </form>
 
     <div class="text-center text-[11px] text-slate-500 space-y-2 pt-2 border-t border-slate-800">
@@ -39,29 +51,68 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    function mostrarErro(mensagem) {
+      const box = document.getElementById('box-erro');
+      const texto = document.getElementById('texto-erro');
+      texto.innerText = mensagem;
+      box.classList.remove('hidden');
+    }
+
     async function realizarLoginMotorista(e) {
       e.preventDefault();
+      document.getElementById('box-erro').classList.add('hidden');
+      
       const cel = document.getElementById('login-celular-motorista').value.trim();
       const senha = document.getElementById('login-senha-motorista').value;
+      const btn = document.getElementById('btn-entrar');
 
-      const { data, error } = await supabaseClient.from('motoristas').select('*').eq('telefone', cel).eq('senha', senha).single();
-      if (error || !data) {
-        alert("Celular ou senha inválidos.");
-        return;
+      btn.innerText = "Verificando...";
+      btn.disabled = true;
+
+      try {
+        // Tenta buscar na tabela de motoristas (caso exista separada) ou na tabela unificada de usuários filtrando por tipo
+        let { data, error } = await supabaseClient
+          .from('motoristas')
+          .select('*')
+          .eq('telefone', cel)
+          .eq('senha', senha)
+          .single();
+
+        // Se não encontrar na tabela motoristas, tenta na tabela geral 'usuarios' onde o tipo seja motorista
+        if (error || !data) {
+          const resUsuarios = await supabaseClient
+            .from('usuarios')
+            .select('*')
+            .eq('telefone', cel)
+            .eq('senha', senha)
+            .single();
+          
+          if (!resUsuarios.error && resUsuarios.data) {
+            data = resUsuarios.data;
+          } else {
+            throw new Error("Telefone ou senha inválidos. Verifique os dados informados.");
+          }
+        }
+
+        if (data.status === 'bloqueado' || data.status === 'pendente') {
+          mostrarErro("Sua conta está bloqueada ou pendente de aprovação pelo Administrador.");
+          btn.innerText = "Entrar como Motorista";
+          btn.disabled = false;
+          return;
+        }
+
+        // Limpa sessão de passageiro para evitar conflito
+        localStorage.removeItem('passageiro_logado');
+        data.tipo = 'motorista';
+        localStorage.setItem('motorista_logado', JSON.stringify(data));
+        
+        window.location.href = 'motorista.html';
+
+      } catch (err) {
+        mostrarErro(err.message || "Erro de conexão ao tentar autenticar. Tente novamente.");
+        btn.innerText = "Entrar como Motorista";
+        btn.disabled = false;
       }
-
-      if (data.status === 'bloqueado') {
-        alert("Conta temporariamente suspensa.");
-        return;
-      }
-
-      // Limpa sessão de passageiro para evitar conflito
-      localStorage.removeItem('passageiro_logado');
-      data.tipo = 'motorista';
-      localStorage.setItem('motorista_logado', JSON.stringify(data));
-      
-      // Corrigido para redirecionar corretamente para a aba de motorista
-      window.location.href = 'motorista.html';
     }
   </script>
 </body>
