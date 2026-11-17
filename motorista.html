@@ -45,7 +45,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v32</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v33</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -195,8 +195,9 @@
         <p class="text-[10px] text-slate-300">Nenhum aviso de suporte pendente no momento.</p>
       </div>
 
+      <!-- BOTÃO POWER VERMELHO (SEMPRE VISÍVEL QUANDO ONLINE) -->
       <div id="container-btn-desligar-redondo" class="hidden flex justify-center pt-1">
-        <button onclick="alternarPowerMotorista(); event.stopPropagation();" class="bg-red-600 hover:bg-red-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition border-2 border-white/20" title="Desligar Aplicativo">
+        <button onclick="alternarPowerMotorista(); event.stopPropagation();" class="bg-red-600 hover:bg-red-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition border-2 border-white/20" title="Desligar Aplicativo (Ficar Offline)">
           <i class="fa-solid fa-power-off text-base"></i>
         </button>
       </div>
@@ -355,19 +356,19 @@
         tituloHeader.innerText = 'Radar Motorista';
         container.classList.remove('overflow-y-auto');
         container.classList.add('overflow-hidden');
-        barraInferiorEl.classList.remove('hidden'); // Exibe barra apenas no radar
+        barraInferiorEl.classList.remove('hidden');
       } else if (aba === 'historico') {
         arquivoHtml = 'historico-motorista.html';
         tituloHeader.innerText = 'Ganhos & Histórico';
         container.classList.remove('overflow-hidden');
         container.classList.add('overflow-y-auto');
-        barraInferiorEl.classList.add('hidden'); // Oculta nas outras páginas
+        barraInferiorEl.classList.add('hidden');
       } else if (aba === 'perfil') {
         arquivoHtml = 'perfil.html';
         tituloHeader.innerText = 'Meu Perfil';
         container.classList.remove('overflow-hidden');
         container.classList.add('overflow-y-auto');
-        barraInferiorEl.classList.add('hidden'); // Oculta nas outras páginas
+        barraInferiorEl.classList.add('hidden');
       }
 
       try {
@@ -862,7 +863,14 @@
 
       document.getElementById('bloco-detalhes-corrida-ativa').classList.add('hidden');
       document.getElementById('bloco-central-avisos').classList.remove('hidden');
-      document.getElementById('container-btn-desligar-redondo').classList.add('hidden');
+      
+      // Se ainda estiver online, mantém o botão de desligar visível
+      if (statusOnline) {
+        document.getElementById('container-btn-desligar-redondo').classList.remove('hidden');
+      } else {
+        document.getElementById('container-btn-desligar-redondo').classList.add('hidden');
+      }
+
       document.getElementById('status-foto-passageiro').classList.add('hidden');
       document.getElementById('status-badge-nota').classList.add('hidden');
       document.getElementById('modal-conclusao-corrida').classList.add('hidden');
