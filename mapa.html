@@ -57,7 +57,7 @@
   let marcadorDestino = null;
   let coordsOrigem = null;
   let coordsDestino = null;
-  let formaPagamentoSelecionada = 'PIX'; // Padrão inicial
+  let formaPagamentoSelecionada = 'PIX';
 
   function inicializarMapa() {
     if (mapaLeaflet) {
@@ -68,7 +68,7 @@
     const latLaguna = -28.4811;
     const lngLaguna = -48.7811;
 
-    mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
+    mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 13);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
@@ -124,6 +124,7 @@
     }
   }
 
+  // BUSCA AMPLIADA: Removeu a trava restritiva de Laguna para abranger qualquer território digitado
   async function buscarSugestoes(termo, tipo) {
     const container = document.getElementById(`sugestoes-${tipo}`);
     if (termo.length < 3) {
@@ -132,7 +133,7 @@
     }
 
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo + ', Laguna, Santa Catarina')}`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo)}`);
       const resultados = await res.json();
 
       if (!resultados || resultados.length === 0) {
@@ -233,7 +234,12 @@
       return;
     }
 
-    // Insere no Supabase incluindo a forma_pagamento selecionada (PIX ou Dinheiro)
+    // Verifica se o supabaseClient está disponível na página principal
+    if (typeof supabaseClient === 'undefined') {
+      alert("Erro de conexão com o banco de dados. Recarregue a página.");
+      return;
+    }
+
     const { error } = await supabaseClient.from('corridas').insert([{
       passageiro_id: dadosUsuario.id,
       origem: origem,
