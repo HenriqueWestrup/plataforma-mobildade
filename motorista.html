@@ -42,7 +42,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v19</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v20</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -134,11 +134,17 @@
       <span id="timer-espera-3m" class="font-mono text-amber-400 font-bold text-sm">03:00</span>
     </div>
 
-    <div class="grid grid-cols-2 gap-2 pt-1">
-      <button onclick="abrirNoGoogleMaps()" class="bg-sky-600/20 border border-sky-500 text-sky-300 font-bold py-2.5 rounded-xl text-center transition flex items-center justify-center gap-1.5 text-xs">
-        <i class="fa-solid fa-map-location-dot"></i> Abrir no Maps
+    <div class="flex gap-2 pt-1">
+      <!-- BOTÃO GOOGLE MAPS MENOR -->
+      <button onclick="abrirNoGoogleMaps()" class="bg-sky-600/20 hover:bg-sky-600/30 border border-sky-500 text-sky-300 font-bold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1 text-[11px]">
+        <i class="fa-solid fa-map-location-dot"></i> Maps
       </button>
-      <button onclick="pedirConfirmacaoCancelarCorrida()" class="bg-red-950/40 border border-red-800 text-red-400 font-bold py-2.5 rounded-xl text-center transition flex items-center justify-center gap-1.5 text-xs">
+      <!-- BOTÃO INICIAR VIAGEM -->
+      <button id="btn-iniciar-viagem" onclick="iniciarViagem()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl transition text-[11px] shadow">
+        Iniciar Viagem
+      </button>
+      <!-- BOTÃO CANCELAR -->
+      <button onclick="pedirConfirmacaoCancelarCorrida()" class="bg-red-950/40 hover:bg-red-900/40 border border-red-800 text-red-400 font-bold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1 text-[11px]">
         <i class="fa-solid fa-xmark"></i> Cancelar
       </button>
     </div>
@@ -179,7 +185,7 @@
     </div>
   </div>
 
-  <!-- MODAL INTERNO PERSONALIZADO (SUBSTITUI OS ALERTAS NATIVOS DO NAVEGADOR) -->
+  <!-- MODAL INTERNO PERSONALIZADO -->
   <div id="modal-aviso-interno" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 p-5 rounded-3xl max-w-xs w-full text-center space-y-4 shadow-2xl animate-scaleIn">
       <div id="modal-icone-container" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-amber-500/20 text-amber-400 border border-amber-500/40">
@@ -210,6 +216,7 @@
     let intervaloValidacaoSessao = null;
     let intervaloVerificacaoPedidos = null;
     let intervaloOscilacaoTexto = null;
+    let canalCorridaAtiva = null;
     let corridaPendenteAtual = null;
     let corridaAtiva = null;
     let timer15sId = null;
@@ -217,7 +224,7 @@
     let gavetaAberta = false;
     let touchStartY = 0;
 
-    // SISTEMA DE MODAL INTERNO PERSONALIZADO (NÃO SAI DO APP)
+    // SISTEMA DE MODAL INTERNO PERSONALIZADO
     function mostrarModalAlerta(titulo, mensagem, acaoConfirmar = null) {
       document.getElementById('modal-titulo-texto').innerText = titulo;
       document.getElementById('modal-mensagem-texto').innerText = mensagem;
@@ -249,9 +256,9 @@
     barraInf.addEventListener('touchend', (e) => {
       let touchEndY = e.changedTouches[0].clientY;
       if (touchStartY - touchEndY > 40) {
-        setGavetaAberta(true); // Puxou para cima
+        setGavetaAberta(true);
       } else if (touchEndY - touchStartY > 40) {
-        setGavetaAberta(false); // Puxou para baixo
+        setGavetaAberta(false);
       }
     }, {passive: true});
 
@@ -359,7 +366,7 @@
           .from('corridas')
           .select('*')
           .eq('motorista_id', motoristaLogado.id)
-          .in('status', ['aceito', 'a_caminho', 'no_local'])
+          .in('status', ['aceito', 'a_caminho', 'no_local', 'em_andamento'])
           .limit(1);
 
         if (data && data.length > 0) {
@@ -377,7 +384,6 @@
       const indicador = document.getElementById('status-luz-indicadora');
 
       if (statusOnline) {
-        // LIGADO (ONLINE) -> SOME O BOTÃO DO MAPA E APARECE O BOTÃO NA GAVETA
         btnPowerFlutuante.classList.add('hidden');
         btnDesligarGaveta.classList.remove('hidden');
         indicador.className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping";
@@ -387,7 +393,6 @@
         iniciarRastreamentoGPS();
         iniciarEscutaPedidos();
       } else {
-        // DESLIGADO (OFFLINE) -> APARECE O BOTÃO NO MAPA E SOME O BOTÃO DA GAVETA
         btnPowerFlutuante.classList.remove('hidden');
         btnDesligarGaveta.classList.add('hidden');
         indicador.className = "w-3 h-3 rounded-full bg-slate-500";
@@ -560,9 +565,80 @@
       document.getElementById('modal-nova-corrida').classList.add('hidden');
       document.getElementById('ativa-origem').innerText = corridaAtiva.origem;
       document.getElementById('ativa-destino').innerText = corridaAtiva.destino;
+      
+      const statusTexto = document.getElementById('status-corrida-ativa');
+      const btnIniciar = document.getElementById('btn-iniciar-viagem');
+
+      if (corridaAtiva.status === 'em_andamento') {
+        statusTexto.innerText = "Em viagem para o destino";
+        btnIniciar.innerText = "Finalizar Viagem";
+        btnIniciar.className = "flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-xl transition text-[11px] shadow";
+      } else {
+        statusTexto.innerText = "A caminho do local";
+        btnIniciar.innerText = "Iniciar Viagem";
+        btnIniciar.className = "flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl transition text-[11px] shadow";
+      }
+
       document.getElementById('painel-corrida-ativa').classList.remove('hidden');
 
+      iniciarEscutaCorridaAtivaRealtime();
       iniciarTimerEsperaLocal();
+    }
+
+    // ESCUTA EM TEMPO REAL SE O PASSAGEIRO CANCELOU A CORRIDA
+    function iniciarEscutaCorridaAtivaRealtime() {
+      if (canalCorridaAtiva) supabaseClient.removeChannel(canalCorridaAtiva);
+
+      canalCorridaAtiva = supabaseClient
+        .channel(`public:corridas_ativa:${corridaAtiva.id}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'corridas', filter: `id=eq.${corridaAtiva.id}` }, payload => {
+          if (payload.new) {
+            if (payload.new.status === 'cancelado') {
+              mostrarModalAlerta("Corrida Cancelada", "O passageiro cancelou a solicitação de corrida.");
+              limparCorridaAtivaLocal();
+            }
+          }
+        })
+        .subscribe();
+    }
+
+    async function iniciarViagem() {
+      if (!corridaAtiva) return;
+
+      if (corridaAtiva.status === 'em_andamento') {
+        // Finalizar Corrida
+        try {
+          await supabaseClient.from('corridas').update({ status: 'concluido' }).eq('id', corridaAtiva.id);
+        } catch (e) {}
+        mostrarModalAlerta("Corrida Concluída", "Viagem finalizada com sucesso!");
+        limparCorridaAtivaLocal();
+      } else {
+        // Iniciar Viagem
+        try {
+          const { data, error } = await supabaseClient
+            .from('corridas')
+            .update({ status: 'em_andamento' })
+            .eq('id', corridaAtiva.id)
+            .select().single();
+
+          if (!error && data) {
+            corridaAtiva = data;
+            document.getElementById('status-corrida-ativa').innerText = "Em viagem para o destino";
+            const btn = document.getElementById('btn-iniciar-viagem');
+            btn.innerText = "Finalizar Viagem";
+            btn.className = "flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-xl transition text-[11px] shadow";
+            mostrarModalAlerta("Viagem Iniciada", "Siga em direção ao destino do passageiro.");
+          }
+        } catch (e) {}
+      }
+    }
+
+    function limparCorridaAtivaLocal() {
+      if (timerEspera3mId) clearInterval(timerEspera3mId);
+      if (canalCorridaAtiva) supabaseClient.removeChannel(canalCorridaAtiva);
+      corridaAtiva = null;
+      document.getElementById('painel-corrida-ativa').classList.add('hidden');
+      document.getElementById('bloco-espera-local').classList.add('hidden');
     }
 
     function iniciarTimerEsperaLocal() {
@@ -593,13 +669,11 @@
 
     function pedirConfirmacaoCancelarCorrida() {
       mostrarModalAlerta("Cancelar Corrida", "Deseja realmente cancelar esta corrida?", async () => {
-        if (timerEspera3mId) clearInterval(timerEspera3mId);
         try {
           await supabaseClient.from('corridas').update({ status: 'cancelado' }).eq('id', corridaAtiva.id);
         } catch (e) {}
 
-        corridaAtiva = null;
-        document.getElementById('painel-corrida-ativa').classList.add('hidden');
+        limparCorridaAtivaLocal();
         mostrarModalAlerta("Cancelado", "Corrida cancelada com sucesso.");
       });
     }
