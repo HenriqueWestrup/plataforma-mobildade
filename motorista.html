@@ -16,15 +16,15 @@
   <!-- CONTAINER DE NOTIFICAÇÕES FLUTUANTES (TOASTS) -->
   <div id="toast-container" class="fixed top-16 inset-x-4 z-[60] flex flex-col items-center gap-2 pointer-events-none"></div>
 
-  <!-- BANNER DE CONTA SUSPENSA / BLOQUEADA -->
-  <div id="banner-bloqueio" class="hidden bg-red-950/90 border-b border-red-600 p-3 flex flex-col gap-2 shrink-0 z-50 transition-all duration-300">
-    <div class="flex items-center gap-2 text-red-300">
+  <!-- BANNER DE CONTA SUSPENSA / BLOQUEADA IMEDIATA -->
+  <div id="banner-bloqueio" class="hidden bg-red-950/95 border-b border-red-600 p-3 flex flex-col gap-2 shrink-0 z-50 transition-all duration-300 shadow-xl">
+    <div class="flex items-center gap-2.5 text-red-300">
       <i class="fa-solid fa-triangle-exclamation text-base animate-bounce"></i>
       <div class="flex-1">
-        <h4 class="font-extrabold text-white text-xs">Atenção: Conta de Motorista Suspensa</h4>
-        <p class="text-[10px] text-red-200">Seu acesso para corridas está restrito pelo administrador.</p>
+        <h4 class="font-extrabold text-white text-xs">Atenção: Conta de Motorista Suspensa / Bloqueada</h4>
+        <p class="text-[10px] text-red-200">Seu acesso para corridas foi restrito pelo administrador.</p>
       </div>
-      <button onclick="abrirSuporteBloqueio()" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded-xl font-bold text-[11px] shadow">
+      <button onclick="abrirSuporteAssuntoMotorista('bloqueio')" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded-xl font-bold text-[11px] shadow">
         Suporte
       </button>
     </div>
@@ -45,10 +45,10 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v40</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v41</span>
   </header>
 
-  <!-- GAVETA DO MENU LATERAL -->
+  <!-- GAVETA DO MENU LATERAL (SEM OPÇÃO DE SUPORTE CONFORME SOLICITADO) -->
   <div id="menu-lateral" class="fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
     <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
       <div class="flex items-center gap-3">
@@ -125,7 +125,7 @@
     </div>
   </div>
 
-  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS -->
+  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS (COM CENTRAL DE SUPORTE INTEGRADA) -->
   <div id="barra-inferior-notificacao" class="bg-slate-900 border-t border-slate-800 p-3 z-40 shrink-0 shadow-2xl flex flex-col gap-2 transition-all duration-300 cursor-pointer" onclick="toggleExpandirBarra(event)">
     <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto mb-1"></div>
 
@@ -153,7 +153,7 @@
         </div>
       </div>
 
-      <!-- PAINEL DE COBRANÇA E AVALIAÇÃO (DENTRO DA GAVETA DO RADAR) -->
+      <!-- PAINEL DE COBRANÇA E AVALIAÇÃO -->
       <div id="bloco-cobranca-avaliacao" class="hidden bg-slate-950 border border-emerald-500/50 rounded-2xl p-3 space-y-3">
         <div class="text-center space-y-1 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
           <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Cobrar do Passageiro</span>
@@ -184,12 +184,21 @@
         </button>
       </div>
 
-      <div id="bloco-central-avisos" class="bg-slate-950 border border-emerald-500/40 rounded-2xl p-3 space-y-1 shadow-inner">
-        <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-xs">
-          <i class="fa-solid fa-circle-info text-sm"></i>
-          <span>Central de Notificações e Avisos</span>
+      <!-- CENTRAL DE AVISOS E SUPORTE NA BARRA INFERIOR -->
+      <div id="bloco-central-avisos" class="bg-slate-950 border border-emerald-500/40 rounded-2xl p-3 space-y-2.5 shadow-inner" onclick="event.stopPropagation();">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
+          <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-xs">
+            <i class="fa-solid fa-headset text-sm"></i>
+            <span>Suporte & Notificações da Central</span>
+          </div>
+          <button onclick="abrirSuporteAssuntoMotorista('Suporte Geral')" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold">
+            <i class="fa-solid fa-paper-plane mr-1"></i> Contato Direto
+          </button>
         </div>
-        <p class="text-[10px] text-slate-300">Nenhum aviso de suporte pendente no momento.</p>
+
+        <div id="lista-historico-suporte-motorista" class="space-y-1.5 max-h-36 overflow-y-auto text-[11px]">
+          <p class="text-slate-500 text-center py-1">Nenhum aviso ou reporte pendente.</p>
+        </div>
       </div>
 
       <div id="container-btn-desligar-redondo" class="hidden flex justify-center pt-1">
@@ -217,6 +226,37 @@
     </div>
   </div>
 
+  <!-- MODAL DE ATENDIMENTO DIRECIONADO PARA O MOTORISTA -->
+  <div id="modal-suporte-motorista" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
+          <i class="fa-solid fa-headset text-emerald-400"></i> Suporte do Motorista
+        </h3>
+        <button onclick="fecharModalSuporteMotorista()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+      </div>
+
+      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] space-y-1">
+        <span class="text-emerald-400 font-bold block">Assunto / Ocorrência:</span>
+        <p id="sup-motorista-assunto-label" class="text-slate-200 font-semibold">Suporte Geral</p>
+      </div>
+
+      <div class="space-y-2">
+        <span class="text-[11px] font-bold text-slate-300 block"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Histórico de Respostas da Central</span>
+        <div id="sup-motorista-historico-lista" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 max-h-48 overflow-y-auto text-[11px]">
+          <p class="text-slate-500 text-center py-2">Carregando histórico...</p>
+        </div>
+      </div>
+
+      <div class="space-y-2 pt-2 border-t border-slate-800">
+        <textarea id="sup-motorista-input-mensagem" rows="3" placeholder="Escreva sua mensagem para o suporte..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs outline-none focus:border-emerald-500"></textarea>
+        <button onclick="enviarMensagemSuporteMotorista()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow transition">
+          Enviar para o Suporte
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
@@ -230,6 +270,7 @@
     let intervaloVerificacaoPedidos = null;
     let intervaloOscilacaoTexto = null;
     let canalCorridaAtiva = null;
+    let canalRealtimeMotorista = null;
     let corridaPendenteAtual = null;
     let filaPedidosPendentes = [];
     let corridaAtiva = null;
@@ -240,6 +281,7 @@
     let notaSelecionada = 5;
     let abaAtual = 'radar';
     let mapaPreviaInstancia = null;
+    let assuntoAtualSuporteMotorista = 'Suporte Geral';
 
     function primeiroNome(nomeCompleto) {
       if (!nomeCompleto) return 'Passageiro';
@@ -290,7 +332,7 @@
       const conteudo = document.getElementById('conteudo-gaveta-notificacao');
       const seta = document.getElementById('icone-seta-gaveta');
       if (gavetaAberta) {
-        conteudo.style.maxHeight = '320px';
+        conteudo.style.maxHeight = '340px';
         seta.className = "fa-solid fa-chevron-down text-emerald-400 text-xs transition-transform duration-300";
       } else {
         conteudo.style.maxHeight = '0px';
@@ -405,14 +447,14 @@
       document.getElementById('menu-nome').innerText = motoristaLogado.nome || 'Motorista';
       document.getElementById('menu-foto').src = motoristaLogado.foto_url || 'https://ui-avatars.com/api/?name=Motorista';
 
-      if (motoristaLogado.status === 'bloqueado' || motoristaLogado.status === 'pendente') {
-        document.getElementById('banner-bloqueio').classList.remove('hidden');
-      }
+      await verificarDadosMotoristaAtualizados();
+      iniciarEscutaRealtimeMotorista();
 
       intervaloValidacaoSessao = setInterval(validarSessaoUnica, 7000);
       
       await carregarModulo('radar');
       await verificarCorridaAtivaExistente();
+      await carregarHistoricoBarraInferiorMotorista();
 
       const estadoOnlineSalvo = localStorage.getItem('motorista_online');
       if (estadoOnlineSalvo === 'true') {
@@ -426,6 +468,145 @@
       }
     }
 
+    async function verificarDadosMotoristaAtualizados() {
+      try {
+        const { data } = await supabaseClient.from('usuarios').select('*').eq('id', motoristaLogado.id).single();
+        if (data) {
+          motoristaLogado = data;
+          if (motoristaLogado.status === 'bloqueado' || motoristaLogado.status === 'pendente') {
+            document.getElementById('banner-bloqueio').classList.remove('hidden');
+          } else {
+            document.getElementById('banner-bloqueio').classList.add('hidden');
+          }
+        }
+      } catch (e) {}
+    }
+
+    function iniciarEscutaRealtimeMotorista() {
+      if (canalRealtimeMotorista) supabaseClient.removeChannel(canalRealtimeMotorista);
+
+      canalRealtimeMotorista = supabaseClient
+        .channel(`public:usuarios_motorista:${motoristaLogado.id}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'usuarios', filter: `id=eq.${motoristaLogado.id}` }, payload => {
+          if (payload.new) {
+            motoristaLogado = payload.new;
+            if (motoristaLogado.status === 'bloqueado' || motoristaLogado.status === 'pendente') {
+              document.getElementById('banner-bloqueio').classList.remove('hidden');
+            } else {
+              document.getElementById('banner-bloqueio').classList.add('hidden');
+            }
+            carregarHistoricoBarraInferiorMotorista();
+            if (motoristaLogado.notificacao_suporte) {
+              mostrarToastAdmin(motoristaLogado.notificacao_suporte, "aviso");
+            }
+          }
+        })
+        .subscribe();
+    }
+
+    async function carregarHistoricoBarraInferiorMotorista() {
+      const container = document.getElementById('lista-historico-suporte-motorista');
+      if (!container) return;
+
+      try {
+        let msgs = [];
+        const res1 = await supabaseClient.from('mensagens_suporte').select('*').eq('usuario_id', motoristaLogado.id).order('id', { ascending: false });
+        if (res1.data && res1.data.length > 0) {
+          msgs = res1.data;
+        } else {
+          const res2 = await supabaseClient.from('mensagens_suporte_app').select('*').eq('usuario_id', motoristaLogado.id).order('id', { ascending: false });
+          if (res2.data) msgs = res2.data;
+        }
+
+        if (msgs.length === 0) {
+          container.innerHTML = '<p class="text-slate-500 text-center py-1">Nenhuma notificação de suporte no momento.</p>';
+          return;
+        }
+
+        container.innerHTML = msgs.map(m => `
+          <div onclick="abrirSuporteAssuntoMotorista('${m.mensagem || 'Suporte'}')" class="bg-slate-900 p-2 rounded-xl border border-slate-800 space-y-0.5 cursor-pointer hover:border-emerald-500/50 transition">
+            <div class="flex justify-between items-center text-[9px] text-slate-400">
+              <span class="text-emerald-400 font-bold">${m.remetente === 'admin' ? 'Suporte Central' : 'Você'}</span>
+              <span>${new Date(m.criado_em || m.created_at || Date.now()).toLocaleDateString()}</span>
+            </div>
+            <p class="text-slate-200 text-[10px] truncate">${m.mensagem || m.texto || '-'}</p>
+          </div>
+        `).join('');
+      } catch (e) {
+        container.innerHTML = '<p class="text-slate-500 text-center py-1">Erro ao carregar avisos.</p>';
+      }
+    }
+
+    function abrirSuporteAssuntoMotorista(assunto) {
+      if (assunto === 'bloqueio') {
+        assuntoAtualSuporteMotorista = 'Assunto: Conta Suspensa / Bloqueada';
+      } else {
+        assuntoAtualSuporteMotorista = assunto;
+      }
+      document.getElementById('sup-motorista-assunto-label').innerText = assuntoAtualSuporteMotorista;
+      document.getElementById('modal-suporte-motorista').classList.remove('hidden');
+      carregarHistoricoModalMotorista();
+    }
+
+    function fecharModalSuporteMotorista() {
+      document.getElementById('modal-suporte-motorista').classList.add('hidden');
+    }
+
+    async function carregarHistoricoModalMotorista() {
+      const container = document.getElementById('sup-motorista-historico-lista');
+      container.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Carregando...</p>';
+
+      try {
+        let msgs = [];
+        const res1 = await supabaseClient.from('mensagens_suporte').select('*').eq('usuario_id', motoristaLogado.id).order('id', { ascending: false });
+        if (res1.data && res1.data.length > 0) {
+          msgs = res1.data;
+        } else {
+          const res2 = await supabaseClient.from('mensagens_suporte_app').select('*').eq('usuario_id', motoristaLogado.id).order('id', { ascending: false });
+          if (res2.data) msgs = res2.data;
+        }
+
+        if (msgs.length === 0) {
+          container.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma mensagem anterior.</p>';
+          return;
+        }
+
+        container.innerHTML = msgs.map(m => `
+          <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 space-y-1">
+            <span class="text-[9px] text-slate-400 block">${m.remetente === 'admin' ? 'Suporte Central' : 'Você'} • ${new Date(m.criado_em || m.created_at || Date.now()).toLocaleString('pt-BR')}</span>
+            <p class="text-slate-200">${m.mensagem || m.texto || '-'}</p>
+          </div>
+        `).join('');
+      } catch (e) {
+        container.innerHTML = '<p class="text-slate-500 text-center py-2">Erro ao carregar.</p>';
+      }
+    }
+
+    async function enviarMensagemSuporteMotorista() {
+      const texto = document.getElementById('sup-motorista-input-mensagem').value.trim();
+      if (!texto) return;
+
+      try {
+        const payload = {
+          usuario_id: motoristaLogado.id,
+          mensagem: `[${assuntoAtualSuporteMotorista}] ${texto}`,
+          remetente: 'motorista',
+          lido: false
+        };
+
+        const res = await supabaseClient.from('mensagens_suporte').insert([payload]);
+        if (res.error) {
+          await supabaseClient.from('mensagens_suporte_app').insert([payload]);
+        }
+
+        document.getElementById('sup-motorista-input-mensagem').value = '';
+        carregarHistoricoModalMotorista();
+        carregarHistoricoBarraInferiorMotorista();
+      } catch (e) {
+        alert("Erro ao enviar mensagem.");
+      }
+    }
+
     async function validarSessaoUnica() {
       const tokenLocal = localStorage.getItem('session_token');
       try {
@@ -435,9 +616,6 @@
             mostrarToastAdmin("Sua conta foi acessada em outro aparelho.", "erro");
             localStorage.clear();
             setTimeout(() => window.location.href = 'auth-motorista.html', 2500);
-          }
-          if (data.status === 'bloqueado') {
-            document.getElementById('banner-bloqueio').classList.remove('hidden');
           }
         }
       } catch (e) {}
@@ -774,7 +952,6 @@
     function exibirPainelCorridaAtiva() {
       if (intervaloOscilacaoTexto) clearInterval(intervaloOscilacaoTexto);
       document.getElementById('modal-nova-corrida').classList.add('hidden');
-      document.getElementById('bloco-central-avisos').classList.add('hidden');
       document.getElementById('bloco-cobranca-avaliacao').classList.add('hidden');
       document.getElementById('bloco-detalhes-corrida-ativa').classList.remove('hidden');
       document.getElementById('container-btn-desligar-redondo').classList.remove('hidden');
@@ -926,7 +1103,6 @@
       }
 
       try {
-        // SALVANDO NAS COLUNAS CORRETAS DA SUA TABELA SQL DO SUPABASE
         const { error } = await supabaseClient.from('corridas').update({
           status: 'concluido',
           avaliacao_motorista: notaSelecionada,
@@ -966,7 +1142,6 @@
 
       document.getElementById('bloco-detalhes-corrida-ativa').classList.add('hidden');
       document.getElementById('bloco-cobranca-avaliacao').classList.add('hidden');
-      document.getElementById('bloco-central-avisos').classList.remove('hidden');
       
       if (statusOnline) {
         document.getElementById('container-btn-desligar-redondo').classList.remove('hidden');
@@ -1004,14 +1179,6 @@
         }
         tempoEspera--;
       }, 1000);
-    }
-
-    function abrirNoGoogleMaps() {
-      if (!corridaAtiva) return;
-      let enderecoAlvo = (corridaAtiva.status === 'em_andamento') ? corridaAtiva.destino : corridaAtiva.origem;
-      if (!enderecoAlvo) return;
-      const destinoUrl = encodeURIComponent(enderecoAlvo);
-      window.open(`https://www.google.com/maps/search/?api=1&query=${destinoUrl}`, '_blank');
     }
 
     function pedirConfirmacaoCancelarCorrida() {
