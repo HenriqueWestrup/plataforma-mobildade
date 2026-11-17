@@ -300,8 +300,8 @@
         const agora = audioCtx.currentTime;
 
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, agora); // D5
-        osc.frequency.setValueAtTime(880.00, agora + 0.2); // A5
+        osc.frequency.setValueAtTime(587.33, agora);
+        osc.frequency.setValueAtTime(880.00, agora + 0.2);
         gain.gain.setValueAtTime(0.3, agora);
         gain.gain.exponentialRampToValueAtTime(0.01, agora + 0.6);
         osc.start(agora);
@@ -401,6 +401,7 @@
       try {
         const { data: resUsu } = await supabaseClient.from('usuarios').select('*');
         
+        // BUSCANDO USANDO OS CAMPOS EXATOS DO SEU SQL: avaliacao_motorista E motivo_avaliacao_motorista
         const { data: resCorridasSuporte } = await supabaseClient
           .from('corridas')
           .select(`
@@ -408,13 +409,13 @@
             origem,
             destino,
             valor,
-            avaliacao,
-            motivo_avaliacao,
-            created_at,
+            avaliacao_motorista,
+            motivo_avaliacao_motorista,
+            criado_em,
             motorista:motorista_id(nome, telefone),
             passageiro:passageiro_id(nome, telefone)
           `)
-          .lt('avaliacao', 5)
+          .lt('avaliacao_motorista', 5)
           .order('id', { ascending: false });
 
         const usuariosTotais = resUsu || [];
@@ -439,7 +440,7 @@
       canalRealtimeAdmin = supabaseClient
         .channel('public:corridas_admin_suporte_realtime')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'corridas' }, payload => {
-          if (payload.new && payload.new.avaliacao && payload.new.avaliacao < 5) {
+          if (payload.new && payload.new.avaliacao_motorista && payload.new.avaliacao_motorista < 5) {
             tocarSomAlertaAdmin();
             carregarDadosAdmin();
           }
@@ -523,7 +524,7 @@
             <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40 space-y-2 shadow">
               <div class="flex justify-between items-start">
                 <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1">
-                  <i class="fa-solid fa-star"><b>${s.avaliacao}</b> Estrelas</i>
+                  <i class="fa-solid fa-star"><b>${s.avaliacao_motorista}</b> Estrelas</i>
                 </span>
                 <span class="text-[10px] text-slate-400">Corrida #${s.id}</span>
               </div>
@@ -532,7 +533,7 @@
                 <p><strong>Motorista:</strong> ${s.motorista?.nome || 'Desconhecido'} (${s.motorista?.telefone || '-'})</p>
                 <p><strong>De:</strong> ${s.origem || '-'}</p>
                 <p><strong>Para:</strong> ${s.destino || '-'}</p>
-                <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${s.motivo_avaliacao || 'Nenhuma observação informada.'}</p>
+                <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${s.motivo_avaliacao_motorista || 'Nenhuma observação informada.'}</p>
               </div>
             </div>
           `).join('');
@@ -679,7 +680,7 @@
               </div>
               <p class="text-slate-300 truncate"><strong>De:</strong> ${c.origem || 'N/D'}</p>
               <p class="text-slate-300 truncate"><strong>Para:</strong> ${c.destino || 'N/D'}</p>
-              ${c.avaliacao ? `<p class="text-amber-400 text-[10px]"><strong>Avaliação:</strong> ${c.avaliacao} estrelas ${c.motivo_avaliacao ? '- ' + c.motivo_avaliacao : ''}</p>` : ''}
+              ${c.avaliacao_motorista ? `<p class="text-amber-400 text-[10px]"><strong>Avaliação:</strong> ${c.avaliacao_motorista} estrelas ${c.motivo_avaliacao_motorista ? '- ' + c.motivo_avaliacao_motorista : ''}</p>` : ''}
             </div>
           `;
         });

@@ -45,7 +45,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v39</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v40</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -125,7 +125,7 @@
     </div>
   </div>
 
-  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS (INCLUI PAINEL DE CORRIDA ATIVA E CONCLUSÃO) -->
+  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS -->
   <div id="barra-inferior-notificacao" class="bg-slate-900 border-t border-slate-800 p-3 z-40 shrink-0 shadow-2xl flex flex-col gap-2 transition-all duration-300 cursor-pointer" onclick="toggleExpandirBarra(event)">
     <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto mb-1"></div>
 
@@ -174,13 +174,13 @@
 
         <div id="bloco-justificativa" class="hidden space-y-1">
           <label class="text-[10px] font-bold text-red-400 flex items-center gap-1">
-            <i class="fa-solid fa-triangle-exclamation"></i> Motivo da nota baixa:
+            <i class="fa-solid fa-triangle-exclamation"></i> Motivo da nota baixa (Enviado ao Suporte):
           </label>
           <textarea id="input-motivo-negativo" rows="2" placeholder="Descreva o motivo..." class="w-full bg-slate-900 border border-red-500/50 rounded-xl p-2 text-white text-xs focus:outline-none" onclick="event.stopPropagation();"></textarea>
         </div>
 
-        <button onclick="encerrarEEnviarHistorico(); event.stopPropagation();" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow-lg transition text-xs flex items-center justify-center gap-2">
-          <i class="fa-solid fa-check"></i> Encerrar e Enviar para Histórico
+        <button onclick="encerrarCorrida(); event.stopPropagation();" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow-lg transition text-xs flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check"></i> Encerrar
         </button>
       </div>
 
@@ -916,7 +916,7 @@
       }
     }
 
-    async function encerrarEEnviarHistorico() {
+    async function encerrarCorrida() {
       if (!corridaAtiva) return;
 
       const motivo = document.getElementById('input-motivo-negativo').value.trim();
@@ -926,8 +926,11 @@
       }
 
       try {
+        // SALVANDO NAS COLUNAS CORRETAS DA SUA TABELA SQL DO SUPABASE
         const { error } = await supabaseClient.from('corridas').update({
-          status: 'concluido'
+          status: 'concluido',
+          avaliacao_motorista: notaSelecionada,
+          motivo_avaliacao_motorista: motivo || null
         }).eq('id', corridaAtiva.id);
 
         if (error) {
@@ -935,7 +938,7 @@
           return;
         }
 
-        mostrarToastAdmin("Viagem finalizada e salva!", "sucesso");
+        mostrarToastAdmin("Viagem encerrada com sucesso!", "sucesso");
         limparCorridaAtivaLocal();
       } catch (e) {
         mostrarToastAdmin("Erro de conexão ao finalizar.", "erro");
