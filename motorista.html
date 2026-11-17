@@ -45,7 +45,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v37</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v38</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -73,7 +73,10 @@
       </button>
     </div>
 
-    <div class="p-4 border-t border-slate-800">
+    <div class="p-4 border-t border-slate-800 space-y-2">
+      <button onclick="forcarLimpezaTravamento()" class="w-full bg-amber-950/40 text-amber-400 font-bold py-2 rounded-xl border border-amber-800 hover:bg-amber-900/40 transition text-[11px]">
+        <i class="fa-solid fa-triangle-exclamation"></i> Destravar Corrida Presa
+      </button>
       <button onclick="sairConta()" class="w-full bg-red-950/40 text-red-400 font-bold py-2.5 rounded-xl border border-red-800 hover:bg-red-900/40 transition">
         Sair da Conta
       </button>
@@ -83,7 +86,7 @@
   <!-- ÁREA DINÂMICA -->
   <main id="conteudo-dinamico-app" class="flex-1 relative overflow-y-auto bg-slate-950 flex flex-col"></main>
 
-  <!-- MODAL GLOBAL DE NOVA CORRIDA (COM FUNDO SÓLIDO E MINI-MAPA DE ROTA COMPLETA) -->
+  <!-- MODAL GLOBAL DE NOVA CORRIDA -->
   <div id="modal-nova-corrida" class="hidden fixed bottom-24 inset-x-4 bg-slate-900 border-2 border-amber-500 p-4 rounded-3xl shadow-2xl z-[55] space-y-3 max-h-[80vh] overflow-y-auto">
     <div class="flex items-center justify-between border-b border-slate-800 pb-2">
       <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1.5">
@@ -92,7 +95,6 @@
       <span id="corrida-valor" class="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
     </div>
 
-    <!-- MINI-MAPA DE PRÉVIA DA ROTA (EMBARQUE, PARADA E DESTINO) -->
     <div class="w-full h-36 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 relative z-10 shadow-inner">
       <div id="mapa-previa-modal" class="w-full h-full"></div>
     </div>
@@ -171,10 +173,8 @@
   <div id="barra-inferior-notificacao" class="bg-slate-900 border-t border-slate-800 p-3 z-40 shrink-0 shadow-2xl flex flex-col gap-2 transition-all duration-300 cursor-pointer" onclick="toggleExpandirBarra(event)">
     <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto mb-1"></div>
 
-    <!-- CONTEÚDO EXPANSÍVEL DA BARRA -->
     <div id="conteudo-gaveta-notificacao" class="flex flex-col gap-3 max-h-0 overflow-hidden transition-all duration-300">
       
-      <!-- DETALHES DA CORRIDA ATIVA -->
       <div id="bloco-detalhes-corrida-ativa" class="hidden bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
         <div class="space-y-1 text-xs text-slate-300">
           <p><strong>Embarque:</strong> <span id="ativa-origem" class="text-white">-</span></p>
@@ -196,7 +196,6 @@
         </div>
       </div>
 
-      <!-- CENTRAL DE AVISOS -->
       <div id="bloco-central-avisos" class="bg-slate-950 border border-emerald-500/40 rounded-2xl p-3 space-y-1 shadow-inner">
         <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-xs">
           <i class="fa-solid fa-circle-info text-sm"></i>
@@ -205,7 +204,6 @@
         <p class="text-[10px] text-slate-300">Nenhum aviso de suporte pendente no momento.</p>
       </div>
 
-      <!-- BOTÃO POWER VERMELHO (DENTRO DA BARRA DE NOTIFICAÇÃO QUANDO ONLINE) -->
       <div id="container-btn-desligar-redondo" class="hidden flex justify-center pt-1">
         <button onclick="alternarPowerMotorista(); event.stopPropagation();" class="bg-red-600 hover:bg-red-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition border-2 border-white/20" title="Desligar Aplicativo (Ficar Offline)">
           <i class="fa-solid fa-power-off text-base"></i>
@@ -213,7 +211,6 @@
       </div>
     </div>
 
-    <!-- CABEÇALHO DA BARRA INFERIOR -->
     <div class="flex items-center justify-between px-2 pt-1">
       <div class="flex items-center gap-2.5">
         <div id="status-luz-indicadora" class="w-3 h-3 rounded-full bg-slate-500"></div>
@@ -658,7 +655,6 @@
       tocarSomAlerta('novo_pedido');
       document.getElementById('modal-nova-corrida').classList.remove('hidden');
       
-      // Renderiza o mini-mapa com a rota real (Embarque, Parada e Destino)
       desenharPreviaRotaModal(corrida);
       iniciarTimer15Segundos();
     }
@@ -923,7 +919,7 @@
         blocoJustificativa.classList.remove('hidden');
       } else {
         textoNota.innerText = "Ruim / Muito Ruim";
-        blocoJustificativa.classList.add('hidden');
+        blocoJustificativa.classList.remove('hidden');
       }
     }
 
@@ -937,16 +933,39 @@
       }
 
       try {
-        await supabaseClient.from('corridas').update({
+        // CORREÇÃO: Aguarda a confirmação do Supabase antes de fechar o modal e limpar a tela
+        const { error } = await supabaseClient.from('corridas').update({
           status: 'concluido',
           avaliacao: notaSelecionada,
           motivo_avaliacao: motivo || null
         }).eq('id', corridaAtiva.id);
-      } catch (e) {}
 
-      document.getElementById('modal-conclusao-corrida').classList.add('hidden');
-      mostrarToastAdmin("Viagem finalizada e salva!", "sucesso");
-      limparCorridaAtivaLocal();
+        if (error) {
+          mostrarToastAdmin("Erro ao salvar no banco. Tente novamente.", "erro");
+          return;
+        }
+
+        document.getElementById('modal-conclusao-corrida').classList.add('hidden');
+        mostrarToastAdmin("Viagem finalizada e salva!", "sucesso");
+        limparCorridaAtivaLocal();
+      } catch (e) {
+        mostrarToastAdmin("Erro de conexão ao finalizar.", "erro");
+      }
+    }
+
+    // BOTÃO DE EMERGÊNCIA PARA DESTRAVAR CASO ALgumA CORRIDA FIQUE PRESA
+    async function forcarLimpezaTravamento() {
+      if (!motoristaLogado) return;
+      if (confirm("Deseja forçar o encerramento de qualquer corrida travada no seu perfil?")) {
+        try {
+          await supabaseClient.from('corridas').update({ status: 'concluido' }).eq('motorista_id', motoristaLogado.id).in('status', ['aceito', 'a_caminho', 'no_local', 'em_andamento']);
+          limparCorridaAtivaLocal();
+          mostrarToastAdmin("Perfil destravado com sucesso!", "sucesso");
+          setTimeout(() => window.location.reload(), 1500);
+        } catch(e) {
+          mostrarToastAdmin("Erro ao destravar.", "erro");
+        }
+      }
     }
 
     function limparCorridaAtivaLocal() {
@@ -1040,10 +1059,6 @@
 
     function toggleMenuLateral() {
       document.getElementById('menu-lateral').classList.toggle('-translate-x-full');
-    }
-
-    function abrirSuporteBloqueio() {
-      mostrarToastAdmin("Redirecionando para o suporte...", "aviso");
     }
 
     async function sairConta() {
