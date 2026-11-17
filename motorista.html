@@ -42,7 +42,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v22</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v23</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -135,7 +135,7 @@
     </div>
 
     <div class="flex gap-2 pt-1">
-      <!-- BOTÃO GOOGLE MAPS INTELIGENTE (ORIGEM ANTES DE INICIAR / DESTINO APÓS INICIAR) -->
+      <!-- BOTÃO GOOGLE MAPS INTELIGENTE -->
       <button onclick="abrirNoGoogleMaps()" class="bg-sky-600/20 hover:bg-sky-600/30 border border-sky-500 text-sky-300 font-bold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1 text-[11px]">
         <i class="fa-solid fa-map-location-dot"></i> Maps
       </button>
@@ -143,9 +143,54 @@
       <button id="btn-iniciar-viagem" onclick="iniciarViagem()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl transition text-[11px] shadow">
         Iniciar Viagem
       </button>
-      <!-- BOTÃO CANCELAR -->
-      <button onclick="pedirConfirmacaoCancelarCorrida()" class="bg-red-950/40 hover:bg-red-900/40 border border-red-800 text-red-400 font-bold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1 text-[11px]">
+      <!-- BOTÃO CANCELAR (SUME APÓS INICIAR A VIAGEM) -->
+      <button id="btn-cancelar-corrida" onclick="pedirConfirmacaoCancelarCorrida()" class="bg-red-950/40 hover:bg-red-900/40 border border-red-800 text-red-400 font-bold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1 text-[11px]">
         <i class="fa-solid fa-xmark"></i> Cancelar
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL DE TELA CHEIA: CONCLUSÃO, COBRANÇA E AVALIAÇÃO -->
+  <div id="modal-conclusao-corrida" class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex flex-col justify-between p-6 overflow-y-auto">
+    <div class="text-center space-y-2 pt-4">
+      <div class="w-14 h-14 bg-emerald-500/20 border border-emerald-500 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-2xl shadow-lg">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <h2 class="text-lg font-extrabold text-white">Viagem Finalizada!</h2>
+      <p class="text-slate-400 text-xs">Cheguei ao destino final com sucesso.</p>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-4 my-auto shadow-2xl">
+      <div class="text-center space-y-1 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+        <span class="text-[11px] text-slate-400 uppercase tracking-widest font-bold">Cobrar do Passageiro</span>
+        <h3 id="conclusao-valor-total" class="text-3xl font-extrabold text-emerald-400">R$ 0,00</h3>
+        <p class="text-[10px] text-amber-300 font-medium pt-1"><i class="fa-solid fa-wallet"></i> Solicite o pagamento total diretamente ao passageiro.</p>
+      </div>
+
+      <div class="space-y-2 text-center">
+        <label class="text-xs font-bold text-slate-300 block">Avalie o Passageiro:</label>
+        <div id="container-estrelas" class="flex justify-center gap-2 text-2xl text-slate-600 cursor-pointer">
+          <i class="fa-solid fa-star transition hover:text-amber-400" data-value="1" onclick="selecionarEstrela(1)"></i>
+          <i class="fa-solid fa-star transition hover:text-amber-400" data-value="2" onclick="selecionarEstrela(2)"></i>
+          <i class="fa-solid fa-star transition hover:text-amber-400" data-value="3" onclick="selecionarEstrela(3)"></i>
+          <i class="fa-solid fa-star transition hover:text-amber-400" data-value="4" onclick="selecionarEstrela(4)"></i>
+          <i class="fa-solid fa-star transition hover:text-amber-400" data-value="5" onclick="selecionarEstrela(5)"></i>
+        </div>
+        <p id="texto-nota-feedback" class="text-[11px] text-amber-400 font-semibold h-4"></p>
+      </div>
+
+      <!-- CAMPO DE JUSTIFICATIVA (EXIGIDO CASO NOTA < 5) -->
+      <div id="bloco-justificativa" class="hidden space-y-1.5 animate-fadeIn">
+        <label class="text-[11px] font-bold text-red-400 flex items-center gap-1">
+          <i class="fa-solid fa-triangle-exclamation"></i> Motivo da avaliação negativa (Obrigatório):
+        </label>
+        <textarea id="input-motivo-negativo" rows="3" placeholder="Descreva o motivo da nota baixa..." class="w-full bg-slate-950 border border-red-500/50 rounded-xl p-3 text-white text-xs focus:outline-none focus:border-red-500"></textarea>
+      </div>
+    </div>
+
+    <div class="pt-2">
+      <button onclick="encerrarEEnviarHistorico()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-2xl shadow-xl transition text-sm flex items-center justify-center gap-2">
+        <i class="fa-solid fa-check"></i> Encerrar e Enviar para Histórico
       </button>
     </div>
   </div>
@@ -218,6 +263,7 @@
     let timerEspera3mId = null;
     let gavetaAberta = false;
     let touchStartY = 0;
+    let notaSelecionada = 5; // Padrão 5 estrelas
 
     function mostrarModalAlerta(titulo, mensagem, acaoConfirmar = null) {
       document.getElementById('modal-titulo-texto').innerText = titulo;
@@ -559,15 +605,18 @@
       
       const statusTexto = document.getElementById('status-corrida-ativa');
       const btnIniciar = document.getElementById('btn-iniciar-viagem');
+      const btnCancelar = document.getElementById('btn-cancelar-corrida');
 
       if (corridaAtiva.status === 'em_andamento') {
         statusTexto.innerText = "Em viagem para o destino";
         btnIniciar.innerText = "Finalizar Viagem";
         btnIniciar.className = "flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-xl transition text-[11px] shadow";
+        btnCancelar.classList.add('hidden'); // O botão cancelar some após iniciar
       } else {
         statusTexto.innerText = "A caminho do local";
         btnIniciar.innerText = "Iniciar Viagem";
         btnIniciar.className = "flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl transition text-[11px] shadow";
+        btnCancelar.classList.remove('hidden');
       }
 
       document.getElementById('painel-corrida-ativa').classList.remove('hidden');
@@ -596,11 +645,8 @@
       if (!corridaAtiva) return;
 
       if (corridaAtiva.status === 'em_andamento') {
-        try {
-          await supabaseClient.from('corridas').update({ status: 'concluido' }).eq('id', corridaAtiva.id);
-        } catch (e) {}
-        mostrarModalAlerta("Corrida Concluída", "Viagem finalizada com sucesso!");
-        limparCorridaAtivaLocal();
+        // Ao invés de concluir direto, agora abre a tela cheia de cobrança e avaliação
+        abrirModalConclusaoEValores();
       } else {
         try {
           const { data, error } = await supabaseClient
@@ -615,10 +661,81 @@
             const btn = document.getElementById('btn-iniciar-viagem');
             btn.innerText = "Finalizar Viagem";
             btn.className = "flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-xl transition text-[11px] shadow";
+            
+            // REMOVE O BOTÃO DE CANCELAR IMEDIATAMENTE AO INICIAR
+            document.getElementById('btn-cancelar-corrida').classList.add('hidden');
+
             mostrarModalAlerta("Viagem Iniciada", "Siga em direção ao destino do passageiro.");
           }
         } catch (e) {}
       }
+    }
+
+    function abrirModalConclusaoEValores() {
+      document.getElementById('painel-corrida-ativa').classList.add('hidden');
+      document.getElementById('conclusao-valor-total').innerText = `R$ ${(corridaAtiva.valor || 15.0).toFixed(2).replace('.', ',')}`;
+      
+      // Resetar estrelas para 5 padrão
+      selecionarEstrela(5);
+      document.getElementById('input-motivo-negativo').value = '';
+      
+      document.getElementById('modal-conclusao-corrida').classList.remove('hidden');
+    }
+
+    function selecionarEstrela(nota) {
+      notaSelecionada = nota;
+      const estrelas = document.querySelectorAll('#container-estrelas i');
+      const textoNota = document.getElementById('texto-nota-feedback');
+      const blocoJustificativa = document.getElementById('bloco-justificativa');
+
+      estrelas.forEach((star, index) => {
+        if (index < nota) {
+          star.classList.remove('text-slate-600');
+          star.classList.add('text-amber-400');
+        } else {
+          star.classList.remove('text-amber-400');
+          star.classList.add('text-slate-600');
+        }
+      });
+
+      if (nota === 5) {
+        textoNota.innerText = "Excelente (5 estrelas)";
+        blocoJustificativa.classList.add('hidden');
+      } else if (nota === 4) {
+        textoNota.innerText = "Bom (4 estrelas)";
+        blocoJustificativa.classList.remove('hidden');
+      } else if (nota === 3) {
+        textoNota.innerText = "Regular (3 estrelas)";
+        blocoJustificativa.classList.remove('hidden');
+      } else if (nota === 2) {
+        textoNota.innerText = "Ruim (2 estrelas)";
+        blocoJustificativa.classList.remove('hidden');
+      } else {
+        textoNota.innerText = "Muito Ruim (1 estrela)";
+        blocoJustificativa.classList.remove('hidden');
+      }
+    }
+
+    async function encerrarEEnviarHistorico() {
+      if (!corridaAtiva) return;
+
+      const motivo = document.getElementById('input-motivo-negativo').value.trim();
+      if (notaSelecionada < 5 && !motivo) {
+        mostrarModalAlerta("Atenção", "Por favor, informe o motivo da avaliação negativa no campo indicado.");
+        return;
+      }
+
+      try {
+        await supabaseClient.from('corridas').update({
+          status: 'concluido',
+          avaliacao: notaSelecionada,
+          motivo_avaliacao: motivo || null
+        }).eq('id', corridaAtiva.id);
+      } catch (e) {}
+
+      document.getElementById('modal-conclusao-corrida').classList.add('hidden');
+      mostrarModalAlerta("Sucesso", "Viagem encerrada e enviada para o histórico!");
+      limparCorridaAtivaLocal();
     }
 
     function limparCorridaAtivaLocal() {
@@ -627,6 +744,7 @@
       corridaAtiva = null;
       document.getElementById('painel-corrida-ativa').classList.add('hidden');
       document.getElementById('bloco-espera-local').classList.add('hidden');
+      document.getElementById('modal-conclusao-corrida').classList.add('hidden');
     }
 
     function iniciarTimerEsperaLocal() {
@@ -649,13 +767,9 @@
       }, 1000);
     }
 
-    // BOTÃO GOOGLE MAPS INTELIGENTE (ORIGEM ANTES DE INICIAR / DESTINO APÓS INICIAR)
     function abrirNoGoogleMaps() {
       if (!corridaAtiva) return;
-
-      // Se a corrida estiver em andamento, o Maps abre o DESTINO. Senão, abre a ORIGEM.
       let enderecoAlvo = (corridaAtiva.status === 'em_andamento') ? corridaAtiva.destino : corridaAtiva.origem;
-
       if (!enderecoAlvo) return;
       const destinoUrl = encodeURIComponent(enderecoAlvo);
       window.open(`https://www.google.com/maps/search/?api=1&query=${destinoUrl}`, '_blank');
