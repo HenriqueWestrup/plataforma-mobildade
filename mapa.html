@@ -162,7 +162,6 @@
 
     modal.classList.remove('hidden');
 
-    // Fecha o modal automaticamente após alguns segundos (padrão: 3.5s)
     if (modalTimeoutId) clearTimeout(modalTimeoutId);
     modalTimeoutId = setTimeout(() => {
       fecharModalAviso();
@@ -410,16 +409,6 @@
   }
 
   async function chamarMotorista() {
-    const origem = document.getElementById('origem-corrida').value;
-    const destino = document.getElementById('destino-corrida').value;
-    const valorTexto = document.getElementById('valor-estimado').innerText;
-    
-    if (!origem || !destino) {
-      mostrarModal("Campos Incompletos", "Por favor, preencha a origem e o destino.", "cancelar", 3500);
-      return;
-    }
-
-    const valorNumerico = parseFloat(valorTexto.replace('R$ ', '').replace(',', '.')) || 15.0;
     const dadosUsuario = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
 
     if (!dadosUsuario.id) {
@@ -433,6 +422,31 @@
       mostrarModal("Erro Crítico", "Conexão com o banco de dados indisponível.", "cancelar", 3500);
       return;
     }
+
+    // VERIFICAÇÃO EM TEMPO REAL DO STATUS DA CONTA NO SUPABASE
+    try {
+      const { data: usuarioAtualizado } = await clienteSupabaseAtivo
+        .from('usuarios')
+        .select('status')
+        .eq('id', dadosUsuario.id)
+        .single();
+
+      if (usuarioAtualizado && (usuarioAtualizado.status === 'bloqueado' || usuarioAtualizado.status === 'pendente')) {
+        mostrarModal("Conta Suspensa", "Sua conta está suspensa ou pendente. Não é possível solicitar viagens.", "cancelar", 4000);
+        return;
+      }
+    } catch (e) {}
+
+    const origem = document.getElementById('origem-corrida').value;
+    const destino = document.getElementById('destino-corrida').value;
+    const valorTexto = document.getElementById('valor-estimado').innerText;
+    
+    if (!origem || !destino) {
+      mostrarModal("Campos Incompletos", "Por favor, preencha a origem e o destino.", "cancelar", 3500);
+      return;
+    }
+
+    const valorNumerico = parseFloat(valorTexto.replace('R$ ', '').replace(',', '.')) || 15.0;
 
     const { data, error } = await clienteSupabaseAtivo.from('corridas').insert([{
       passageiro_id: dadosUsuario.id,
