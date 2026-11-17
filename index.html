@@ -7,21 +7,20 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Leaflet CSS e JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs">
 
-  <!-- BANNER DE CONTA SUSPENSA / BLOQUEADA -->
-  <div id="banner-bloqueio" class="hidden bg-red-950/90 border-b border-red-600 p-3 flex flex-col gap-2 shrink-0 z-50 transition-all duration-300">
-    <div class="flex items-center gap-2 text-red-300">
+  <!-- BANNER DE CONTA SUSPENSA / BLOQUEADA IMEDIATA -->
+  <div id="banner-bloqueio" class="hidden bg-red-950/95 border-b border-red-600 p-3 flex flex-col gap-2 shrink-0 z-50 transition-all duration-300 shadow-xl">
+    <div class="flex items-center gap-2.5 text-red-300">
       <i class="fa-solid fa-triangle-exclamation text-base animate-bounce"></i>
       <div class="flex-1">
-        <h4 class="font-extrabold text-white text-xs">Atenção: Conta Suspensa Temporariamente</h4>
-        <p class="text-[10px] text-red-200">Seu acesso para corridas está restrito. Entre em contato com o suporte.</p>
+        <h4 class="font-extrabold text-white text-xs">Atenção: Conta Suspensa / Bloqueada</h4>
+        <p class="text-[10px] text-red-200">Seu acesso para corridas foi restrito pela administração central.</p>
       </div>
-      <button onclick="abrirSuporteBloqueio()" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded-xl font-bold text-[11px] shadow">
+      <button onclick="abrirSuporteAssunto('bloqueio')" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded-xl font-bold text-[11px] shadow">
         Suporte
       </button>
     </div>
@@ -45,10 +44,10 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v18</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v19</span>
   </header>
 
-  <!-- GAVETA DO MENU LATERAL -->
+  <!-- GAVETA DO MENU LATERAL (COM OPÇÃO DE SUPORTE) -->
   <div id="menu-lateral" class="fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
     <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
       <div class="flex items-center gap-3">
@@ -71,6 +70,10 @@
       <a href="perfil.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
         <i class="fa-solid fa-user text-sky-400 w-5"></i> Meu Perfil
       </a>
+      <!-- NOVA OPÇÃO DE SUPORTE NO MENU HAMBÚRGUER -->
+      <button onclick="abrirModalSuporteGeral()" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
+        <i class="fa-solid fa-headset text-emerald-400 w-5"></i> Suporte & Mensagens
+      </button>
     </div>
 
     <div class="p-4 border-t border-slate-800">
@@ -80,13 +83,44 @@
     </div>
   </div>
 
-  <!-- CONTEÚDO PRINCIPAL ONDE O MAPA.HTML SERÁ INJETADO -->
+  <!-- CONTEÚDO PRINCIPAL -->
   <main id="main-app" class="flex-1 overflow-hidden relative flex flex-col bg-slate-950">
     <div id="map-loader" class="flex-1 flex flex-col justify-center items-center text-slate-500 gap-3">
       <i class="fa-solid fa-map-location-dot text-4xl animate-pulse"></i>
       Carregando mapa em Laguna...
     </div>
   </main>
+
+  <!-- MODAL DE SUPORTE E NOTIFICAÇÕES COM ASSUNTO VINCULADO -->
+  <div id="modal-suporte-passageiro" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
+          <i class="fa-solid fa-headset text-emerald-400"></i> Central de Suporte
+        </h3>
+        <button onclick="fecharModalSuporte()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+      </div>
+
+      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] space-y-1">
+        <span class="text-emerald-400 font-bold block">Assunto Selecionado:</span>
+        <p id="sup-assunto-label" class="text-slate-200 font-semibold">Suporte Geral</p>
+      </div>
+
+      <div class="space-y-2">
+        <span class="text-[11px] font-bold text-slate-300 block"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Histórico de Mensagens da Administração</span>
+        <div id="sup-historico-lista" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 max-h-48 overflow-y-auto text-[11px]">
+          <p class="text-slate-500 text-center py-2">Carregando mensagens...</p>
+        </div>
+      </div>
+
+      <div class="space-y-2 pt-2 border-t border-slate-800">
+        <textarea id="sup-input-mensagem" rows="3" placeholder="Escreva sua dúvida ou mensagem para o suporte..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs outline-none focus:border-emerald-500"></textarea>
+        <button onclick="enviarMensagemSuportePassageiro()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow transition">
+          Enviar para o Suporte
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
@@ -95,6 +129,8 @@
 
     let usuarioLogado = null;
     let intervaloHeartbeat = null;
+    let canalRealtimePassageiro = null;
+    let assuntoAtualSuporte = 'Suporte Geral';
 
     async function inicializarApp() {
       const passageiroStorage = localStorage.getItem('passageiro_logado');
@@ -111,32 +147,139 @@
         return;
       }
 
-      try {
-        const { data } = await supabaseClient.from('usuarios').select('*').eq('id', usuarioLogado.id).single();
-        if (data) usuarioLogado = data;
-      } catch (e) {}
+      await verificarDadosUsuarioAtualizados();
+      iniciarEscutaRealtimeStatus();
 
       document.getElementById('menu-nome').innerText = usuarioLogado.nome || 'Passageiro';
       document.getElementById('menu-foto').src = usuarioLogado.foto_url || 'https://ui-avatars.com/api/?name=Passageiro';
 
-      if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
-        document.getElementById('banner-bloqueio').classList.remove('hidden');
-      }
-
       carregarModuloMapa();
     }
 
-    // CARREGA O MAPA.HTML E EXECUTA OS SCRIPTS DINAMICAMENTE
+    async function verificarDadosUsuarioAtualizados() {
+      try {
+        const { data } = await supabaseClient.from('usuarios').select('*').eq('id', usuarioLogado.id).single();
+        if (data) {
+          usuarioLogado = data;
+          if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
+            document.getElementById('banner-bloqueio').classList.remove('hidden');
+          } else {
+            document.getElementById('banner-bloqueio').classList.add('hidden');
+          }
+        }
+      } catch (e) {}
+    }
+
+    function iniciarEscutaRealtimeStatus() {
+      if (canalRealtimePassageiro) supabaseClient.removeChannel(canalRealtimePassageiro);
+
+      canalRealtimePassageiro = supabaseClient
+        .channel(`public:usuarios_passageiro:${usuarioLogado.id}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'usuarios', filter: `id=eq.${usuarioLogado.id}` }, payload => {
+          if (payload.new) {
+            usuarioLogado = payload.new;
+            if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
+              document.getElementById('banner-bloqueio').classList.remove('hidden');
+            } else {
+              document.getElementById('banner-bloqueio').classList.add('hidden');
+            }
+            if (usuarioLogado.notificacao_suporte) {
+              mostrarModalNotificacaoSuporte(usuarioLogado.notificacao_suporte);
+            }
+          }
+        })
+        .subscribe();
+    }
+
+    function mostrarModalNotificacaoSuporte(texto) {
+      assuntoAtualSuporte = 'Aviso / Notificação do Administrador';
+      document.getElementById('sup-assunto-label').innerText = assuntoAtualSuporte;
+      document.getElementById('modal-suporte-passageiro').classList.remove('hidden');
+      carregarHistoricoMensagensSuporte();
+    }
+
+    function abrirSuporteAssunto(assunto) {
+      if (assunto === 'bloqueio') {
+        assuntoAtualSuporte = 'Assunto: Conta Suspensa / Bloqueada';
+      } else {
+        assuntoAtualSuporte = assunto;
+      }
+      document.getElementById('sup-assunto-label').innerText = assuntoAtualSuporte;
+      document.getElementById('modal-suporte-passageiro').classList.remove('hidden');
+      carregarHistoricoMensagensSuporte();
+    }
+
+    function abrirModalSuporteGeral() {
+      toggleMenuLateral();
+      abrirSuporteAssunto('Suporte Geral e Dúvidas');
+    }
+
+    function fecharModalSuporte() {
+      document.getElementById('modal-suporte-passageiro').classList.add('hidden');
+    }
+
+    async function carregarHistoricoMensagensSuporte() {
+      const container = document.getElementById('sup-historico-lista');
+      container.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Carregando...</p>';
+
+      try {
+        let msgs = [];
+        const res1 = await supabaseClient.from('mensagens_suporte').select('*').eq('usuario_id', usuarioLogado.id).order('id', { ascending: false });
+        if (res1.data && res1.data.length > 0) {
+          msgs = res1.data;
+        } else {
+          const res2 = await supabaseClient.from('mensagens_suporte_app').select('*').eq('usuario_id', usuarioLogado.id).order('id', { ascending: false });
+          if (res2.data) msgs = res2.data;
+        }
+
+        if (msgs.length === 0) {
+          container.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma mensagem anterior no suporte.</p>';
+          return;
+        }
+
+        container.innerHTML = msgs.map(m => `
+          <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 space-y-1">
+            <span class="text-[9px] text-slate-400 block">${m.remetente === 'admin' ? 'Suporte Central' : 'Você'} • ${new Date(m.criado_em || m.created_at || Date.now()).toLocaleString('pt-BR')}</span>
+            <p class="text-slate-200">${m.mensagem || m.texto || '-'}</p>
+          </div>
+        `).join('');
+      } catch (e) {
+        container.innerHTML = '<p class="text-slate-500 text-center py-2">Erro ao carregar histórico.</p>';
+      }
+    }
+
+    async function enviarMensagemSuportePassageiro() {
+      const texto = document.getElementById('sup-input-mensagem').value.trim();
+      if (!texto) return;
+
+      try {
+        const payload = {
+          usuario_id: usuarioLogado.id,
+          mensagem: `[${assuntoAtualSuporte}] ${texto}`,
+          remetente: 'passageiro',
+          lido: false
+        };
+
+        const res = await supabaseClient.from('mensagens_suporte').insert([payload]);
+        if (res.error) {
+          await supabaseClient.from('mensagens_suporte_app').insert([payload]);
+        }
+
+        document.getElementById('sup-input-mensagem').value = '';
+        carregarHistoricoMensagensSuporte();
+      } catch (e) {
+        alert("Erro ao enviar mensagem.");
+      }
+    }
+
     async function carregarModuloMapa() {
       const mainApp = document.getElementById('main-app');
       try {
         const response = await fetch('mapa.html');
         if (!response.ok) throw new Error('Falha ao carregar mapa');
         const htmlMapa = await response.text();
-        
         mainApp.innerHTML = htmlMapa;
 
-        // Extrai e executa as tags <script> contidas no mapa.html dinamicamente
         const scripts = mainApp.querySelectorAll('script');
         scripts.forEach(scriptAntigo => {
           const novoScript = document.createElement('script');
@@ -148,9 +291,7 @@
           document.body.appendChild(novoScript);
           scriptAntigo.remove();
         });
-
       } catch (error) {
-        console.error(error);
         mainApp.innerHTML = '<div class="flex-1 flex justify-center items-center text-red-400">Erro ao carregar o módulo do mapa.</div>';
       }
     }
@@ -171,10 +312,6 @@
 
     function toggleMenuLateral() {
       document.getElementById('menu-lateral').classList.toggle('-translate-x-full');
-    }
-
-    function abrirSuporteBloqueio() {
-      alert("Entre em contato com o suporte através do chat administrativo.");
     }
 
     async function sairConta() {
