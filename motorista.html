@@ -1,70 +1,119 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="dark">
+<html lang="pt-BR" class="dark h-full">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mobilidade Laguna - Motorista</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Painel Motorista - Mobilidade Laguna</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            darkbg: '#0f172a',
-            darkcard: '#1e293b'
-          }
-        }
-      }
-    }
-  </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Leaflet CSS e JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 h-screen flex flex-col justify-between overflow-hidden">
+<body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs relative">
 
-  <!-- CABEÇALHO DO MOTORISTA -->
-  <header class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center shadow-md z-10">
-    <div class="flex items-center space-x-2">
-      <div class="bg-amber-600 p-2 rounded-xl text-white shadow">
-        <i class="fa-solid fa-car"></i>
+  <!-- BANNER DE CONTA SUSPENSA / BLOQUEADA -->
+  <div id="banner-bloqueio" class="hidden bg-red-950/90 border-b border-red-600 p-3 flex flex-col gap-2 shrink-0 z-50 transition-all duration-300">
+    <div class="flex items-center gap-2 text-red-300">
+      <i class="fa-solid fa-triangle-exclamation text-base animate-bounce"></i>
+      <div class="flex-1">
+        <h4 class="font-extrabold text-white text-xs">Atenção: Conta de Motorista Suspensa</h4>
+        <p class="text-[10px] text-red-200">Seu acesso para corridas está restrito pelo administrador.</p>
       </div>
-      <div>
-        <h1 class="font-extrabold text-sm tracking-wide text-white">Mobilidade Laguna</h1>
-        <p class="text-[10px] text-amber-400 font-medium">Painel Motorista</p>
+      <button onclick="abrirSuporteBloqueio()" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded-xl font-bold text-[11px] shadow">
+        Suporte
+      </button>
+    </div>
+  </div>
+
+  <!-- TOPO DO APP (IGUAL AO PASSAGEIRO) -->
+  <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0 z-40">
+    <div class="flex items-center gap-3">
+      <button onclick="toggleMenuLateral()" class="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800 border border-slate-700">
+        <i class="fa-solid fa-bars text-sm"></i>
+      </button>
+      <div class="flex items-center gap-2">
+        <div class="bg-amber-600/20 border border-amber-500/30 text-amber-400 p-2 rounded-xl">
+          <i class="fa-solid fa-car text-sm"></i>
+        </div>
+        <div>
+          <h1 class="text-sm font-extrabold text-white">Mobilidade Laguna</h1>
+          <span id="status-conexao-topo" class="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+            <span id="indicador-ponto" class="w-2 h-2 rounded-full bg-slate-500 inline-block"></span> <span id="texto-status-topo">Offline</span>
+          </span>
+        </div>
       </div>
     </div>
-    
-    <!-- CHAVE DE STATUS (ONLINE / OFFLINE) -->
-    <div class="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-full border border-slate-800">
-      <span id="indicador-status" class="w-2.5 h-2.5 rounded-full bg-slate-500 animate-pulse"></span>
-      <span id="texto-status" class="text-[10px] font-bold text-slate-400">Offline</span>
-      <input type="checkbox" id="toggle-online" onchange="alternarStatusMotorista(this)" class="sr-only">
-      <label for="toggle-online" class="cursor-pointer ml-1 text-xs text-amber-400 font-bold">Alternar</label>
-    </div>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v13</span>
   </header>
 
-  <!-- CONTEÚDO PRINCIPAL -->
-  <main id="app-motorista-container" class="flex-1 flex flex-col relative overflow-hidden bg-slate-950">
-    <!-- Conteúdo inicial carrega o radar do motorista -->
+  <!-- GAVETA DO MENU LATERAL (PADRÃO HAMBÚRGUER) -->
+  <div id="menu-lateral" class="fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
+    <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+      <div class="flex items-center gap-3">
+        <img id="menu-foto" src="https://ui-avatars.com/api/?name=Motorista" class="w-10 h-10 rounded-full object-cover border border-amber-500">
+        <div>
+          <h3 id="menu-nome" class="font-bold text-white text-xs">Carregando...</h3>
+          <p class="text-[10px] text-amber-400">Motorista Parceiro</p>
+        </div>
+      </div>
+      <button onclick="toggleMenuLateral()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+
+    <div class="flex-1 p-3 space-y-2 overflow-y-auto">
+      <button onclick="mudarAbaMotorista('radar')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
+        <i class="fa-solid fa-satellite-dish text-amber-400 w-5"></i> Radar / Início
+      </button>
+      <button onclick="mudarAbaMotorista('historico')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
+        <i class="fa-solid fa-chart-line text-emerald-400 w-5"></i> Ganhos & Histórico
+      </button>
+      <button onclick="mudarAbaMotorista('perfil')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
+        <i class="fa-solid fa-user text-sky-400 w-5"></i> Meu Perfil
+      </button>
+    </div>
+
+    <div class="p-4 border-t border-slate-800">
+      <button onclick="sairConta()" class="w-full bg-red-950/40 text-red-400 font-bold py-2.5 rounded-xl border border-red-800 hover:bg-red-900/40 transition">
+        Sair da Conta
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTEÚDO PRINCIPAL (MAPA ABAIXO) -->
+  <main id="app-motorista-container" class="flex-1 relative overflow-hidden bg-slate-950 flex flex-col">
+    <!-- O mapa será injetado aqui -->
+    <div id="map-radar" class="w-full h-full absolute inset-0 z-0"></div>
   </main>
 
-  <!-- MENU DE NAVEGAÇÃO INFERIOR DO MOTORISTA -->
-  <nav class="bg-slate-900 border-t border-slate-800 py-2.5 px-6 flex justify-around items-center z-10 shadow-lg">
-    <button onclick="carregarAbaMotorista('radar-motorista.html', this)" class="nav-motorista-btn flex flex-col items-center text-amber-400 transition">
-      <i class="fa-solid fa-radar text-lg"></i>
-      <span class="text-[10px] font-bold mt-1">Radar</span>
-    </button>
-    <button onclick="carregarAbaMotorista('historico-motorista.html', this)" class="nav-motorista-btn flex flex-col items-center text-slate-400 hover:text-amber-400 transition">
-      <i class="fa-solid fa-chart-line text-lg"></i>
-      <span class="text-[10px] font-bold mt-1">Ganhos</span>
-    </button>
-    <button onclick="carregarAbaMotorista('perfil.html', this)" class="nav-motorista-btn flex flex-col items-center text-slate-400 hover:text-amber-400 transition">
-      <i class="fa-solid fa-user text-lg"></i>
-      <span class="text-[10px] font-bold mt-1">Perfil</span>
-    </button>
-  </nav>
+  <!-- BARRA DE NOTIFICAÇÕES E STATUS INFERIOR (POWER BUTTON) -->
+  <div class="bg-slate-900 border-t border-slate-800 p-3 z-30 shrink-0 shadow-2xl flex flex-col gap-2 transition-all duration-300">
+    
+    <!-- GAVETA DE NOTIFICAÇÕES (DESLIZA DE BAIXO PARA CIMA QUANDO ONLINE) -->
+    <div id="painel-notificacoes-motorista" class="hidden bg-slate-950 border border-red-500/50 rounded-2xl p-3 space-y-2 animate-pulse shadow-inner">
+      <div class="flex items-center gap-2 text-red-400 font-extrabold text-xs">
+        <i class="fa-solid fa-circle-exclamation text-sm"></i>
+        <span id="texto-alerta-dinamico">Modo Online Ativo - Procurando Corridas...</span>
+      </div>
+      <p id="subtexto-alerta" class-[10px] text-slate-300">Mantenha o aplicativo aberto para receber chamadas na região de Laguna.</p>
+    </div>
+
+    <!-- BOTÃO POWER CENTRALIZADO E BARRA DE STATUS -->
+    <div class="flex items-center justify-between px-2">
+      <div class="flex items-center gap-2">
+        <div id="status-luz-indicadora" class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></div>
+        <div>
+          <p class="font-bold text-white text-xs" id="status-texto-principal">Pronto para trabalhar</p>
+          <p class="text-[10px] text-slate-400" id="status-subtexto">Toque no botão para alternar</p>
+        </div>
+      </div>
+
+      <!-- BOTÃO REDONDO FAMOSO ÍCONE DE POWER -->
+      <button id="btn-power-motorista" onclick="alternarPowerMotorista()" class="w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-xl border-4 border-slate-950 transition transform active:scale-95">
+        <i class="fa-solid fa-power-off text-xl"></i>
+      </button>
+    </div>
+  </div>
 
   <!-- SCRIPTS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -73,93 +122,133 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    let motoristaLogado = null;
+    let mapaRadar = null;
+    let statusOnline = false;
     let intervaloValidacaoSessao = null;
 
-    // Validação de Sessão Única do Motorista
-    async function validarSessaoMotorista() {
-      const motoristaStorage = localStorage.getItem('motorista_logado');
-      const sessionTokenLocal = localStorage.getItem('session_token');
-      if (!motoristaStorage) return;
-
-      const motorista = JSON.parse(motoristaStorage);
-      try {
-        const { data, error } = await supabaseClient
-          .from('motoristas')
-          .select('session_token')
-          .eq('id', motorista.id)
-          .single();
-
-        let tokenBanco = data ? data.session_token : null;
-        if (!tokenBanco) {
-          // Tenta na tabela usuarios se não achar na motoristas
-          const resUsr = await supabaseClient.from('usuarios').select('session_token').eq('id', motorista.id).single();
-          if (resUsr.data) tokenBanco = resUsr.data.session_token;
-        }
-
-        if (tokenBanco && tokenBanco !== sessionTokenLocal) {
-          alert("Sua conta foi acessada em outro aparelho. Você foi desconectado.");
-          localStorage.clear();
-          window.location.href = 'auth-motorista.html';
-        }
-      } catch (e) {}
-    }
-
-    async function carregarAbaMotorista(arquivo, elementoBotao) {
-      document.querySelectorAll('.nav-motorista-btn').forEach(btn => {
-        btn.classList.remove('text-amber-400');
-        btn.classList.add('text-slate-400');
-      });
-      if(elementoBotao) {
-        elementoBotao.classList.remove('text-slate-400');
-        elementoBotao.classList.add('text-amber-400');
-      }
-
-      try {
-        const resposta = await fetch(arquivo);
-        if (!resposta.ok) throw new Error('Erro ao carregar o módulo do motorista.');
-        const html = await resposta.text();
-        document.getElementById('app-motorista-container').innerHTML = html;
-
-        if (arquivo === 'radar-motorista.html' && typeof inicializarRadar === 'function') {
-          inicializarRadar();
-        }
-        if (arquivo === 'historico-motorista.html' && typeof carregarHistoricoMotorista === 'function') {
-          carregarHistoricoMotorista();
-        }
-        if (arquivo === 'perfil.html' && typeof carregarModuloPerfil === 'function') {
-          carregarModuloPerfil();
-        }
-      } catch (erro) {
-        console.error(erro);
-      }
-    }
-
-    function alternarStatusMotorista(checkbox) {
-      const ind = document.getElementById('indicador-status');
-      const txt = document.getElementById('texto-status');
-      if (checkbox.checked) {
-        ind.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
-        txt.innerText = "Online";
-        txt.className = "text-[10px] font-bold text-emerald-400";
-      } else {
-        ind.className = "w-2.5 h-2.5 rounded-full bg-slate-500";
-        txt.innerText = "Offline";
-        txt.className = "text-[10px] font-bold text-slate-400";
-      }
-    }
-
-    window.onload = () => {
-      const motoristaLogado = localStorage.getItem('motorista_logado');
-      if (!motoristaLogado) {
+    async function inicializarMotoristaApp() {
+      const storage = localStorage.getItem('motorista_logado');
+      if (!storage) {
         window.location.href = 'auth-motorista.html';
         return;
       }
 
-      // Ativa a verificação de sessão única a cada 7 segundos
-      intervaloValidacaoSessao = setInterval(validarSessaoMotorista, 7000);
+      motoristaLogado = JSON.parse(storage);
+      document.getElementById('menu-nome').innerText = motoristaLogado.nome || 'Motorista';
+      document.getElementById('menu-foto').src = motoristaLogado.foto_url || 'https://ui-avatars.com/api/?name=Motorista';
 
-      carregarAbaMotorista('radar-motorista.html', document.querySelector('.nav-motorista-btn'));
-    };
+      if (motoristaLogado.status === 'bloqueado' || motoristaLogado.status === 'pendente') {
+        document.getElementById('banner-bloqueio').classList.remove('hidden');
+      }
+
+      intervaloValidacaoSessao = setInterval(validarSessaoUnica, 7000);
+      inicializarMapaRadar();
+    }
+
+    async function validarSessaoUnica() {
+      const tokenLocal = localStorage.getItem('session_token');
+      try {
+        const { data } = await supabaseClient.from('usuarios').select('session_token, status').eq('id', motoristaLogado.id).single();
+        if (data) {
+          if (data.session_token && data.session_token !== tokenLocal) {
+            alert("Sua conta foi acessada em outro aparelho.");
+            localStorage.clear();
+            window.location.href = 'auth-motorista.html';
+          }
+          if (data.status === 'bloqueado') {
+            document.getElementById('banner-bloqueio').classList.remove('hidden');
+          }
+        }
+      } catch (e) {}
+    }
+
+    function inicializarMapaRadar() {
+      const latLaguna = -28.4811;
+      const lngLaguna = -48.7811;
+      if (mapaRadar) {
+        mapaRadar.invalidateSize();
+        return;
+      }
+      mapaRadar = L.map('map-radar', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapaRadar);
+      setTimeout(() => mapaRadar.invalidateSize(), 300);
+    }
+
+    // BOTÃO POWER: VERDE QUANDO OFFLINE, VERMELHO QUANDO ONLINE COM BARRA DESLIZANDO
+    function alternarPowerMotorista() {
+      statusOnline = !statusOnline;
+      const btnPower = document.getElementById('btn-power-motorista');
+      const indicador = document.getElementById('status-luz-indicadora');
+      const textoTopo = document.getElementById('texto-status-topo');
+      const pontoTopo = document.getElementById('indicador-ponto');
+      const textoPrincipal = document.getElementById('status-texto-principal');
+      const subtexto = document.getElementById('status-subtexto');
+      const painelNotif = document.getElementById('painel-notificacoes-motorista');
+
+      if (statusOnline) {
+        // MODO ONLINE (Vermelho no Power e Barra de Notificação ativa)
+        btnPower.className = "w-14 h-14 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-xl border-4 border-slate-950 transition transform active:scale-95 animate-pulse";
+        indicador.className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping";
+        pontoTopo.className = "w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse";
+        textoTopo.innerText = "Online";
+        textoTopo.className = "text-[10px] text-emerald-400 font-bold";
+        textoPrincipal.innerText = "Você está Online";
+        subtexto.innerText = "Aguardando chamadas de passageiros";
+        
+        // Abre a barra de notificação de baixo para cima com destaque em vermelho oscilante
+        painelNotif.classList.remove('hidden');
+        atualizarPresencaSupabase(true);
+      } else {
+        // MODO OFFLINE (Verde no Power, pronto para ligar)
+        btnPower.className = "w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-xl border-4 border-slate-950 transition transform active:scale-95";
+        indicador.className = "w-3 h-3 rounded-full bg-slate-500";
+        pontoTopo.className = "w-2 h-2 rounded-full bg-slate-500 inline-block";
+        textoTopo.innerText = "Offline";
+        textoTopo.className = "text-[10px] text-slate-400 font-bold";
+        textoPrincipal.innerText = "Você está Offline";
+        subtexto.innerText = "Toque no botão power para ficar online";
+        
+        // Fecha a barra de notificação
+        painelNotif.classList.add('hidden');
+        atualizarPresencaSupabase(false);
+      }
+    }
+
+    async function atualizarPresencaSupabase(online) {
+      if (!motoristaLogado) return;
+      try {
+        await supabaseClient.from('usuarios').update({ online: online }).eq('id', motoristaLogado.id);
+      } catch (e) {}
+    }
+
+    function toggleMenuLateral() {
+      document.getElementById('menu-lateral').classList.toggle('-translate-x-full');
+    }
+
+    function mudarAbaMotorista(aba) {
+      toggleMenuLateral();
+      if (aba === 'perfil') window.location.href = 'perfil.html';
+      if (aba === 'historico') window.location.href = 'historico-motorista.html';
+      if (aba === 'radar') {
+        // Já está no radar
+      }
+    }
+
+    function abrirSuporteBloqueio() {
+      alert("Entre em contato com o suporte através do chat administrativo.");
+    }
+
+    async function sairConta() {
+      if (motoristaLogado) {
+        await supabaseClient.from('usuarios').update({ online: false }).eq('id', motoristaLogado.id);
+      }
+      clearInterval(intervaloValidacaoSessao);
+      localStorage.clear();
+      window.location.href = 'auth-motorista.html';
+    }
+
+    window.onload = inicializarMotoristaApp;
   </script>
 </body>
 </html>
