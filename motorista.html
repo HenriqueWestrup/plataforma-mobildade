@@ -13,7 +13,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs relative select-none">
 
-  <!-- CONTAINER DE NOTIFICAÇÕES FLUTUANTES (TOASTS ESTILO ADMIN) -->
+  <!-- CONTAINER DE NOTIFICAÇÕES FLUTUANTES (TOASTS) -->
   <div id="toast-container" class="fixed top-16 inset-x-4 z-50 flex flex-col items-center gap-2 pointer-events-none"></div>
 
   <!-- BANNER DE CONTA SUSPENSA / BLOQUEADA -->
@@ -45,7 +45,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v28</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v29</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -84,14 +84,14 @@
   <main id="app-motorista-container" class="flex-1 relative overflow-hidden bg-slate-950 flex flex-col">
     <div id="map-radar" class="w-full h-full absolute inset-0 z-0"></div>
 
-    <!-- BOTÃO POWER FLUTUANTE NO MAPA (VISÍVEL QUANDO OFFLINE) -->
+    <!-- BOTÃO POWER FLUTUANTE NO MAPA -->
     <div id="container-power-flutuante" class="absolute top-20 right-4 z-20">
       <button onclick="alternarPowerMotorista()" class="bg-emerald-600 hover:bg-emerald-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center font-bold transition border-2 border-white/20 animate-bounce" title="Ligar Aplicativo">
         <i class="fa-solid fa-power-off text-base"></i>
       </button>
     </div>
 
-    <!-- BOTÃO GOOGLE MAPS FLUTUANTE (VISÍVEL DURANTE CORRIDA) -->
+    <!-- BOTÃO GOOGLE MAPS FLUTUANTE -->
     <div id="container-btn-maps-flutuante" class="hidden absolute bottom-36 right-4 z-30">
       <button onclick="abrirNoGoogleMaps()" class="bg-sky-600 hover:bg-sky-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center font-bold transition border-2 border-white/20" title="Abrir no Google Maps">
         <i class="fa-solid fa-map-location-dot text-base"></i>
@@ -99,8 +99,8 @@
     </div>
   </main>
 
-  <!-- MODAL DE NOVA CORRIDA (TIMER 15s) -->
-  <div id="modal-nova-corrida" class="hidden absolute bottom-28 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-amber-500/80 p-4 rounded-3xl shadow-2xl z-30 space-y-3 max-h-[60vh] overflow-y-auto">
+  <!-- MODAL DE NOVA CORRIDA (GLOBAL E SOBREPOSTO A QUALQUER TELA) -->
+  <div id="modal-nova-corrida" class="hidden fixed bottom-28 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-amber-500/80 p-4 rounded-3xl shadow-2xl z-50 space-y-3 max-h-[60vh] overflow-y-auto">
     <div class="flex items-center justify-between border-b border-slate-800 pb-2">
       <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1.5">
         <i class="fa-solid fa-bell animate-bounce"></i> Novo Chamado Próximo
@@ -108,7 +108,7 @@
       <span id="corrida-valor" class="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
     </div>
 
-    <!-- EXIBIÇÃO DO PASSAGEIRO NA NOTIFICAÇÃO -->
+    <!-- EXIBIÇÃO DO PASSAGEIRO -->
     <div class="flex items-center gap-3 bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
       <img id="modal-passageiro-foto" src="" class="w-10 h-10 rounded-full object-cover border border-amber-500">
       <div>
@@ -129,12 +129,12 @@
     </div>
 
     <div class="flex gap-2 pt-1">
-      <button onclick="recusarCorridaRadar()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl transition text-xs">Recusar</button>
+      <button onclick="recusarCorridaRadar()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl transition text-xs">Recusar / Próximo</button>
       <button onclick="aceitarCorridaRadar()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition shadow-lg text-xs">Aceitar Corrida</button>
     </div>
   </div>
 
-  <!-- MODAL DE TELA CHEIA: CONCLUSÃO, COBRANÇA E AVALIAÇÃO -->
+  <!-- MODAL DE CONCLUSÃO E AVALIAÇÃO -->
   <div id="modal-conclusao-corrida" class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex flex-col justify-between p-6 overflow-y-auto">
     <div class="text-center space-y-2 pt-4">
       <div class="w-14 h-14 bg-emerald-500/20 border border-emerald-500 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-2xl shadow-lg">
@@ -163,7 +163,6 @@
         <p id="texto-nota-feedback" class="text-[11px] text-amber-400 font-semibold h-4"></p>
       </div>
 
-      <!-- CAMPO DE JUSTIFICATIVA -->
       <div id="bloco-justificativa" class="hidden space-y-1.5 animate-fadeIn">
         <label class="text-[11px] font-bold text-red-400 flex items-center gap-1">
           <i class="fa-solid fa-triangle-exclamation"></i> Motivo da avaliação negativa (Obrigatório):
@@ -179,14 +178,13 @@
     </div>
   </div>
 
-  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS (EXPANSÍVEL) -->
+  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS -->
   <div id="barra-inferior-notificacao" class="bg-slate-900 border-t border-slate-800 p-3 z-40 shrink-0 shadow-2xl flex flex-col gap-2 transition-all duration-300 cursor-pointer" onclick="toggleExpandirBarra(event)">
     <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto mb-1"></div>
 
-    <!-- CONTEÚDO EXPANSÍVEL DA BARRA -->
     <div id="conteudo-gaveta-notificacao" class="flex flex-col gap-3 max-h-0 overflow-hidden transition-all duration-300">
       
-      <!-- DETALHES DA CORRIDA ATIVA (VISÍVEL APÓS ACEITAR) -->
+      <!-- DETALHES DA CORRIDA ATIVA -->
       <div id="bloco-detalhes-corrida-ativa" class="hidden bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
         <div class="space-y-1 text-xs text-slate-300">
           <p><strong>Embarque:</strong> <span id="ativa-origem" class="text-white">-</span></p>
@@ -208,7 +206,7 @@
         </div>
       </div>
 
-      <!-- CENTRAL DE AVISOS (VISÍVEL QUANDO OFFLINE OU SEM CORRIDA) -->
+      <!-- CENTRAL DE AVISOS -->
       <div id="bloco-central-avisos" class="bg-slate-950 border border-emerald-500/40 rounded-2xl p-3 space-y-1 shadow-inner">
         <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-xs">
           <i class="fa-solid fa-circle-info text-sm"></i>
@@ -217,7 +215,7 @@
         <p class="text-[10px] text-slate-300">Nenhum aviso de suporte pendente no momento.</p>
       </div>
 
-      <!-- BOTÃO POWER REDONDO VERMELHO (SOMENTE ÍCONE) PARA FICAR OFFLINE (NÃO CANCELA A VIAGEM ATUAL) -->
+      <!-- BOTÃO POWER VERMELHO -->
       <div id="container-btn-desligar-redondo" class="hidden flex justify-center pt-1">
         <button onclick="alternarPowerMotorista(); event.stopPropagation();" class="bg-red-600 hover:bg-red-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition border-2 border-white/20" title="Desligar Aplicativo (Ficar Offline)">
           <i class="fa-solid fa-power-off text-base"></i>
@@ -225,12 +223,11 @@
       </div>
     </div>
 
-    <!-- CABEÇALHO RESUMIDO DA BARRA INFERIOR (PASSAGEIRO INTEGRADO AO TOPO DA BARRA) -->
+    <!-- CABEÇALHO RESUMIDO DA BARRA INFERIOR -->
     <div class="flex items-center justify-between px-2 pt-1">
       <div class="flex items-center gap-2.5">
         <div id="status-luz-indicadora" class="w-3 h-3 rounded-full bg-slate-500"></div>
         <div class="flex items-center gap-2.5">
-          <!-- FOTO REDONDA MINIBATURA DO PASSAGEIRO -->
           <img id="status-foto-passageiro" src="" class="w-9 h-9 rounded-full object-cover border border-amber-500 hidden shadow">
           <div>
             <div class="flex items-center gap-1.5">
@@ -293,11 +290,7 @@
       toast.innerHTML = `<i class="fa-solid ${icone} text-sm"></i><span>${mensagem}</span>`;
 
       container.appendChild(toast);
-
-      setTimeout(() => {
-        toast.classList.remove('-translate-y-2', 'opacity-0');
-      }, 10);
-
+      setTimeout(() => toast.classList.remove('-translate-y-2', 'opacity-0'), 10);
       setTimeout(() => {
         toast.classList.add('-translate-y-2', 'opacity-0');
         setTimeout(() => toast.remove(), 300);
@@ -389,6 +382,18 @@
       intervaloValidacaoSessao = setInterval(validarSessaoUnica, 7000);
       inicializarMapaRadar();
       verificarCorridaAtivaExistente();
+
+      // RESTAURA O ESTADO ONLINE PERSISTENTE ENTRE PÁGINAS
+      const estadoOnlineSalvo = localStorage.getItem('motorista_online');
+      if (estadoOnlineSalvo === 'true') {
+        statusOnline = true;
+        document.getElementById('container-power-flutuante').classList.add('hidden');
+        document.getElementById('container-btn-desligar-redondo').classList.remove('hidden');
+        document.getElementById('status-luz-indicadora').className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping";
+        iniciarOscilacaoStatus();
+        iniciarRastreamentoGPS();
+        iniciarEscutaPedidos();
+      }
     }
 
     async function validarSessaoUnica() {
@@ -438,6 +443,8 @@
 
     function alternarPowerMotorista() {
       statusOnline = !statusOnline;
+      localStorage.setItem('motorista_online', statusOnline);
+
       const btnPowerFlutuante = document.getElementById('container-power-flutuante');
       const containerBtnDesligarRedondo = document.getElementById('container-btn-desligar-redondo');
       const indicador = document.getElementById('status-luz-indicadora');
@@ -541,12 +548,13 @@
         .channel('public:corridas_motorista_radar')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'corridas' }, payload => {
           if (payload.new && payload.new.status === 'procurando' && statusOnline && !corridaAtiva) {
-            buscarDetalhesEExibirModalNovaCorrida(payload.new);
+            verificarPedidosPendentes();
           }
         })
         .subscribe();
     }
 
+    // SISTEMA DE FILA SEQUENCIAL DE PEDIDOS (LOOP ENTRE CHAMADOS)
     async function verificarPedidosPendentes() {
       if (!statusOnline || corridaAtiva) return;
       try {
@@ -554,18 +562,25 @@
           .from('corridas')
           .select('*')
           .eq('status', 'procurando')
-          .order('id', { ascending: false })
-          .limit(1);
+          .order('id', { ascending: true }); // Ordem de chamada (FIFO)
 
         if (data && data.length > 0) {
-          buscarDetalhesEExibirModalNovaCorrida(data[0]);
+          // Pega o primeiro pedido da fila que ainda não está ativo no modal atual
+          const proximoPedido = data[0];
+          if (!corridaPendenteAtual || corridaPendenteAtual.id !== proximoPedido.id) {
+            buscarDetalhesEExibirModalNovaCorrida(proximoPedido);
+          }
+        } else {
+          if (corridaPendenteAtual) {
+            recusarCorridaRadar();
+          }
         }
       } catch (e) {}
     }
 
     async function buscarDetalhesEExibirModalNovaCorrida(corrida) {
-      if (corridaPendenteAtual && corridaPendenteAtual.id === corrida.id) return;
-      
+      if (timer15sId) clearInterval(timer15sId);
+
       let passageiroInfo = { nome: 'Passageiro', foto_url: '', nota: '5.0' };
       try {
         const { data: usuarioPassageiro } = await supabaseClient
@@ -606,7 +621,7 @@
         if (tempo <= 0) {
           clearInterval(timer15sId);
           tocarSomAlerta('expirou');
-          recusarCorridaRadar();
+          recusarCorridaRadar(); // Passa instantaneamente para o próximo da fila
         }
         tempo--;
       }, 1000);
@@ -616,6 +631,8 @@
       if (timer15sId) clearInterval(timer15sId);
       corridaPendenteAtual = null;
       document.getElementById('modal-nova-corrida').classList.add('hidden');
+      // Imediatamente verifica o próximo pedido pendente na fila
+      setTimeout(verificarPedidosPendentes, 200);
     }
 
     async function aceitarCorridaRadar() {
@@ -665,7 +682,6 @@
       document.getElementById('ativa-origem').innerText = corridaAtiva.origem;
       document.getElementById('ativa-destino').innerText = corridaAtiva.destino;
       
-      // Configura foto e nome diretamente no topo da barra inferior
       const imgEl = document.getElementById('status-foto-passageiro');
       imgEl.src = fotoPassageiro;
       imgEl.classList.remove('hidden');
@@ -785,12 +801,9 @@
       } else if (nota === 3) {
         textoNota.innerText = "Regular (3 estrelas)";
         blocoJustificativa.classList.remove('hidden');
-      } else if (nota === 2) {
-        textoNota.innerText = "Ruim (2 estrelas)";
-        blocoJustificativa.classList.add('hidden');
       } else {
-        textoNota.innerText = "Muito Ruim (1 estrela)";
-        blocoJustificativa.classList.add('hidden');
+        textoNota.innerText = "Ruim / Muito Ruim";
+        blocoJustificativa.classList.remove('hidden');
       }
     }
 
