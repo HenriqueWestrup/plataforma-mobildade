@@ -1,20 +1,101 @@
-<div class="flex-1 flex flex-col relative w-full h-full bg-slate-950">
-  <div id="map-radar" class="w-full h-full absolute inset-0"></div>
-  
-  <div class="absolute top-4 inset-x-4 bg-slate-900/90 backdrop-blur p-3 rounded-2xl border border-slate-800 text-center z-10 shadow-lg">
-    <p class="text-xs font-bold text-amber-400"><i class="fa-solid fa-satellite-dish mr-1"></i> Procurando corridas próximas em Laguna...</p>
+<div class="flex-1 relative w-full h-full bg-slate-950 overflow-hidden">
+  <!-- MAPA LIVRE PARA QUALQUER REGIÃO -->
+  <div id="map-radar" class="w-full h-full absolute inset-0 z-0"></div>
+
+  <!-- BOTÃO POWER FLUTUANTE NO MAPA (VISÍVEL QUANDO OFFLINE) -->
+  <div id="container-power-flutuante" class="absolute top-6 right-4 z-20">
+    <button onclick="alternarPowerMotorista()" class="bg-emerald-600 hover:bg-emerald-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center font-bold transition border-2 border-white/20 animate-bounce" title="Ligar Aplicativo">
+      <i class="fa-solid fa-power-off text-base"></i>
+    </button>
+  </div>
+
+  <!-- BOTÃO GOOGLE MAPS FLUTUANTE (VISÍVEL DURANTE CORRIDA ATIVA) -->
+  <div id="container-btn-maps-flutuante" class="hidden absolute bottom-6 right-4 z-30">
+    <button onclick="abrirNoGoogleMaps()" class="bg-sky-600 hover:bg-sky-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center font-bold transition border-2 border-white/20" title="Abrir no Google Maps">
+      <i class="fa-solid fa-map-location-dot text-base"></i>
+    </button>
   </div>
 </div>
 
 <script>
-  function inicializarRadar() {
-    const latLaguna = -28.4811;
-    const lngLaguna = -48.7811;
-    const map = L.map('map-radar', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
+  var mapaRadarInstancia = null;
+  var marcadorCarroRadar = null;
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      subdomains: 'abcd',
-    }).addTo(map);
+  function inicializarModuloMapaRadar() {
+    // Coordenada inicial padrão (Brasil), mas imediatamente ajustada para a posição GPS do usuário
+    const latInicial = (typeof ultimaPosicaoGPS !== 'undefined' && ultimaPosicaoGPS) ? ultimaPosicaoGPS.lat : -15.793889;
+    const lngInicial = (typeof ultimaPosicaoGPS !== 'undefined' && ultimaPosicaoGPS) ? ultimaPosicaoGPS.lng : -47.882778;
+    const zoomInicial = (typeof ultimaPosicaoGPS !== 'undefined' && ultimaPosicaoGPS) ? 16 : 4;
+
+    if (mapaRadarInstancia) {
+      mapaRadarInstancia.remove();
+      mapaRadarInstancia = null;
+    }
+
+    mapaRadarInstancia = L.map('map-radar', { zoomControl: false }).setView([latInicial, lngInicial], zoomInicial);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapaRadarInstancia);
+
+    setTimeout(() => {
+      if (mapaRadarInstancia) mapaRadarInstancia.invalidateSize();
+    }, 250);
+
+    // Tenta obter a localização imediata do dispositivo ao abrir o mapa
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        atualizarPosicaoNoMapaRadar(pos.coords.latitude, pos.coords.longitude);
+      }, () => {}, { enableHighAccuracy: true });
+    }
+
+    sincronizarEstadoRadar();
   }
+
+  function atualizarPosicaoNoMapaRadar(lat, lng) {
+    if (!mapaRadarInstancia) return;
+
+    const iconeCarro = L.divIcon({
+      className: 'custom-car-marker',
+      html: '<div style="background-color: #f59e0b; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #fff;"><i class="fa-solid fa-car text-sm"></i></div>',
+      iconSize: [36, 36],
+      iconAnchor: [18, 18]
+    });
+
+    mapaRadarInstancia.setView([lat, lng], 16);
+
+    if (marcadorCarroRadar) {
+      marcadorCarroRadar.setLatLng([lat, lng]);
+    } else {
+      marcadorCarroRadar = L.marker([lat, lng], { icon: iconeCarro }).addTo(mapaRadarInstancia).bindPopup("Sua Posição");
+    }
+  }
+
+  function removerMarcadorCarroRadar() {
+    if (marcadorCarroRadar && mapaRadarInstancia) {
+      mapaRadarInstancia.removeLayer(marcadorCarroRadar);
+      marcadorCarroRadar = null;
+    }
+  }
+
+  function sincronizarEstadoRadar() {
+    const btnPower = document.getElementById('container-power-flutuante');
+    const btnMaps = document.getElementById('container-btn-maps-flutuante');
+
+    if (btnPower) {
+      if (typeof statusOnline !== 'undefined' && statusOnline) {
+        btnPower.classList.add('hidden');
+      } else {
+        btnPower.classList.remove('hidden');
+      }
+    }
+
+    if (btnMaps) {
+      if (typeof corridaAtiva !== 'undefined' && corridaAtiva) {
+        btnMaps.classList.remove('hidden');
+      } else {
+        btnMaps.classList.add('hidden');
+      }
+    }
+  }
+
+  // Inicializa o mapa assim que o módulo é injetado
+  inicializarModuloMapaRadar();
 </script>

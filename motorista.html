@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Painel Motorista - Mobilidade Laguna</title>
+  <title>Painel Motorista - MobiUrb</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Leaflet CSS e JS -->
+  <!-- Leaflet CSS e JS (disponível globalmente para os módulos) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs relative select-none">
 
   <!-- CONTAINER DE NOTIFICAÇÕES FLUTUANTES (TOASTS) -->
-  <div id="toast-container" class="fixed top-16 inset-x-4 z-50 flex flex-col items-center gap-2 pointer-events-none"></div>
+  <div id="toast-container" class="fixed top-16 inset-x-4 z-[60] flex flex-col items-center gap-2 pointer-events-none"></div>
 
   <!-- BANNER DE CONTA SUSPENSA / BLOQUEADA -->
   <div id="banner-bloqueio" class="hidden bg-red-950/90 border-b border-red-600 p-3 flex flex-col gap-2 shrink-0 z-50 transition-all duration-300">
@@ -41,14 +41,14 @@
           <i class="fa-solid fa-car text-sm"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Mobilidade Laguna</h1>
+          <h1 id="header-titulo-aba" class="text-sm font-extrabold text-white">Radar Motorista</h1>
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v30</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v31</span>
   </header>
 
-  <!-- GAVETA DO MENU LATERAL -->
+  <!-- GAVETA DO MENU LATERAL (DIRECIONADOR DE PÁGINAS) -->
   <div id="menu-lateral" class="fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
     <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
       <div class="flex items-center gap-3">
@@ -62,13 +62,13 @@
     </div>
 
     <div class="flex-1 p-3 space-y-2 overflow-y-auto">
-      <button onclick="mudarAbaMotorista('radar')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
+      <button onclick="carregarModulo('radar')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <i class="fa-solid fa-satellite-dish text-amber-400 w-5"></i> Radar / Início
       </button>
-      <button onclick="mudarAbaMotorista('historico')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
+      <button onclick="carregarModulo('historico')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <i class="fa-solid fa-chart-line text-emerald-400 w-5"></i> Ganhos & Histórico
       </button>
-      <button onclick="mudarAbaMotorista('perfil')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
+      <button onclick="carregarModulo('perfil')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <i class="fa-solid fa-user text-sky-400 w-5"></i> Meu Perfil
       </button>
     </div>
@@ -80,27 +80,13 @@
     </div>
   </div>
 
-  <!-- CONTEÚDO PRINCIPAL (MAPA DE RADAR) -->
-  <main id="app-motorista-container" class="flex-1 relative overflow-hidden bg-slate-950 flex flex-col">
-    <div id="map-radar" class="w-full h-full absolute inset-0 z-0"></div>
-
-    <!-- BOTÃO POWER FLUTUANTE NO MAPA -->
-    <div id="container-power-flutuante" class="absolute top-20 right-4 z-20">
-      <button onclick="alternarPowerMotorista()" class="bg-emerald-600 hover:bg-emerald-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center font-bold transition border-2 border-white/20 animate-bounce" title="Ligar Aplicativo">
-        <i class="fa-solid fa-power-off text-base"></i>
-      </button>
-    </div>
-
-    <!-- BOTÃO GOOGLE MAPS FLUTUANTE -->
-    <div id="container-btn-maps-flutuante" class="hidden absolute bottom-36 right-4 z-30">
-      <button onclick="abrirNoGoogleMaps()" class="bg-sky-600 hover:bg-sky-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center font-bold transition border-2 border-white/20" title="Abrir no Google Maps">
-        <i class="fa-solid fa-map-location-dot text-base"></i>
-      </button>
-    </div>
+  <!-- ÁREA DINÂMICA ONDE OS MÓDULOS SÃO INJETADOS (radar-motorista.html, historico, perfil) -->
+  <main id="conteudo-dinamico-app" class="flex-1 relative overflow-y-auto bg-slate-950 flex flex-col">
+    <!-- O conteúdo de radar-motorista.html será carregado aqui automaticamente -->
   </main>
 
-  <!-- MODAL DE NOVA CORRIDA (EXIBIÇÃO ÚNICA EM FILA / 1 POR VEZ) -->
-  <div id="modal-nova-corrida" class="hidden fixed bottom-28 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-amber-500/80 p-4 rounded-3xl shadow-2xl z-50 space-y-3 max-h-[60vh] overflow-y-auto">
+  <!-- MODAL GLOBAL DE NOVA CORRIDA (SOBREPÕE QUALQUER ABA: RADAR, GANHOS OU PERFIL) -->
+  <div id="modal-nova-corrida" class="hidden fixed bottom-28 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-amber-500/80 p-4 rounded-3xl shadow-2xl z-[55] space-y-3 max-h-[60vh] overflow-y-auto">
     <div class="flex items-center justify-between border-b border-slate-800 pb-2">
       <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1.5">
         <i class="fa-solid fa-bell animate-bounce"></i> Novo Chamado Próximo
@@ -135,7 +121,7 @@
   </div>
 
   <!-- MODAL DE CONCLUSÃO E AVALIAÇÃO -->
-  <div id="modal-conclusao-corrida" class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex flex-col justify-between p-6 overflow-y-auto">
+  <div id="modal-conclusao-corrida" class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[60] flex flex-col justify-between p-6 overflow-y-auto">
     <div class="text-center space-y-2 pt-4">
       <div class="w-14 h-14 bg-emerald-500/20 border border-emerald-500 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-2xl shadow-lg">
         <i class="fa-solid fa-circle-check"></i>
@@ -178,7 +164,7 @@
     </div>
   </div>
 
-  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS -->
+  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS (PERSISTENTE EM TODAS AS ABAS) -->
   <div id="barra-inferior-notificacao" class="bg-slate-900 border-t border-slate-800 p-3 z-40 shrink-0 shadow-2xl flex flex-col gap-2 transition-all duration-300 cursor-pointer" onclick="toggleExpandirBarra(event)">
     <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto mb-1"></div>
 
@@ -242,30 +228,29 @@
     </div>
   </div>
 
-  <!-- SCRIPTS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- SCRIPT GLOBAL DO DIRECIONADOR -->
   <script>
     const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let motoristaLogado = null;
-    let mapaRadar = null;
     let statusOnline = false;
     let watchIdGeoloc = null;
-    let marcadorCarro = null;
+    let ultimaPosicaoGPS = null; // Livre para qualquer coordenada do mundo
     let intervaloValidacaoSessao = null;
     let intervaloVerificacaoPedidos = null;
     let intervaloOscilacaoTexto = null;
     let canalCorridaAtiva = null;
     let corridaPendenteAtual = null;
-    let filaPedidosPendentes = []; // Fila ordenada para exibir uma por vez
+    let filaPedidosPendentes = [];
     let corridaAtiva = null;
     let timer15sId = null;
     let timerEspera3mId = null;
     let gavetaAberta = false;
     let touchStartY = 0;
     let notaSelecionada = 5;
+    let abaAtual = 'radar';
 
     function primeiroNome(nomeCompleto) {
       if (!nomeCompleto) return 'Passageiro';
@@ -298,15 +283,13 @@
       }, 3500);
     }
 
+    // GESTOS DA BARRA INFERIOR
     const barraInf = document.getElementById('barra-inferior-notificacao');
     barraInf.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; }, {passive: true});
     barraInf.addEventListener('touchend', (e) => {
       let touchEndY = e.changedTouches[0].clientY;
-      if (touchStartY - touchEndY > 40) {
-        setGavetaAberta(true);
-      } else if (touchEndY - touchStartY > 40) {
-        setGavetaAberta(false);
-      }
+      if (touchStartY - touchEndY > 40) setGavetaAberta(true);
+      else if (touchEndY - touchStartY > 40) setGavetaAberta(false);
     }, {passive: true});
 
     function toggleExpandirBarra(event) {
@@ -365,6 +348,63 @@
       } catch (e) {}
     }
 
+    // CARREGAMENTO MODULAR DAS PÁGINAS SEM DESCONECTAR O MOTORISTA
+    async function carregarModulo(aba) {
+      abaAtual = aba;
+      const menu = document.getElementById('menu-lateral');
+      if (!menu.classList.contains('-translate-x-full')) {
+        menu.classList.add('-translate-x-full');
+      }
+
+      const container = document.getElementById('conteudo-dinamico-app');
+      const tituloHeader = document.getElementById('header-titulo-aba');
+
+      let arquivoHtml = 'radar-motorista.html';
+      if (aba === 'radar') {
+        arquivoHtml = 'radar-motorista.html';
+        tituloHeader.innerText = 'Radar Motorista';
+        container.classList.remove('overflow-y-auto');
+        container.classList.add('overflow-hidden');
+      } else if (aba === 'historico') {
+        arquivoHtml = 'historico-motorista.html';
+        tituloHeader.innerText = 'Ganhos & Histórico';
+        container.classList.remove('overflow-hidden');
+        container.classList.add('overflow-y-auto');
+      } else if (aba === 'perfil') {
+        arquivoHtml = 'perfil.html';
+        tituloHeader.innerText = 'Meu Perfil';
+        container.classList.remove('overflow-hidden');
+        container.classList.add('overflow-y-auto');
+      }
+
+      try {
+        const resposta = await fetch(arquivoHtml);
+        if (!resposta.ok) throw new Error('Página não encontrada');
+        const html = await resposta.text();
+        container.innerHTML = html;
+
+        // Reexecuta scripts internos do módulo carregado
+        const scripts = container.querySelectorAll('script');
+        scripts.forEach(oldScript => {
+          const newScript = document.createElement('script');
+          if (oldScript.src) {
+            newScript.src = oldScript.src;
+          } else {
+            newScript.textContent = oldScript.textContent;
+          }
+          document.body.appendChild(newScript);
+          oldScript.remove();
+        });
+
+        // Sincroniza estado visual se voltou para o radar
+        if (aba === 'radar' && typeof sincronizarEstadoRadar === 'function') {
+          sincronizarEstadoRadar();
+        }
+      } catch (err) {
+        container.innerHTML = `<div class="p-6 text-center text-slate-400">Erro ao carregar ${arquivoHtml}.</div>`;
+      }
+    }
+
     async function inicializarMotoristaApp() {
       const storage = localStorage.getItem('motorista_logado');
       if (!storage) {
@@ -381,18 +421,20 @@
       }
 
       intervaloValidacaoSessao = setInterval(validarSessaoUnica, 7000);
-      inicializarMapaRadar();
-      verificarCorridaAtivaExistente();
+      
+      // Carrega o módulo do radar inicialmente
+      await carregarModulo('radar');
+      await verificarCorridaAtivaExistente();
 
       const estadoOnlineSalvo = localStorage.getItem('motorista_online');
       if (estadoOnlineSalvo === 'true') {
         statusOnline = true;
-        document.getElementById('container-power-flutuante').classList.add('hidden');
         document.getElementById('container-btn-desligar-redondo').classList.remove('hidden');
         document.getElementById('status-luz-indicadora').className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping";
-        iniciarOscilacaoStatus();
+        if (!corridaAtiva) iniciarOscilacaoStatus();
         iniciarRastreamentoGPS();
         iniciarEscutaPedidos();
+        if (typeof sincronizarEstadoRadar === 'function') sincronizarEstadoRadar();
       }
     }
 
@@ -411,18 +453,6 @@
           }
         }
       } catch (e) {}
-    }
-
-    function inicializarMapaRadar() {
-      const latLaguna = -28.4811;
-      const lngLaguna = -48.7811;
-      if (mapaRadar) {
-        mapaRadar.invalidateSize();
-        return;
-      }
-      mapaRadar = L.map('map-radar', { zoomControl: false }).setView([latLaguna, lngLaguna], 15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapaRadar);
-      setTimeout(() => mapaRadar.invalidateSize(), 300);
     }
 
     async function verificarCorridaAtivaExistente() {
@@ -445,12 +475,10 @@
       statusOnline = !statusOnline;
       localStorage.setItem('motorista_online', statusOnline);
 
-      const btnPowerFlutuante = document.getElementById('container-power-flutuante');
       const containerBtnDesligarRedondo = document.getElementById('container-btn-desligar-redondo');
       const indicador = document.getElementById('status-luz-indicadora');
 
       if (statusOnline) {
-        btnPowerFlutuante.classList.add('hidden');
         containerBtnDesligarRedondo.classList.remove('hidden');
         indicador.className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping";
         
@@ -460,7 +488,6 @@
         iniciarEscutaPedidos();
         mostrarToastAdmin("Você está online e visível no radar.", "sucesso");
       } else {
-        btnPowerFlutuante.classList.remove('hidden');
         containerBtnDesligarRedondo.classList.add('hidden');
         indicador.className = "w-3 h-3 rounded-full bg-slate-500";
         
@@ -479,6 +506,10 @@
         corridaPendenteAtual = null;
         pararRastreamentoGPS();
         mostrarToastAdmin("Aplicativo offline.", "aviso");
+      }
+
+      if (typeof sincronizarEstadoRadar === 'function') {
+        sincronizarEstadoRadar();
       }
     }
 
@@ -505,28 +536,19 @@
       }, 4000);
     }
 
+    // GPS LIVRE PARA QUALQUER LUGAR (SEM LIMITAÇÃO GEOGRÁFICA)
     function iniciarRastreamentoGPS() {
       if (!navigator.geolocation) return;
-
-      const iconeCarro = L.divIcon({
-        className: 'custom-car-marker',
-        html: '<div style="background-color: #f59e0b; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 2px solid #fff;"><i class="fa-solid fa-car text-sm"></i></div>',
-        iconSize: [36, 36],
-        iconAnchor: [18, 18]
-      });
 
       watchIdGeoloc = navigator.geolocation.watchPosition(
         async (position) => {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
+          ultimaPosicaoGPS = { lat, lng };
 
-          if (mapaRadar) {
-            mapaRadar.setView([lat, lng], 16);
-            if (marcadorCarro) {
-              marcadorCarro.setLatLng([lat, lng]);
-            } else {
-              marcadorCarro = L.marker([lat, lng], { icon: iconeCarro }).addTo(mapaRadar).bindPopup("Sua Posição");
-            }
+          // Atualiza marcador no mapa se o módulo do radar estiver aberto
+          if (typeof atualizarPosicaoNoMapaRadar === 'function') {
+            atualizarPosicaoNoMapaRadar(lat, lng);
           }
 
           if (motoristaLogado) {
@@ -542,12 +564,14 @@
       );
     }
 
+    // ESCUTA GLOBAL DE PEDIDOS (FUNCIONA EM QUALQUER PÁGINA/ABA DO APP)
     function iniciarEscutaPedidos() {
       verificarPedidosPendentes();
+      if (intervaloVerificacaoPedidos) clearInterval(intervaloVerificacaoPedidos);
       intervaloVerificacaoPedidos = setInterval(verificarPedidosPendentes, 4000);
 
       supabaseClient
-        .channel('public:corridas_motorista_radar')
+        .channel('public:corridas_motorista_radar_global')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'corridas' }, payload => {
           if (payload.new && payload.new.status === 'procurando' && statusOnline && !corridaAtiva) {
             verificarPedidosPendentes();
@@ -556,7 +580,6 @@
         .subscribe();
     }
 
-    // CONTROLE DE FILA: GARANTE QUE UMA NOTIFICAÇÃO APARECE POR VEZ SEM SOBREPOR
     async function verificarPedidosPendentes() {
       if (!statusOnline || corridaAtiva) return;
       try {
@@ -564,13 +587,10 @@
           .from('corridas')
           .select('*')
           .eq('status', 'procurando')
-          .order('id', { ascending: true }); // Ordem FIFO de chegada
+          .order('id', { ascending: true });
 
         if (data && data.length > 0) {
-          // Atualiza a fila com todos os pedidos pendentes do banco
           filaPedidosPendentes = data;
-
-          // Se nenhuma notificação estiver aberta no momento, exibe o primeiro da fila
           if (!corridaPendenteAtual) {
             processarProximaFila();
           }
@@ -582,12 +602,10 @@
 
     async function processarProximaFila() {
       if (corridaAtiva || !statusOnline) return;
-
-      // Filtra pedidos que ainda estão com status procurando
       filaPedidosPendentes = filaPedidosPendentes.filter(c => c.status === 'procurando');
 
       if (filaPedidosPendentes.length > 0) {
-        const proximaCorrida = filaPedidosPendentes.shift(); // Pega e remove o primeiro da fila
+        const proximaCorrida = filaPedidosPendentes.shift();
         await exibirModalNovaCorrida(proximaCorrida);
       } else {
         corridaPendenteAtual = null;
@@ -638,7 +656,7 @@
         if (tempo <= 0) {
           clearInterval(timer15sId);
           tocarSomAlerta('expirou');
-          recusarCorridaRadar(); // Expira os 15s e chama o próximo da fila
+          recusarCorridaRadar();
         }
         tempo--;
       }, 1000);
@@ -648,8 +666,6 @@
       if (timer15sId) clearInterval(timer15sId);
       corridaPendenteAtual = null;
       document.getElementById('modal-nova-corrida').classList.add('hidden');
-      
-      // Passa imediatamente para o próximo pedido da fila (se houver)
       setTimeout(processarProximaFila, 300);
     }
 
@@ -674,9 +690,15 @@
           recusarCorridaRadar();
         } else {
           corridaAtiva = data;
-          filaPedidosPendentes = []; // Limpa a fila ao aceitar
+          filaPedidosPendentes = [];
           document.getElementById('modal-nova-corrida').classList.add('hidden');
           corridaPendenteAtual = null;
+          
+          // Se estiver em Ganhos ou Perfil, volta automaticamente para o Radar para iniciar a corrida
+          if (abaAtual !== 'radar') {
+            await carregarModulo('radar');
+          }
+          
           exibirPainelCorridaAtiva();
           mostrarToastAdmin("Corrida aceita com sucesso!", "sucesso");
         }
@@ -690,8 +712,9 @@
       document.getElementById('modal-nova-corrida').classList.add('hidden');
       document.getElementById('bloco-central-avisos').classList.add('hidden');
       document.getElementById('bloco-detalhes-corrida-ativa').classList.remove('hidden');
-      document.getElementById('container-btn-maps-flutuante').classList.remove('hidden');
       document.getElementById('container-btn-desligar-redondo').classList.remove('hidden');
+
+      if (typeof sincronizarEstadoRadar === 'function') sincronizarEstadoRadar();
 
       const nomeCompletoPassageiro = corridaAtiva.passageiro?.nome || 'Passageiro';
       const primeiroNomePassageiro = primeiroNome(nomeCompletoPassageiro);
@@ -742,12 +765,10 @@
       canalCorridaAtiva = supabaseClient
         .channel(`public:corridas_ativa:${corridaAtiva.id}`)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'corridas', filter: `id=eq.${corridaAtiva.id}` }, payload => {
-          if (payload.new) {
-            if (payload.new.status === 'cancelado') {
-              tocarSomAlerta('cancelado');
-              mostrarToastAdmin("O passageiro cancelou a corrida.", "cancelado");
-              limparCorridaAtivaLocal();
-            }
+          if (payload.new && payload.new.status === 'cancelado') {
+            tocarSomAlerta('cancelado');
+            mostrarToastAdmin("O passageiro cancelou a corrida.", "cancelado");
+            limparCorridaAtivaLocal();
           }
         })
         .subscribe();
@@ -855,11 +876,12 @@
 
       document.getElementById('bloco-detalhes-corrida-ativa').classList.add('hidden');
       document.getElementById('bloco-central-avisos').classList.remove('hidden');
-      document.getElementById('container-btn-maps-flutuante').classList.add('hidden');
       document.getElementById('container-btn-desligar-redondo').classList.add('hidden');
       document.getElementById('status-foto-passageiro').classList.add('hidden');
       document.getElementById('status-badge-nota').classList.add('hidden');
       document.getElementById('modal-conclusao-corrida').classList.add('hidden');
+
+      if (typeof sincronizarEstadoRadar === 'function') sincronizarEstadoRadar();
 
       setGavetaAberta(false);
       if (statusOnline) {
@@ -922,9 +944,8 @@
         clearInterval(intervaloVerificacaoPedidos);
         intervaloVerificacaoPedidos = null;
       }
-      if (marcadorCarro && mapaRadar) {
-        mapaRadar.removeLayer(marcadorCarro);
-        marcadorCarro = null;
+      if (typeof removerMarcadorCarroRadar === 'function') {
+        removerMarcadorCarroRadar();
       }
       if (motoristaLogado && !corridaAtiva) {
         await supabaseClient.from('usuarios').update({ online: false }).eq('id', motoristaLogado.id);
@@ -933,12 +954,6 @@
 
     function toggleMenuLateral() {
       document.getElementById('menu-lateral').classList.toggle('-translate-x-full');
-    }
-
-    function mudarAbaMotorista(aba) {
-      toggleMenuLateral();
-      if (aba === 'perfil') window.location.href = 'perfil.html';
-      if (aba === 'historico') window.location.href = 'historico-motorista.html';
     }
 
     function abrirSuporteBloqueio() {
