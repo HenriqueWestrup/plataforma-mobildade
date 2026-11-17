@@ -29,8 +29,7 @@
 
     <div class="text-center text-[11px] text-slate-500 space-y-2 pt-2 border-t border-slate-800">
       <div class="flex justify-center gap-4">
-        <a href="auth.html" class="text-emerald-400 hover:underline">Passageiro</a>
-        <a href="admin.html" class="text-slate-400 hover:underline">Admin</a>
+        <a href="auth.html" class="text-emerald-400 hover:underline">Voltar para Passageiro</a>
       </div>
     </div>
   </div>
@@ -60,7 +59,9 @@
       localStorage.removeItem('passageiro_logado');
       data.tipo = 'motorista';
       localStorage.setItem('motorista_logado', JSON.stringify(data));
-      window.location.href = 'index.html';
+      
+      // Corrigido para redirecionar corretamente para a aba de motorista
+      window.location.href = 'motorista.html';
     }
   </script>
 </body>
