@@ -45,7 +45,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v38</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v39</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -125,56 +125,13 @@
     </div>
   </div>
 
-  <!-- MODAL DE CONCLUSÃO E AVALIAÇÃO -->
-  <div id="modal-conclusao-corrida" class="hidden fixed inset-0 bg-slate-950 z-[60] flex flex-col justify-between p-6 overflow-y-auto">
-    <div class="text-center space-y-2 pt-4">
-      <div class="w-14 h-14 bg-emerald-500/20 border border-emerald-500 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-2xl shadow-lg">
-        <i class="fa-solid fa-circle-check"></i>
-      </div>
-      <h2 class="text-lg font-extrabold text-white">Viagem Finalizada!</h2>
-      <p class="text-slate-400 text-xs">Cheguei ao destino final com sucesso.</p>
-    </div>
-
-    <div class="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-4 my-auto shadow-2xl">
-      <div class="text-center space-y-1 bg-slate-950 p-4 rounded-2xl border border-slate-800">
-        <span class="text-[11px] text-slate-400 uppercase tracking-widest font-bold">Cobrar do Passageiro</span>
-        <h3 id="conclusao-valor-total" class="text-3xl font-extrabold text-emerald-400">R$ 0,00</h3>
-        <p class="text-[10px] text-amber-300 font-medium pt-1"><i class="fa-solid fa-wallet"></i> Solicite o pagamento total diretamente ao passageiro.</p>
-      </div>
-
-      <div class="space-y-2 text-center">
-        <label class="text-xs font-bold text-slate-300 block">Avalie o Passageiro:</label>
-        <div id="container-estrelas" class="flex justify-center gap-2 text-2xl text-slate-600 cursor-pointer">
-          <i class="fa-solid fa-star transition hover:text-amber-400" data-value="1" onclick="selecionarEstrela(1)"></i>
-          <i class="fa-solid fa-star transition hover:text-amber-400" data-value="2" onclick="selecionarEstrela(2)"></i>
-          <i class="fa-solid fa-star transition hover:text-amber-400" data-value="3" onclick="selecionarEstrela(3)"></i>
-          <i class="fa-solid fa-star transition hover:text-amber-400" data-value="4" onclick="selecionarEstrela(4)"></i>
-          <i class="fa-solid fa-star transition hover:text-amber-400" data-value="5" onclick="selecionarEstrela(5)"></i>
-        </div>
-        <p id="texto-nota-feedback" class="text-[11px] text-amber-400 font-semibold h-4"></p>
-      </div>
-
-      <div id="bloco-justificativa" class="hidden space-y-1.5 animate-fadeIn">
-        <label class="text-[11px] font-bold text-red-400 flex items-center gap-1">
-          <i class="fa-solid fa-triangle-exclamation"></i> Motivo da avaliação negativa (Obrigatório):
-        </label>
-        <textarea id="input-motivo-negativo" rows="3" placeholder="Descreva o motivo da nota baixa..." class="w-full bg-slate-950 border border-red-500/50 rounded-xl p-3 text-white text-xs focus:outline-none focus:border-red-500"></textarea>
-      </div>
-    </div>
-
-    <div class="pt-2">
-      <button onclick="encerrarEEnviarHistorico()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-2xl shadow-xl transition text-sm flex items-center justify-center gap-2">
-        <i class="fa-solid fa-check"></i> Encerrar e Enviar para Histórico
-      </button>
-    </div>
-  </div>
-
-  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS -->
+  <!-- BARRA INFERIOR DE NOTIFICAÇÃO E STATUS (INCLUI PAINEL DE CORRIDA ATIVA E CONCLUSÃO) -->
   <div id="barra-inferior-notificacao" class="bg-slate-900 border-t border-slate-800 p-3 z-40 shrink-0 shadow-2xl flex flex-col gap-2 transition-all duration-300 cursor-pointer" onclick="toggleExpandirBarra(event)">
     <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto mb-1"></div>
 
     <div id="conteudo-gaveta-notificacao" class="flex flex-col gap-3 max-h-0 overflow-hidden transition-all duration-300">
       
+      <!-- DETALHES DA CORRIDA ATIVA / EM ANDAMENTO -->
       <div id="bloco-detalhes-corrida-ativa" class="hidden bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
         <div class="space-y-1 text-xs text-slate-300">
           <p><strong>Embarque:</strong> <span id="ativa-origem" class="text-white">-</span></p>
@@ -194,6 +151,37 @@
             <i class="fa-solid fa-xmark"></i> Cancelar
           </button>
         </div>
+      </div>
+
+      <!-- PAINEL DE COBRANÇA E AVALIAÇÃO (DENTRO DA GAVETA DO RADAR) -->
+      <div id="bloco-cobranca-avaliacao" class="hidden bg-slate-950 border border-emerald-500/50 rounded-2xl p-3 space-y-3">
+        <div class="text-center space-y-1 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+          <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Cobrar do Passageiro</span>
+          <h3 id="conclusao-valor-total" class="text-2xl font-extrabold text-emerald-400">R$ 0,00</h3>
+        </div>
+
+        <div class="space-y-1.5 text-center">
+          <label class="text-[11px] font-bold text-slate-300 block">Avalie o Passageiro:</label>
+          <div id="container-estrelas" class="flex justify-center gap-2 text-xl text-slate-600 cursor-pointer">
+            <i class="fa-solid fa-star transition hover:text-amber-400" data-value="1" onclick="selecionarEstrela(1); event.stopPropagation();"></i>
+            <i class="fa-solid fa-star transition hover:text-amber-400" data-value="2" onclick="selecionarEstrela(2); event.stopPropagation();"></i>
+            <i class="fa-solid fa-star transition hover:text-amber-400" data-value="3" onclick="selecionarEstrela(3); event.stopPropagation();"></i>
+            <i class="fa-solid fa-star transition hover:text-amber-400" data-value="4" onclick="selecionarEstrela(4); event.stopPropagation();"></i>
+            <i class="fa-solid fa-star transition hover:text-amber-400" data-value="5" onclick="selecionarEstrela(5); event.stopPropagation();"></i>
+          </div>
+          <p id="texto-nota-feedback" class="text-[10px] text-amber-400 font-semibold h-3"></p>
+        </div>
+
+        <div id="bloco-justificativa" class="hidden space-y-1">
+          <label class="text-[10px] font-bold text-red-400 flex items-center gap-1">
+            <i class="fa-solid fa-triangle-exclamation"></i> Motivo da nota baixa:
+          </label>
+          <textarea id="input-motivo-negativo" rows="2" placeholder="Descreva o motivo..." class="w-full bg-slate-900 border border-red-500/50 rounded-xl p-2 text-white text-xs focus:outline-none" onclick="event.stopPropagation();"></textarea>
+        </div>
+
+        <button onclick="encerrarEEnviarHistorico(); event.stopPropagation();" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow-lg transition text-xs flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check"></i> Encerrar e Enviar para Histórico
+        </button>
       </div>
 
       <div id="bloco-central-avisos" class="bg-slate-950 border border-emerald-500/40 rounded-2xl p-3 space-y-1 shadow-inner">
@@ -302,7 +290,7 @@
       const conteudo = document.getElementById('conteudo-gaveta-notificacao');
       const seta = document.getElementById('icone-seta-gaveta');
       if (gavetaAberta) {
-        conteudo.style.maxHeight = '300px';
+        conteudo.style.maxHeight = '320px';
         seta.className = "fa-solid fa-chevron-down text-emerald-400 text-xs transition-transform duration-300";
       } else {
         conteudo.style.maxHeight = '0px';
@@ -787,6 +775,7 @@
       if (intervaloOscilacaoTexto) clearInterval(intervaloOscilacaoTexto);
       document.getElementById('modal-nova-corrida').classList.add('hidden');
       document.getElementById('bloco-central-avisos').classList.add('hidden');
+      document.getElementById('bloco-cobranca-avaliacao').classList.add('hidden');
       document.getElementById('bloco-detalhes-corrida-ativa').classList.remove('hidden');
       document.getElementById('container-btn-desligar-redondo').classList.remove('hidden');
 
@@ -854,7 +843,7 @@
       if (!corridaAtiva) return;
 
       if (corridaAtiva.status === 'em_andamento') {
-        abrirModalConclusaoEValores();
+        abrirPainelCobrancaNaGaveta();
       } else {
         try {
           const { data, error } = await supabaseClient
@@ -885,11 +874,15 @@
       }
     }
 
-    function abrirModalConclusaoEValores() {
-      document.getElementById('modal-conclusao-corrida').classList.remove('hidden');
+    function abrirPainelCobrancaNaGaveta() {
+      document.getElementById('bloco-detalhes-corrida-ativa').classList.add('hidden');
+      document.getElementById('bloco-cobranca-avaliacao').classList.remove('hidden');
       document.getElementById('conclusao-valor-total').innerText = `R$ ${(corridaAtiva.valor || 15.0).toFixed(2).replace('.', ',')}`;
       selecionarEstrela(5);
       document.getElementById('input-motivo-negativo').value = '';
+      
+      document.getElementById('status-subtexto').innerText = "Cobrança e avaliação pendentes";
+      setGavetaAberta(true);
     }
 
     function selecionarEstrela(nota) {
@@ -933,11 +926,8 @@
       }
 
       try {
-        // CORREÇÃO: Aguarda a confirmação do Supabase antes de fechar o modal e limpar a tela
         const { error } = await supabaseClient.from('corridas').update({
-          status: 'concluido',
-          avaliacao: notaSelecionada,
-          motivo_avaliacao: motivo || null
+          status: 'concluido'
         }).eq('id', corridaAtiva.id);
 
         if (error) {
@@ -945,7 +935,6 @@
           return;
         }
 
-        document.getElementById('modal-conclusao-corrida').classList.add('hidden');
         mostrarToastAdmin("Viagem finalizada e salva!", "sucesso");
         limparCorridaAtivaLocal();
       } catch (e) {
@@ -953,7 +942,6 @@
       }
     }
 
-    // BOTÃO DE EMERGÊNCIA PARA DESTRAVAR CASO ALgumA CORRIDA FIQUE PRESA
     async function forcarLimpezaTravamento() {
       if (!motoristaLogado) return;
       if (confirm("Deseja forçar o encerramento de qualquer corrida travada no seu perfil?")) {
@@ -974,6 +962,7 @@
       corridaAtiva = null;
 
       document.getElementById('bloco-detalhes-corrida-ativa').classList.add('hidden');
+      document.getElementById('bloco-cobranca-avaliacao').classList.add('hidden');
       document.getElementById('bloco-central-avisos').classList.remove('hidden');
       
       if (statusOnline) {
@@ -984,7 +973,6 @@
 
       document.getElementById('status-foto-passageiro').classList.add('hidden');
       document.getElementById('status-badge-nota').classList.add('hidden');
-      document.getElementById('modal-conclusao-corrida').classList.add('hidden');
 
       if (typeof sincronizarEstadoRadar === 'function') sincronizarEstadoRadar();
 
