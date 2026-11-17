@@ -55,7 +55,7 @@
     </button>
   </div>
 
-  <!-- PAINEL DE ESPERA / BUSCA DE MOTORISTA (TIMER DE 3 MINUTOS E CANCELAMENTO) -->
+  <!-- PAINEL DE ESPERA / BUSCA DE MOTORISTA -->
   <div id="painel-espera-corrida" class="hidden absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-amber-500/50 p-5 rounded-2xl space-y-4 shadow-2xl z-20 text-center">
     <div class="w-12 h-12 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-full flex items-center justify-center mx-auto animate-spin">
       <i class="fa-solid fa-radar text-xl"></i>
@@ -77,7 +77,64 @@
     </button>
   </div>
 
-  <!-- MODAL DE AVISOS INTERNO (FECHA AUTOMATICAMENTE EM 3,5 SEGUNDOS) -->
+  <!-- PAINEL DO MOTORISTA ENCONTRADO / VIAGEM EM ANDAMENTO -->
+  <div id="painel-motorista-encontrado" class="hidden absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-emerald-500/60 p-5 rounded-2xl space-y-4 shadow-2xl z-20">
+    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div class="flex items-center gap-3">
+        <img id="passageiro-motorista-foto" src="" class="w-12 h-12 rounded-full object-cover border-2 border-emerald-500 shadow">
+        <div>
+          <h4 id="passageiro-motorista-nome" class="font-extrabold text-white text-sm">-</h4>
+          <span class="text-[11px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30"><i class="fa-solid fa-star text-[10px]"></i> <span id="passageiro-motorista-nota">5.0</span></span>
+        </div>
+      </div>
+      <div class="text-right">
+        <span class="text-[10px] text-slate-400 block font-bold uppercase">Status</span>
+        <span id="passageiro-status-viagem-texto" class="text-xs font-extrabold text-emerald-400 animate-pulse">Motorista a caminho</span>
+      </div>
+    </div>
+
+    <div class="space-y-1.5 text-xs text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800">
+      <p><strong>Embarque:</strong> <span id="pass-ativa-origem" class="text-white">-</span></p>
+      <p><strong>Destino:</strong> <span id="pass-ativa-destino" class="text-white">-</span></p>
+    </div>
+
+    <button id="btn-cancelar-passageiro-ativo" onclick="cancelarCorridaPassageiroAtiva()" class="w-full bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+      <i class="fa-solid fa-xmark"></i> Cancelar Corrida
+    </button>
+  </div>
+
+  <!-- PAINEL DE AVALIAÇÃO E CONCLUSÃO DA CORRIDA -->
+  <div id="painel-avaliacao-passageiro" class="hidden absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-emerald-500 p-5 rounded-2xl space-y-4 shadow-2xl z-30">
+    <div class="text-center space-y-1 bg-slate-950 p-3 rounded-xl border border-slate-800">
+      <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Valor Total da Viagem</span>
+      <h3 id="passageiro-valor-final" class="text-2xl font-extrabold text-emerald-400">R$ 0,00</h3>
+    </div>
+
+    <div class="space-y-2 text-center">
+      <label class="text-xs font-bold text-slate-200 block">Avalie o Motorista:</label>
+      <div id="passageiro-container-estrelas" class="flex justify-center gap-2 text-2xl text-slate-600 cursor-pointer">
+        <i class="fa-solid fa-star transition hover:text-amber-400" data-value="1" onclick="passageiroSelecionarEstrela(1)"></i>
+        <i class="fa-solid fa-star transition hover:text-amber-400" data-value="2" onclick="passageiroSelecionarEstrela(2)"></i>
+        <i class="fa-solid fa-star transition hover:text-amber-400" data-value="3" onclick="passageiroSelecionarEstrela(3)"></i>
+        <i class="fa-solid fa-star transition hover:text-amber-400" data-value="4" onclick="passageiroSelecionarEstrela(4)"></i>
+        <i class="fa-solid fa-star transition hover:text-amber-400" data-value="5" onclick="passageiroSelecionarEstrela(5)"></i>
+      </div>
+      <p id="passageiro-texto-feedback" class="text-[11px] text-amber-400 font-semibold h-4"></p>
+    </div>
+
+    <div id="passageiro-bloco-justificativa" class="hidden space-y-1">
+      <label class="text-[11px] font-bold text-red-400 flex items-center gap-1">
+        <i class="fa-solid fa-triangle-exclamation"></i> Motivo da nota baixa (Enviado ao Suporte):
+      </label>
+      <textarea id="passageiro-input-motivo-negativo" rows="2" placeholder="Descreva o motivo..." class="w-full bg-slate-950 border border-red-500/50 rounded-xl p-2.5 text-white text-xs focus:outline-none"></textarea>
+    </div>
+
+    <button onclick="passageiroConcluirAvaliacao()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition text-xs flex items-center justify-center gap-2">
+      <i class="fa-solid fa-check"></i> Encerrar e Avaliar
+    </button>
+  </div>
+
+  <!-- MODAL DE AVISOS INTERNO -->
   <div id="modal-aviso" class="hidden absolute inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-300">
     <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl max-w-xs w-full text-center space-y-4 shadow-2xl">
       <div id="modal-icone" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl"></div>
@@ -109,8 +166,14 @@
   let timerIntervalId = null;
   let modalTimeoutId = null;
   let corridaAtualId = null;
+  let canalPassageiroRealtime = null;
+  let passageiroNotaSelecionada = 5;
 
-  // SISTEMA DE ÁUDIO WEB AUDIO API
+  function primeiroNome(nomeCompleto) {
+    if (!nomeCompleto) return 'Motorista';
+    return nomeCompleto.trim().split(' ')[0];
+  }
+
   function tocarSom(tipo) {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -118,7 +181,6 @@
       const gain = audioCtx.createGain();
       osc.connect(gain);
       gain.connect(audioCtx.destination);
-
       const agora = audioCtx.currentTime;
 
       if (tipo === 'sucesso') {
@@ -192,6 +254,36 @@
     setTimeout(() => mapaLeaflet.invalidateSize(), 300);
     usarMinhaLocalizacao();
     iniciarRadarMotoristasOnline();
+    verificarCorridaAtivaPassageiro();
+  }
+
+  async function verificarCorridaAtivaPassageiro() {
+    const dadosUsuario = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
+    if (!dadosUsuario.id || !supabaseMapa) return;
+
+    try {
+      const { data } = await supabaseMapa
+        .from('corridas')
+        .select('*, motorista:motorista_id(nome, foto_url, nota)')
+        .eq('passageiro_id', dadosUsuario.id)
+        .in('status', ['procurando', 'aceito', 'a_caminho', 'no_local', 'em_andamento'])
+        .order('id', { ascending: false })
+        .limit(1);
+
+      if (data && data.length > 0) {
+        const corrida = data[0];
+        corridaAtualId = corrida.id;
+
+        if (corrida.status === 'procurando') {
+          document.getElementById('painel-solicitacao').classList.add('hidden');
+          document.getElementById('painel-espera-corrida').classList.remove('hidden');
+          iniciarTimerEsperaCorrida();
+        } else {
+          exibirPainelMotoristaEncontrado(corrida);
+        }
+        iniciarEscutaPassageiroRealtime();
+      }
+    } catch (e) {}
   }
 
   function centralizarNoUsuario() {
@@ -423,7 +515,6 @@
       return;
     }
 
-    // VERIFICAÇÃO EM TEMPO REAL DO STATUS DA CONTA NO SUPABASE
     try {
       const { data: usuarioAtualizado } = await clienteSupabaseAtivo
         .from('usuarios')
@@ -466,6 +557,184 @@
 
       mostrarModal("Buscando Motorista", "Sua solicitação foi enviada aos motoristas próximos.", "sucesso", 3500);
       iniciarTimerEsperaCorrida();
+      iniciarEscutaPassageiroRealtime();
+    }
+  }
+
+  function iniciarEscutaPassageiroRealtime() {
+    if (!corridaAtualId || !supabaseMapa) return;
+    if (canalPassageiroRealtime) supabaseMapa.removeChannel(canalPassageiroRealtime);
+
+    canalPassageiroRealtime = supabaseMapa
+      .channel(`public:corridas_passageiro:${corridaAtualId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'corridas', filter: `id=eq.${corridaAtualId}` }, async payload => {
+        if (payload.new) {
+          const corridaAtualizada = payload.new;
+
+          if (['aceito', 'a_caminho', 'no_local', 'em_andamento'].includes(corridaAtualizada.status)) {
+            // Busca dados do motorista que aceitou
+            let motoristaInfo = { nome: 'Motorista', foto_url: '', nota: '5.0' };
+            if (corridaAtualizada.motorista_id) {
+              const { data: mot } = await supabaseMapa.from('usuarios').select('nome, foto_url, nota').eq('id', corridaAtualizada.motorista_id).single();
+              if (mot) motoristaInfo = mot;
+            }
+            corridaAtualizada.motorista = motoristaInfo;
+            exibirPainelMotoristaEncontrado(corridaAtualizada);
+          } else if (corridaAtualizada.status === 'concluido') {
+            exibirPainelAvaliacaoPassageiro(corridaAtualizada);
+          } else if (corridaAtualizada.status === 'cancelado' || corridaAtualizada.status === 'expirado') {
+            tocarSom('cancelar');
+            mostrarModal("Aviso", "A corrida foi encerrada ou cancelada.", "cancelar", 3500);
+            resetarPainelCompletoPassageiro();
+          }
+        }
+      })
+      .subscribe();
+  }
+
+  async function exibirPainelMotoristaEncontrado(corrida) {
+    if (timerIntervalId) clearInterval(timerIntervalId);
+    document.getElementById('painel-espera-corrida').classList.add('hidden');
+    document.getElementById('painel-solicitacao').classList.add('hidden');
+    document.getElementById('painel-avaliacao-passageiro').classList.add('hidden');
+    
+    const painelMotorista = document.getElementById('painel-motorista-encontrado');
+    painelMotorista.classList.remove('hidden');
+
+    let motorista = corrida.motorista;
+    if (!motorista && corrida.motorista_id) {
+      const { data: mot } = await supabaseMapa.from('usuarios').select('nome, foto_url, nota').eq('id', corrida.motorista_id).single();
+      if (mot) motorista = mot;
+    }
+
+    const nomeMotorista = primeiroNome(motorista?.nome || 'Motorista Parceiro');
+    const fotoMotorista = motorista?.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeMotorista)}`;
+    const notaMotorista = motorista?.nota || '5.0';
+
+    document.getElementById('passageiro-motorista-nome').innerText = nomeMotorista;
+    document.getElementById('passageiro-motorista-foto').src = fotoMotorista;
+    document.getElementById('passageiro-motorista-nota').innerText = notaMotorista;
+
+    document.getElementById('pass-ativa-origem').innerText = corrida.origem;
+    document.getElementById('pass-ativa-destino').innerText = corrida.destino;
+
+    const textoStatus = document.getElementById('passageiro-status-viagem-texto');
+    const btnCancelarAtivo = document.getElementById('btn-cancelar-passageiro-ativo');
+
+    if (corrida.status === 'em_andamento') {
+      textoStatus.innerText = "Viagem em andamento";
+      // Conforme solicitado: quando o motorista inicia a viagem, o passageiro só pode ver a viagem em andamento (botão de cancelar some)
+      btnCancelarAtivo.classList.add('hidden');
+    } else {
+      textoStatus.innerText = "Motorista a caminho do embarque";
+      btnCancelarAtivo.classList.remove('hidden');
+    }
+  }
+
+  async function cancelarCorridaPassageiroAtiva() {
+    if (!corridaAtualId || !supabaseMapa) return;
+    if (confirm("Deseja realmente cancelar a corrida?")) {
+      await supabaseMapa.from('corridas').update({ status: 'cancelado' }).eq('id', corridaAtualId);
+      mostrarModal("Cancelado", "Sua corrida foi cancelada.", "cancelar", 3000);
+      resetarPainelCompletoPassageiro();
+    }
+  }
+
+  function exibirPainelAvaliacaoPassageiro(corrida) {
+    document.getElementById('painel-motorista-encontrado').classList.add('hidden');
+    document.getElementById('painel-espera-corrida').classList.add('hidden');
+    document.getElementById('painel-solicitacao').classList.add('hidden');
+
+    document.getElementById('passageiro-valor-final').innerText = `R$ ${(corrida.valor || 15.0).toFixed(2).replace('.', ',')}`;
+    passageiroSelecionarEstrela(5);
+    document.getElementById('passageiro-input-motivo-negativo').value = '';
+
+    document.getElementById('painel-avaliacao-passageiro').classList.remove('hidden');
+  }
+
+  function passageiroSelecionarEstrela(nota) {
+    passageiroNotaSelecionada = nota;
+    const estrelas = document.querySelectorAll('#passageiro-container-estrelas i');
+    const textoNota = document.getElementById('passageiro-texto-feedback');
+    const blocoJustificativa = document.getElementById('passageiro-bloco-justificativa');
+
+    estrelas.forEach((star, index) => {
+      if (index < nota) {
+        star.classList.remove('text-slate-600');
+        star.classList.add('text-amber-400');
+      } else {
+        star.classList.remove('text-amber-400');
+        star.classList.add('text-slate-600');
+      }
+    });
+
+    if (nota === 5) {
+      textoNota.innerText = "Excelente (5 estrelas)";
+      blocoJustificativa.classList.add('hidden');
+    } else if (nota === 4) {
+      textoNota.innerText = "Bom (4 estrelas)";
+      blocoJustificativa.classList.remove('hidden');
+    } else if (nota === 3) {
+      textoNota.innerText = "Regular (3 estrelas)";
+      blocoJustificativa.classList.remove('hidden');
+    } else {
+      textoNota.innerText = "Ruim / Muito Ruim";
+      blocoJustificativa.classList.remove('hidden');
+    }
+  }
+
+  async function passageiroConcluirAvaliacao() {
+    if (!corridaAtualId || !supabaseMapa) return;
+
+    const motivo = document.getElementById('passageiro-input-motivo-negativo').value.trim();
+    if (passageiroNotaSelecionada < 5 && !motivo) {
+      mostrarModal("Atenção", "Por favor, informe o motivo da avaliação baixa.", "cancelar", 3000);
+      return;
+    }
+
+    try {
+      // Salva a avaliação do passageiro na corrida
+      await supabaseMapa.from('corridas').update({
+        avaliacao_passageiro: passageiroNotaSelecionada,
+        motivo_avaliacao_passageiro: motivo || null
+      }).eq('id', corridaAtualId);
+
+      // Se a nota for menor que 5, envia notificação/reporte automático para a tabela de suporte do admin
+      if (passageiroNotaSelecionada < 5) {
+        const dadosUsuario = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
+        if (dadosUsuario.id) {
+          await supabaseMapa.from('mensagens_suporte').insert([{
+            usuario_id: dadosUsuario.id,
+            mensagem: `[Relato de Nota Baixa - Corrida #${corridaAtualId}] Nota: ${passageiroNotaSelecionada} estrelas. Motivo: ${motivo}`,
+            remetente: 'passageiro',
+            lido: false
+          }]);
+        }
+      }
+
+      mostrarModal("Obrigado", "Avaliação enviada com sucesso!", "sucesso", 3000);
+      resetarPainelCompletoPassageiro();
+    } catch (e) {
+      mostrarModal("Erro", "Erro ao enviar avaliação.", "cancelar", 3000);
+    }
+  }
+
+  function resetarPainelCompletoPassageiro() {
+    if (timerIntervalId) clearInterval(timerIntervalId);
+    if (canalPassageiroRealtime && supabaseMapa) supabaseMapa.removeChannel(canalPassageiroRealtime);
+    corridaAtualId = null;
+
+    document.getElementById('painel-espera-corrida').classList.add('hidden');
+    document.getElementById('painel-motorista-encontrado').classList.add('hidden');
+    document.getElementById('painel-avaliacao-passageiro').classList.add('hidden');
+    document.getElementById('painel-solicitacao').classList.remove('hidden');
+
+    document.getElementById('origem-corrida').value = '';
+    document.getElementById('destino-corrida').value = '';
+    document.getElementById('bloco-estimativa').classList.add('hidden');
+    if (polylineRota && mapaLeaflet) {
+      mapaLeaflet.removeLayer(polylineRota);
+      polylineRota = null;
     }
   }
 
@@ -488,7 +757,7 @@
         if (corridaAtualId && supabaseMapa) {
           await supabaseMapa.from('corridas').update({ status: 'expirado' }).eq('id', corridaAtualId);
         }
-        resetarPainelCorrida();
+        resetarPainelCompletoPassageiro();
       }
       tempoRestante--;
     }, 1000);
@@ -502,13 +771,7 @@
     }
 
     mostrarModal("Cancelado", "Corrida cancelada com sucesso.", "cancelar", 3000);
-    resetarPainelCorrida();
-  }
-
-  function resetarPainelCorrida() {
-    corridaAtualId = null;
-    document.getElementById('painel-espera-corrida').classList.add('hidden');
-    document.getElementById('painel-solicitacao').classList.remove('hidden');
+    resetarPainelCompletoPassageiro();
   }
 
   setTimeout(inicializarMapa, 100);
