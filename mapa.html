@@ -34,7 +34,7 @@
       <span id="valor-estimado" class="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
     </div>
 
-    <!-- SELEÇÃO DE FORMA DE PAGAMENTO (PIX / DINHEIRO) -->
+    <!-- SELEÇÃO DE FORMA DE PAGAMENTO (PIX / DINHEIRO) CORRIGIDA -->
     <div class="grid grid-cols-2 gap-2 pt-1">
       <button type="button" onclick="selecionarPagamento('PIX')" id="btn-pay-pix" class="bg-emerald-600/20 border border-emerald-500 text-emerald-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2">
         <i class="fa-solid fa-qrcode"></i> PIX
@@ -80,6 +80,7 @@
     usarMinhaLocalizacao();
   }
 
+  // Função corrigida para alternar visualmente o botão de pagamento selecionado
   function selecionarPagamento(tipo) {
     formaPagamentoSelecionada = tipo;
     const btnPix = document.getElementById('btn-pay-pix');
@@ -124,7 +125,6 @@
     }
   }
 
-  // Busca ampliada para qualquer território sem travas regionais
   async function buscarSugestoes(termo, tipo) {
     const container = document.getElementById(`sugestoes-${tipo}`);
     if (termo.length < 3) {
@@ -239,12 +239,13 @@
       return;
     }
 
+    // Envio explícito garantindo a forma de pagamento selecionada
     const { error } = await supabaseClient.from('corridas').insert([{
       passageiro_id: dadosUsuario.id,
       origem: origem,
       destino: destino,
       valor: valorNumerico,
-      forma_pagamento: formaPagamentoSelecionada,
+      forma_pagamento: String(formaPagamentoSelecionada || 'PIX'),
       status: 'procurando'
     }]);
 
