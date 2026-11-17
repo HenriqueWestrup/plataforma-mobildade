@@ -68,7 +68,7 @@
 
   <!-- AS 4 ABAS PRINCIPAIS DO ADMIN -->
   <div class="bg-slate-900 border-b border-slate-800 px-3 py-2 grid grid-cols-4 gap-1.5 shrink-0 text-[11px]">
-    <button onclick="mudarAbaAdmin('motoristas')" id="btn-aba-motoristas" class="py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition text-center truncate">
+    <button onclick="mudarAbaAdmin('motoristas')" id="btn-aba-motoristas" class="py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate">
       <i class="fa-solid fa-car mr-1"></i> Motoristas (<span id="count-aba-motoristas">0</span>)
     </button>
     <button onclick="mudarAbaAdmin('usuarios')" id="btn-aba-usuarios" class="py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate">
@@ -113,7 +113,6 @@
 
     <!-- SEÇÃO 4: SUPORTE CENTRAL -->
     <div id="secao-suporte" class="space-y-3 hidden">
-      <!-- BOTÃO PARA LIMPAR NOTIFICAÇÕES VISUAIS SEM APAGAR DO BANCO -->
       <div class="flex justify-between items-center bg-slate-900 p-3 rounded-2xl border border-slate-800">
         <span class="text-slate-400 text-[11px]">Gerenciamento de Alertas de Suporte</span>
         <button onclick="limparNotificacoesSuporte()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition text-[11px]">
@@ -318,7 +317,9 @@
     let dadosGlobaisUsuarios = [];
     let dadosGlobaisSuporte = [];
     let dadosGlobaisViagensAtivas = [];
-    let abaAdminAtual = 'motoristas';
+    
+    // Recupera a aba ativa salva na memória do navegador para manter o estado ao atualizar
+    let abaAdminAtual = localStorage.getItem('admin_aba_ativa') || 'motoristas';
     let canalRealtimeAdmin = null;
 
     function tocarSomAlertaAdmin() {
@@ -362,6 +363,7 @@
     function verificarSessaoAdmin() {
       if (sessionStorage.getItem('admin_autenticado') === 'true') {
         document.getElementById('tela-login-admin').classList.add('hidden');
+        mudarAbaAdmin(abaAdminAtual); // Aplica a aba salva
         carregarDadosAdmin();
         iniciarEscutaRealtimeAdmin();
       } else {
@@ -379,6 +381,7 @@
         sessionStorage.setItem('admin_autenticado', 'true');
         erroEl.classList.add('hidden');
         document.getElementById('tela-login-admin').classList.add('hidden');
+        mudarAbaAdmin(abaAdminAtual);
         carregarDadosAdmin();
         iniciarEscutaRealtimeAdmin();
       } else {
@@ -513,16 +516,17 @@
     }
 
     function limparNotificacoesSuporte() {
-      // Salva os IDs atuais na memória local para marcá-los como visualizados/limpos da tela de alertas
       const idsAtuais = dadosGlobaisSuporte.map(s => String(s.id));
       localStorage.setItem('admin_suporte_lidos', JSON.stringify(idsAtuais));
-      
       atualizarContadorSuporte();
       renderizarAdmin();
     }
 
+    // Salva a aba ativa no localStorage para manter a seleção intacta mesmo ao atualizar
     function mudarAbaAdmin(aba) {
       abaAdminAtual = aba;
+      localStorage.setItem('admin_aba_ativa', aba);
+
       document.getElementById('btn-aba-motoristas').className = aba === 'motoristas' ? 'py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition text-center truncate' : 'py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate';
       document.getElementById('btn-aba-usuarios').className = aba === 'usuarios' ? 'py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition text-center truncate' : 'py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate';
       document.getElementById('btn-aba-viagens').className = aba === 'viagens' ? 'py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition text-center truncate' : 'py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center truncate';
@@ -638,7 +642,6 @@
                   <p><strong>Para:</strong> ${s.destino || '-'}</p>
                   <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${observacao}</p>
                 </div>
-                <!-- BOTÕES DE ACESSO RÁPIDO E RESPOSTA DIRETA AO SUPORTE -->
                 <div class="flex flex-col gap-2 pt-1">
                   <button onclick="responderSuporteDireto('${idPassageiro}', \`${observacao.replace(/`/g, '\\`')}\`)" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5">
                     <i class="fa-solid fa-headset"></i> Responder Suporte ao Passageiro (${nomePass})
@@ -933,7 +936,7 @@
 
       const { error } = await supabaseClient.from('usuarios').update(atualizacao).eq('id', id);
       if (error) {
-        mostrarAlertaModal("Erro ao salvar: " + error.message, "erro");
+        mostrarAlertaModal("Resumo do erro: " + error.message, "erro");
       } else {
         mostrarAlertaModal("Atualizado com sucesso!", "sucesso");
         setTimeout(() => {
