@@ -45,7 +45,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v27</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v28</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -91,7 +91,7 @@
       </button>
     </div>
 
-    <!-- BOTÃO GOOGLE MAPS FLUTUANTE (ACIMA DO MAPA, CANTO SUPERIOR DIREITO ACIMA DA BARRA) -->
+    <!-- BOTÃO GOOGLE MAPS FLUTUANTE (VISÍVEL DURANTE CORRIDA) -->
     <div id="container-btn-maps-flutuante" class="hidden absolute bottom-36 right-4 z-30">
       <button onclick="abrirNoGoogleMaps()" class="bg-sky-600 hover:bg-sky-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center font-bold transition border-2 border-white/20" title="Abrir no Google Maps">
         <i class="fa-solid fa-map-location-dot text-base"></i>
@@ -186,7 +186,7 @@
     <!-- CONTEÚDO EXPANSÍVEL DA BARRA -->
     <div id="conteudo-gaveta-notificacao" class="flex flex-col gap-3 max-h-0 overflow-hidden transition-all duration-300">
       
-      <!-- DETALHES DA CORRIDA ATIVA -->
+      <!-- DETALHES DA CORRIDA ATIVA (VISÍVEL APÓS ACEITAR) -->
       <div id="bloco-detalhes-corrida-ativa" class="hidden bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
         <div class="space-y-1 text-xs text-slate-300">
           <p><strong>Embarque:</strong> <span id="ativa-origem" class="text-white">-</span></p>
@@ -208,7 +208,7 @@
         </div>
       </div>
 
-      <!-- CENTRAL DE AVISOS -->
+      <!-- CENTRAL DE AVISOS (VISÍVEL QUANDO OFFLINE OU SEM CORRIDA) -->
       <div id="bloco-central-avisos" class="bg-slate-950 border border-emerald-500/40 rounded-2xl p-3 space-y-1 shadow-inner">
         <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-xs">
           <i class="fa-solid fa-circle-info text-sm"></i>
@@ -217,20 +217,26 @@
         <p class="text-[10px] text-slate-300">Nenhum aviso de suporte pendente no momento.</p>
       </div>
 
-      <button id="btn-desligar-gaveta" onclick="alternarPowerMotorista(); event.stopPropagation();" class="hidden w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition">
-        <i class="fa-solid fa-power-off"></i> Desligar Aplicativo (Ficar Offline)
-      </button>
+      <!-- BOTÃO POWER REDONDO VERMELHO (SOMENTE ÍCONE) PARA FICAR OFFLINE (NÃO CANCELA A VIAGEM ATUAL) -->
+      <div id="container-btn-desligar-redondo" class="hidden flex justify-center pt-1">
+        <button onclick="alternarPowerMotorista(); event.stopPropagation();" class="bg-red-600 hover:bg-red-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition border-2 border-white/20" title="Desligar Aplicativo (Ficar Offline)">
+          <i class="fa-solid fa-power-off text-base"></i>
+        </button>
+      </div>
     </div>
 
-    <!-- CABEÇALHO RESUMIDO DA BARRA INFERIOR -->
+    <!-- CABEÇALHO RESUMIDO DA BARRA INFERIOR (PASSAGEIRO INTEGRADO AO TOPO DA BARRA) -->
     <div class="flex items-center justify-between px-2 pt-1">
       <div class="flex items-center gap-2.5">
         <div id="status-luz-indicadora" class="w-3 h-3 rounded-full bg-slate-500"></div>
-        <div class="flex items-center gap-2">
-          <!-- FOTO E NOTA DO PASSAGEIRO -->
-          <img id="status-foto-passageiro" src="" class="w-8 h-8 rounded-full object-cover border border-amber-500 hidden">
+        <div class="flex items-center gap-2.5">
+          <!-- FOTO REDONDA MINIBATURA DO PASSAGEIRO -->
+          <img id="status-foto-passageiro" src="" class="w-9 h-9 rounded-full object-cover border border-amber-500 hidden shadow">
           <div>
-            <p class="font-bold text-white text-xs" id="status-texto-principal">Offline</p>
+            <div class="flex items-center gap-1.5">
+              <p class="font-bold text-white text-xs" id="status-texto-principal">Offline</p>
+              <span id="status-badge-nota" class="hidden text-[10px] text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/30"><i class="fa-solid fa-star text-[9px]"></i> <span id="status-nota-passageiro">5.0</span></span>
+            </div>
             <p class="text-[10px] text-slate-400" id="status-subtexto">Toque ou puxe para cima para gerenciar</p>
           </div>
         </div>
@@ -268,7 +274,6 @@
       return nomeCompleto.trim().split(' ')[0];
     }
 
-    // SISTEMA DE NOTIFICAÇÃO FLUTUANTE (TOAST) ESTILO ADMIN
     function mostrarToastAdmin(mensagem, tipo = 'sucesso') {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
@@ -296,7 +301,7 @@
       setTimeout(() => {
         toast.classList.add('-translate-y-2', 'opacity-0');
         setTimeout(() => toast.remove(), 300);
-      }, 3500); // 3.5 segundos na tela
+      }, 3500);
     }
 
     const barraInf = document.getElementById('barra-inferior-notificacao');
@@ -320,7 +325,7 @@
       const conteudo = document.getElementById('conteudo-gaveta-notificacao');
       const seta = document.getElementById('icone-seta-gaveta');
       if (gavetaAberta) {
-        conteudo.style.maxHeight = '280px';
+        conteudo.style.maxHeight = '300px';
         seta.className = "fa-solid fa-chevron-down text-emerald-400 text-xs transition-transform duration-300";
       } else {
         conteudo.style.maxHeight = '0px';
@@ -434,29 +439,34 @@
     function alternarPowerMotorista() {
       statusOnline = !statusOnline;
       const btnPowerFlutuante = document.getElementById('container-power-flutuante');
-      const btnDesligarGaveta = document.getElementById('btn-desligar-gaveta');
+      const containerBtnDesligarRedondo = document.getElementById('container-btn-desligar-redondo');
       const indicador = document.getElementById('status-luz-indicadora');
 
       if (statusOnline) {
         btnPowerFlutuante.classList.add('hidden');
-        btnDesligarGaveta.classList.remove('hidden');
+        containerBtnDesligarRedondo.classList.remove('hidden');
         indicador.className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping";
         
-        iniciarOscilacaoStatus();
+        if (!corridaAtiva) iniciarOscilacaoStatus();
         setGavetaAberta(true);
         iniciarRastreamentoGPS();
         iniciarEscutaPedidos();
         mostrarToastAdmin("Você está online e visível no radar.", "sucesso");
       } else {
         btnPowerFlutuante.classList.remove('hidden');
-        btnDesligarGaveta.classList.add('hidden');
+        containerBtnDesligarRedondo.classList.add('hidden');
         indicador.className = "w-3 h-3 rounded-full bg-slate-500";
         
         if (intervaloOscilacaoTexto) clearInterval(intervaloOscilacaoTexto);
-        document.getElementById('status-texto-principal').innerText = "Offline";
-        document.getElementById('status-subtexto').innerText = "Toque ou puxe para cima para gerenciar";
+        
+        if (!corridaAtiva) {
+          document.getElementById('status-texto-principal').innerText = "Offline";
+          document.getElementById('status-subtexto').innerText = "Toque ou puxe para cima para gerenciar";
+          setGavetaAberta(false);
+        } else {
+          document.getElementById('status-subtexto').innerText = "Aplicativo offline (Corrida ativa em andamento)";
+        }
 
-        setGavetaAberta(false);
         document.getElementById('modal-nova-corrida').classList.add('hidden');
         pararRastreamentoGPS();
         mostrarToastAdmin("Aplicativo offline.", "aviso");
@@ -645,6 +655,7 @@
       document.getElementById('bloco-central-avisos').classList.add('hidden');
       document.getElementById('bloco-detalhes-corrida-ativa').classList.remove('hidden');
       document.getElementById('container-btn-maps-flutuante').classList.remove('hidden');
+      document.getElementById('container-btn-desligar-redondo').classList.remove('hidden');
 
       const nomeCompletoPassageiro = corridaAtiva.passageiro?.nome || 'Passageiro';
       const primeiroNomePassageiro = primeiroNome(nomeCompletoPassageiro);
@@ -654,9 +665,13 @@
       document.getElementById('ativa-origem').innerText = corridaAtiva.origem;
       document.getElementById('ativa-destino').innerText = corridaAtiva.destino;
       
+      // Configura foto e nome diretamente no topo da barra inferior
       const imgEl = document.getElementById('status-foto-passageiro');
       imgEl.src = fotoPassageiro;
       imgEl.classList.remove('hidden');
+
+      document.getElementById('status-nota-passageiro').innerText = notaPassageiro;
+      document.getElementById('status-badge-nota').classList.remove('hidden');
 
       const textoPrincipal = document.getElementById('status-texto-principal');
       const subtexto = document.getElementById('status-subtexto');
@@ -665,16 +680,16 @@
       const blocoEspera = document.getElementById('bloco-espera-local');
 
       if (corridaAtiva.status === 'em_andamento') {
-        textoPrincipal.innerText = `Em rumo ao destino de ${primeiroNomePassageiro}`;
-        subtexto.innerText = `Destino: ${corridaAtiva.destino}`;
+        textoPrincipal.innerText = primeiroNomePassageiro;
+        subtexto.innerText = `Em rumo ao destino: ${corridaAtiva.destino}`;
         btnIniciar.innerText = "Finalizar Viagem";
         btnIniciar.className = "flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl transition text-xs shadow";
         btnCancelar.classList.add('hidden');
         blocoEspera.classList.add('hidden');
         if (timerEspera3mId) clearInterval(timerEspera3mId);
       } else {
-        textoPrincipal.innerText = `Indo buscar ${primeiroNomePassageiro} (${notaPassageiro} ★)`;
-        subtexto.innerText = `Toque para ver detalhes do embarque`;
+        textoPrincipal.innerText = primeiroNomePassageiro;
+        subtexto.innerText = `Indo buscar no embarque (Toque para detalhes)`;
         btnIniciar.innerText = "Iniciar Viagem";
         btnIniciar.className = "flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition text-xs shadow";
         btnCancelar.classList.remove('hidden');
@@ -721,8 +736,8 @@
             corridaAtiva = data;
             const primeiroNomePassageiro = primeiroNome(corridaAtiva.passageiro?.nome);
             
-            document.getElementById('status-texto-principal').innerText = `Em rumo ao destino de ${primeiroNomePassageiro}`;
-            document.getElementById('status-subtexto').innerText = `Destino: ${corridaAtiva.destino}`;
+            document.getElementById('status-texto-principal').innerText = primeiroNomePassageiro;
+            document.getElementById('status-subtexto').innerText = `Em rumo ao destino: ${corridaAtiva.destino}`;
             
             const btn = document.getElementById('btn-iniciar-viagem');
             btn.innerText = "Finalizar Viagem";
@@ -772,10 +787,10 @@
         blocoJustificativa.classList.remove('hidden');
       } else if (nota === 2) {
         textoNota.innerText = "Ruim (2 estrelas)";
-        blocoJustificativa.classList.remove('hidden');
+        blocoJustificativa.classList.add('hidden');
       } else {
         textoNota.innerText = "Muito Ruim (1 estrela)";
-        blocoJustificativa.classList.remove('hidden');
+        blocoJustificativa.classList.add('hidden');
       }
     }
 
@@ -809,11 +824,18 @@
       document.getElementById('bloco-detalhes-corrida-ativa').classList.add('hidden');
       document.getElementById('bloco-central-avisos').classList.remove('hidden');
       document.getElementById('container-btn-maps-flutuante').classList.add('hidden');
+      document.getElementById('container-btn-desligar-redondo').classList.add('hidden');
       document.getElementById('status-foto-passageiro').classList.add('hidden');
+      document.getElementById('status-badge-nota').classList.add('hidden');
       document.getElementById('modal-conclusao-corrida').classList.add('hidden');
 
       setGavetaAberta(false);
-      if (statusOnline) iniciarOscilacaoStatus();
+      if (statusOnline) {
+        iniciarOscilacaoStatus();
+      } else {
+        document.getElementById('status-texto-principal').innerText = "Offline";
+        document.getElementById('status-subtexto').innerText = "Toque ou puxe para cima para gerenciar";
+      }
     }
 
     function iniciarTimerEsperaLocal() {
@@ -872,7 +894,7 @@
         mapaRadar.removeLayer(marcadorCarro);
         marcadorCarro = null;
       }
-      if (motoristaLogado) {
+      if (motoristaLogado && !corridaAtiva) {
         await supabaseClient.from('usuarios').update({ online: false }).eq('id', motoristaLogado.id);
       }
     }
