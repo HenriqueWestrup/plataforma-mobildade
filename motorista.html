@@ -45,7 +45,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v29</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v30</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -99,7 +99,7 @@
     </div>
   </main>
 
-  <!-- MODAL DE NOVA CORRIDA (GLOBAL E SOBREPOSTO A QUALQUER TELA) -->
+  <!-- MODAL DE NOVA CORRIDA (EXIBIÇÃO ÚNICA EM FILA / 1 POR VEZ) -->
   <div id="modal-nova-corrida" class="hidden fixed bottom-28 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-amber-500/80 p-4 rounded-3xl shadow-2xl z-50 space-y-3 max-h-[60vh] overflow-y-auto">
     <div class="flex items-center justify-between border-b border-slate-800 pb-2">
       <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1.5">
@@ -129,7 +129,7 @@
     </div>
 
     <div class="flex gap-2 pt-1">
-      <button onclick="recusarCorridaRadar()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl transition text-xs">Recusar / Próximo</button>
+      <button onclick="recusarCorridaRadar()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl transition text-xs">Recusar</button>
       <button onclick="aceitarCorridaRadar()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition shadow-lg text-xs">Aceitar Corrida</button>
     </div>
   </div>
@@ -259,6 +259,7 @@
     let intervaloOscilacaoTexto = null;
     let canalCorridaAtiva = null;
     let corridaPendenteAtual = null;
+    let filaPedidosPendentes = []; // Fila ordenada para exibir uma por vez
     let corridaAtiva = null;
     let timer15sId = null;
     let timerEspera3mId = null;
@@ -383,7 +384,6 @@
       inicializarMapaRadar();
       verificarCorridaAtivaExistente();
 
-      // RESTAURA O ESTADO ONLINE PERSISTENTE ENTRE PÁGINAS
       const estadoOnlineSalvo = localStorage.getItem('motorista_online');
       if (estadoOnlineSalvo === 'true') {
         statusOnline = true;
@@ -475,6 +475,8 @@
         }
 
         document.getElementById('modal-nova-corrida').classList.add('hidden');
+        filaPedidosPendentes = [];
+        corridaPendenteAtual = null;
         pararRastreamentoGPS();
         mostrarToastAdmin("Aplicativo offline.", "aviso");
       }
@@ -554,7 +556,7 @@
         .subscribe();
     }
 
-    // SISTEMA DE FILA SEQUENCIAL DE PEDIDOS (LOOP ENTRE CHAMADOS)
+    // CONTROLE DE FILA: GARANTE QUE UMA NOTIFICAÇÃO APARECE POR VEZ SEM SOBREPOR
     async function verificarPedidosPendentes() {
       if (!statusOnline || corridaAtiva) return;
       try {
@@ -562,23 +564,38 @@
           .from('corridas')
           .select('*')
           .eq('status', 'procurando')
-          .order('id', { ascending: true }); // Ordem de chamada (FIFO)
+          .order('id', { ascending: true }); // Ordem FIFO de chegada
 
         if (data && data.length > 0) {
-          // Pega o primeiro pedido da fila que ainda não está ativo no modal atual
-          const proximoPedido = data[0];
-          if (!corridaPendenteAtual || corridaPendenteAtual.id !== proximoPedido.id) {
-            buscarDetalhesEExibirModalNovaCorrida(proximoPedido);
+          // Atualiza a fila com todos os pedidos pendentes do banco
+          filaPedidosPendentes = data;
+
+          // Se nenhuma notificação estiver aberta no momento, exibe o primeiro da fila
+          if (!corridaPendenteAtual) {
+            processarProximaFila();
           }
         } else {
-          if (corridaPendenteAtual) {
-            recusarCorridaRadar();
-          }
+          filaPedidosPendentes = [];
         }
       } catch (e) {}
     }
 
-    async function buscarDetalhesEExibirModalNovaCorrida(corrida) {
+    async function processarProximaFila() {
+      if (corridaAtiva || !statusOnline) return;
+
+      // Filtra pedidos que ainda estão com status procurando
+      filaPedidosPendentes = filaPedidosPendentes.filter(c => c.status === 'procurando');
+
+      if (filaPedidosPendentes.length > 0) {
+        const proximaCorrida = filaPedidosPendentes.shift(); // Pega e remove o primeiro da fila
+        await exibirModalNovaCorrida(proximaCorrida);
+      } else {
+        corridaPendenteAtual = null;
+        document.getElementById('modal-nova-corrida').classList.add('hidden');
+      }
+    }
+
+    async function exibirModalNovaCorrida(corrida) {
       if (timer15sId) clearInterval(timer15sId);
 
       let passageiroInfo = { nome: 'Passageiro', foto_url: '', nota: '5.0' };
@@ -616,12 +633,12 @@
       const display = document.getElementById('timer-radar-15s');
       if (timer15sId) clearInterval(timer15sId);
 
-      timer15sId = setInterval(async () => {
+      timer15sId = setInterval(() => {
         display.innerText = `${tempo}s`;
         if (tempo <= 0) {
           clearInterval(timer15sId);
           tocarSomAlerta('expirou');
-          recusarCorridaRadar(); // Passa instantaneamente para o próximo da fila
+          recusarCorridaRadar(); // Expira os 15s e chama o próximo da fila
         }
         tempo--;
       }, 1000);
@@ -631,8 +648,9 @@
       if (timer15sId) clearInterval(timer15sId);
       corridaPendenteAtual = null;
       document.getElementById('modal-nova-corrida').classList.add('hidden');
-      // Imediatamente verifica o próximo pedido pendente na fila
-      setTimeout(verificarPedidosPendentes, 200);
+      
+      // Passa imediatamente para o próximo pedido da fila (se houver)
+      setTimeout(processarProximaFila, 300);
     }
 
     async function aceitarCorridaRadar() {
@@ -656,6 +674,7 @@
           recusarCorridaRadar();
         } else {
           corridaAtiva = data;
+          filaPedidosPendentes = []; // Limpa a fila ao aceitar
           document.getElementById('modal-nova-corrida').classList.add('hidden');
           corridaPendenteAtual = null;
           exibirPainelCorridaAtiva();
