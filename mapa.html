@@ -30,8 +30,18 @@
 
     <!-- ESTIMATIVA DE VALOR -->
     <div id="bloco-estimativa" class="hidden flex justify-between items-center px-1 text-slate-300">
-      <span class="text-slate-400">Estimativa (PIX / Dinheiro)</span>
+      <span class="text-slate-400">Estimativa da Corrida</span>
       <span id="valor-estimado" class="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
+    </div>
+
+    <!-- SELEÇÃO DE FORMA DE PAGAMENTO (PIX / DINHEIRO) -->
+    <div class="grid grid-cols-2 gap-2 pt-1">
+      <button type="button" onclick="selecionarPagamento('PIX')" id="btn-pay-pix" class="bg-emerald-600/20 border border-emerald-500 text-emerald-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2">
+        <i class="fa-solid fa-qrcode"></i> PIX
+      </button>
+      <button type="button" onclick="selecionarPagamento('Dinheiro')" id="btn-pay-dinheiro" class="bg-slate-950 border border-slate-800 text-slate-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2 hover:border-slate-700">
+        <i class="fa-solid fa-money-bill-wave"></i> Dinheiro
+      </button>
     </div>
 
     <!-- BOTÃO CHAMAR MOTORISTA -->
@@ -47,6 +57,7 @@
   let marcadorDestino = null;
   let coordsOrigem = null;
   let coordsDestino = null;
+  let formaPagamentoSelecionada = 'PIX'; // Padrão inicial
 
   function inicializarMapa() {
     if (mapaLeaflet) {
@@ -54,13 +65,11 @@
       return;
     }
 
-    // Coordenadas centrais de Laguna - SC
     const latLaguna = -28.4811;
     const lngLaguna = -48.7811;
 
     mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
 
-    // Camada de mapa escuro (CartoDB Dark Matter)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
       subdomains: 'abcd',
@@ -71,7 +80,20 @@
     usarMinhaLocalizacao();
   }
 
-  // Geolocalização via GPS
+  function selecionarPagamento(tipo) {
+    formaPagamentoSelecionada = tipo;
+    const btnPix = document.getElementById('btn-pay-pix');
+    const btnDinheiro = document.getElementById('btn-pay-dinheiro');
+
+    if (tipo === 'PIX') {
+      btnPix.className = "bg-emerald-600/20 border border-emerald-500 text-emerald-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2";
+      btnDinheiro.className = "bg-slate-950 border border-slate-800 text-slate-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2 hover:border-slate-700";
+    } else {
+      btnDinheiro.className = "bg-emerald-600/20 border border-emerald-500 text-emerald-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2";
+      btnPix.className = "bg-slate-950 border border-slate-800 text-slate-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2 hover:border-slate-700";
+    }
+  }
+
   function usarMinhaLocalizacao() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -96,15 +118,12 @@
               document.getElementById('origem-corrida').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
             });
         },
-        () => {
-          console.log("GPS negado ou indisponível.");
-        },
+        () => { console.log("GPS indisponível."); },
         { enableHighAccuracy: true }
       );
     }
   }
 
-  // Autocompletar endereços
   async function buscarSugestoes(termo, tipo) {
     const container = document.getElementById(`sugestoes-${tipo}`);
     if (termo.length < 3) {
@@ -150,13 +169,11 @@
       }).addTo(mapaLeaflet);
     }
 
-    // Cálculo instantâneo ao preencher origem e destino
     if (coordsOrigem && coordsDestino) {
       calcularRotaEValor();
     }
   }
 
-  // Adicionar campo de Parada Intermediária
   function adicionarCampoParada() {
     const container = document.getElementById('container-paradas');
     if (container.children.length >= 2) {
@@ -169,13 +186,12 @@
     div.innerHTML = `
       <i class="fa-solid fa-stop text-sky-400"></i>
       <input type="text" id="${idParada}" placeholder="Adicionar parada" oninput="buscarSugestoes(this.value, '${idParada}')" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
-      <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-300 px-1"><i class="fa-solid xmark"></i></button>
+      <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-300 px-1"><i class="fa-solid fa-xmark"></i></button>
       <div id="sugestoes-${idParada}" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-36 overflow-y-auto"></div>
     `;
     container.appendChild(div);
   }
 
-  // Cálculo de Distância e Valor Instantâneo
   function calcularRotaEValor() {
     if (!coordsOrigem || !coordsDestino) return;
 
@@ -188,7 +204,6 @@
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     const distanciaKm = R * c;
 
-    // Tarifa base: R$ 5,00 + R$ 3,50 por km (Mínimo R$ 10,00)
     let valorCalculado = 5.0 + (distanciaKm * 3.50);
     if (valorCalculado < 10.0) valorCalculado = 10.0;
 
@@ -218,22 +233,22 @@
       return;
     }
 
-    // Salva a corrida no Supabase para o motorista mais próximo aceitar
+    // Insere no Supabase incluindo a forma_pagamento selecionada (PIX ou Dinheiro)
     const { error } = await supabaseClient.from('corridas').insert([{
       passageiro_id: dadosUsuario.id,
       origem: origem,
       destino: destino,
       valor: valorNumerico,
+      forma_pagamento: formaPagamentoSelecionada,
       status: 'procurando'
     }]);
 
     if (error) {
       alert("Erro ao solicitar corrida: " + error.message);
     } else {
-      alert("Buscando motorista parceiro mais próximo em Laguna...");
+      alert(`Corrida solicitada com sucesso! Pagamento via ${formaPagamentoSelecionada}. Buscando motorista próximo...`);
     }
   }
 
-  // Auto-inicia o mapa ao carregar o módulo
   setTimeout(inicializarMapa, 100);
 </script>
