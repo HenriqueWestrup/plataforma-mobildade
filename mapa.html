@@ -572,7 +572,6 @@
           const corridaAtualizada = payload.new;
 
           if (['aceito', 'a_caminho', 'no_local', 'em_andamento'].includes(corridaAtualizada.status)) {
-            // Busca dados do motorista que aceitou
             let motoristaInfo = { nome: 'Motorista', foto_url: '', nota: '5.0' };
             if (corridaAtualizada.motorista_id) {
               const { data: mot } = await supabaseMapa.from('usuarios').select('nome, foto_url, nota').eq('id', corridaAtualizada.motorista_id).single();
@@ -623,7 +622,6 @@
 
     if (corrida.status === 'em_andamento') {
       textoStatus.innerText = "Viagem em andamento";
-      // Conforme solicitado: quando o motorista inicia a viagem, o passageiro só pode ver a viagem em andamento (botão de cancelar some)
       btnCancelarAtivo.classList.add('hidden');
     } else {
       textoStatus.innerText = "Motorista a caminho do embarque";
@@ -693,19 +691,19 @@
     }
 
     try {
-      // Salva a avaliação do passageiro na corrida
+      // CORREÇÃO: Salvando corretamente na coluna avaliacao_passageiro e motivo_avaliacao_passageiro
       await supabaseMapa.from('corridas').update({
         avaliacao_passageiro: passageiroNotaSelecionada,
         motivo_avaliacao_passageiro: motivo || null
       }).eq('id', corridaAtualId);
 
-      // Se a nota for menor que 5, envia notificação/reporte automático para a tabela de suporte do admin
       if (passageiroNotaSelecionada < 5) {
         const dadosUsuario = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
         if (dadosUsuario.id) {
           await supabaseMapa.from('mensagens_suporte').insert([{
             usuario_id: dadosUsuario.id,
-            mensagem: `[Relato de Nota Baixa - Corrida #${corridaAtualId}] Nota: ${passageiroNotaSelecionada} estrelas. Motivo: ${motivo}`,
+            corrida_id: corridaAtualId,
+            mensagem: `[Relato de Nota Baixa ao Motorista - Corrida #${corridaAtualId}] Nota: ${passageiroNotaSelecionada} estrelas. Motivo: ${motivo}`,
             remetente: 'passageiro',
             lido: false
           }]);
