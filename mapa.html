@@ -76,6 +76,20 @@
       <i class="fa-solid fa-xmark"></i> Cancelar Corrida
     </button>
   </div>
+
+  <!-- MODAL DE AVISOS INTERNO (SUBSTITUI OS ALERTAS NATIVOS) -->
+  <div id="modal-aviso" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl max-w-xs w-full text-center space-y-4 shadow-2xl">
+      <div id="modal-icone" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl"></div>
+      <div class="space-y-1">
+        <h4 id="modal-titulo" class="font-bold text-white text-sm"></h4>
+        <p id="modal-mensagem" class="text-slate-400 text-xs"></p>
+      </div>
+      <button onclick="fecharModalAviso()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition">
+        OK
+      </button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -95,6 +109,67 @@
   let timerIntervalId = null;
   let corridaAtualId = null;
 
+  // SISTEMA DE ÁUDIO WEB AUDIO API (SEM DEPENDER DE ARQUIVOS EXTERNOS)
+  function tocarSom(tipo) {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const agora = audioCtx.currentTime;
+
+      if (tipo === 'sucesso') {
+        // Som agradável ascendente ao localizar/chamar
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, agora); // Lá 4
+        osc.frequency.exponentialRampToValueAtTime(880, agora + 0.15); // Lá 5
+        gain.gain.setValueAtTime(0.15, agora);
+        gain.gain.exponentialRampToValueAtTime(0.01, agora + 0.3);
+        osc.start(agora);
+        osc.stop(agora + 0.3);
+      } else if (tipo === 'cancelar') {
+        // Som descendente para cancelamento/expiração
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(587.33, agora); // Ré 5
+        osc.frequency.exponentialRampToValueAtTime(293.66, agora + 0.2); // Ré 4
+        gain.gain.setValueAtTime(0.2, agora);
+        gain.gain.exponentialRampToValueAtTime(0.01, agora + 0.35);
+        osc.start(agora);
+        osc.stop(agora + 0.35);
+      }
+    } catch (e) {
+      console.log("Áudio bloqueado pelo navegador até haver interação.");
+    }
+  }
+
+  function mostrarModal(titulo, mensagem, tipo = 'sucesso') {
+    const modal = document.getElementById('modal-aviso');
+    const iconeDiv = document.getElementById('modal-icone');
+    const tituloEl = document.getElementById('modal-titulo');
+    const msgEl = document.getElementById('modal-mensagem');
+
+    tituloEl.innerText = titulo;
+    msgEl.innerText = mensagem;
+
+    if (tipo === 'sucesso') {
+      tocarSom('sucesso');
+      iconeDiv.className = "w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
+      iconeDiv.innerHTML = '<i class="fa-solid fa-car-side"></i>';
+    } else {
+      tocarSom('cancelar');
+      iconeDiv.className = "w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-red-500/20 text-red-400 border border-red-500/40";
+      iconeDiv.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+    }
+
+    modal.classList.remove('hidden');
+  }
+
+  function fecharModalAviso() {
+    document.getElementById('modal-aviso').classList.add('hidden');
+  }
+
   function inicializarMapa() {
     if (mapaLeaflet) {
       mapaLeaflet.invalidateSize();
@@ -106,7 +181,6 @@
 
     mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
 
-    // Camada padrão do OpenStreetMap (Livre, sem chave de API e sem marcas d'água)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors'
@@ -125,7 +199,7 @@
     }
   }
 
-  // BUSCA E EXIBE MOTORISTAS ONLINE EM TEMPO REAL NO MAPA (APENAS ÍCONE, SEM DADOS)
+  // RADAR DE MOTORISTAS ONLINE (ÍCONES MENORES E SEM DADOS/POPUPS)
   async function iniciarRadarMotoristasOnline() {
     if (!supabaseMapa) return;
     atualizarPosicoesMotoristas();
@@ -151,11 +225,12 @@
         }
       });
 
+      // Ícone menor (26x26px)
       const iconeCarroMapa = L.divIcon({
         className: 'custom-car-radar',
-        html: '<div style="background-color: #10b981; color: #fff; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.6); border: 2px solid #fff;"><i class="fa-solid fa-car text-xs"></i></div>',
-        iconSize: [34, 34],
-        iconAnchor: [17, 17]
+        html: '<div style="background-color: #10b981; color: #fff; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.6); border: 2px solid #fff;"><i class="fa-solid fa-car text-[10px]"></i></div>',
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
       });
 
       motoristas.forEach(m => {
@@ -163,7 +238,6 @@
           if (marcadoresMotoristas[m.id]) {
             marcadoresMotoristas[m.id].setLatLng([m.lat, m.lng]);
           } else {
-            // Sem bindPopup para ocultar dados e nomes ao clicar
             const marcador = L.marker([m.lat, m.lng], { icon: iconeCarroMapa }).addTo(mapaLeaflet);
             marcadoresMotoristas[m.id] = marcador;
           }
@@ -267,7 +341,7 @@
   function adicionarCampoParada() {
     const container = document.getElementById('container-paradas');
     if (container.children.length >= 2) {
-      alert("Limite máximo de 2 paradas intermediárias.");
+      mostrarModal("Atenção", "Limite máximo de 2 paradas intermediárias.", "cancelar");
       return;
     }
     const idParada = 'parada-' + Date.now();
@@ -285,7 +359,6 @@
   async function calcularRotaEValor() {
     if (!coordsOrigem || !coordsDestino) return;
 
-    // Busca a rota real usando OSRM para desenhar a linha no mapa
     try {
       const urlOsrm = `https://router.project-osrm.org/route/v1/driving/${coordsOrigem.lng},${coordsOrigem.lat};${coordsDestino.lng},${coordsDestino.lat}?overview=full&geometries=geojson`;
       const res = await fetch(urlOsrm);
@@ -293,7 +366,7 @@
 
       if (data && data.routes && data.routes.length > 0) {
         const route = data.routes[0];
-        const coordenadasGeo = route.geometry.coordinates.map(c => [c[1], c[0]]); // Inverte para Leaflet [lat, lng]
+        const coordenadasGeo = route.geometry.coordinates.map(c => [c[1], c[0]]);
 
         if (polylineRota) mapaLeaflet.removeLayer(polylineRota);
 
@@ -313,11 +386,8 @@
         mapaLeaflet.fitBounds(polylineRota.getBounds(), { padding: [60, 60] });
         return;
       }
-    } catch (e) {
-      console.error("Erro ao calcular rota OSRM:", e);
-    }
+    } catch (e) {}
 
-    // Fallback matemático caso falhe a API de rotas
     const R = 6371;
     const dLat = (coordsDestino.lat - coordsOrigem.lat) * Math.PI / 180;
     const dLon = (coordsDestino.lng - coordsOrigem.lng) * Math.PI / 180;
@@ -343,7 +413,7 @@
     const valorTexto = document.getElementById('valor-estimado').innerText;
     
     if (!origem || !destino) {
-      alert('Por favor, preencha a origem e o destino.');
+      mostrarModal("Campos Incompletos", "Por favor, preencha a origem e o destino.", "cancelar");
       return;
     }
 
@@ -351,14 +421,14 @@
     const dadosUsuario = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
 
     if (!dadosUsuario.id) {
-      alert("Erro: Passageiro não identificado. Faça login novamente.");
-      window.location.href = 'auth.html';
+      mostrarModal("Erro de Autenticação", "Passageiro não identificado. Faça login novamente.", "cancelar");
+      setTimeout(() => window.location.href = 'auth.html', 2000);
       return;
     }
 
     const clienteSupabaseAtivo = supabaseMapa || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
     if (!clienteSupabaseAtivo) {
-      alert("Erro crítico: Conexão com o banco de dados indisponível.");
+      mostrarModal("Erro Crítico", "Conexão com o banco de dados indisponível.", "cancelar");
       return;
     }
 
@@ -372,12 +442,13 @@
     }]).select().single();
 
     if (error) {
-      alert("Erro ao solicitar corrida: " + error.message);
+      mostrarModal("Erro", "Erro ao solicitar corrida: " + error.message, "cancelar");
     } else {
       corridaAtualId = data.id;
       document.getElementById('painel-solicitacao').classList.add('hidden');
       document.getElementById('painel-espera-corrida').classList.remove('hidden');
 
+      mostrarModal("Buscando Motorista", "Sua solicitação foi enviada aos motoristas próximos.", "sucesso");
       iniciarTimerEsperaCorrida();
     }
   }
@@ -396,7 +467,7 @@
 
       if (tempoRestante <= 0) {
         clearInterval(timerIntervalId);
-        alert("Tempo limite de 3 minutos esgotado sem motoristas aceitarem.");
+        mostrarModal("Tempo Esgotado", "Tempo limite de 3 minutos esgotado sem motoristas aceitarem.", "cancelar");
         
         if (corridaAtualId && supabaseMapa) {
           await supabaseMapa.from('corridas').update({ status: 'expirado' }).eq('id', corridaAtualId);
@@ -408,14 +479,13 @@
   }
 
   async function cancelarBuscaCorrida() {
-    if (timerIntervalId) clearInterval(timerIdentifier = timerIntervalId);
     if (timerIntervalId) clearInterval(timerIntervalId);
 
     if (corridaAtualId && supabaseMapa) {
       await supabaseMapa.from('corridas').update({ status: 'cancelado' }).eq('id', corridaAtualId);
     }
 
-    alert("Corrida cancelada com sucesso.");
+    mostrarModal("Cancelado", "Corrida cancelada com sucesso.", "cancelar");
     resetarPainelCorrida();
   }
 
