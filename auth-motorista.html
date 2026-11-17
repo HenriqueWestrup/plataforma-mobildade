@@ -13,7 +13,7 @@
   <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-5 relative">
     
     <!-- VERSÃO DISCRETA -->
-    <span class="absolute top-2 right-3 text-[9px] text-slate-600 font-mono">v11</span>
+    <span class="absolute top-2 right-3 text-[9px] text-slate-600 font-mono">v12</span>
 
     <div class="text-center space-y-1">
       <div class="inline-block bg-amber-600/20 border border-amber-500/30 text-amber-400 p-3 rounded-2xl mb-1">
@@ -23,7 +23,7 @@
       <p class="text-xs text-slate-400">Entre com celular e senha para trabalhar</p>
     </div>
 
-    <!-- CAIXA DE ALERTA DE ERRO VISUAL -->
+    <!-- CAIXA DE ALERTA DE ERRO / STATUS VISUAL -->
     <div id="box-erro" class="hidden bg-red-950/80 border border-red-600 text-red-200 text-xs p-3 rounded-xl flex items-center gap-2">
       <i class="fa-solid fa-triangle-exclamation text-red-400 text-base shrink-0"></i>
       <span id="texto-erro">Erro ao realizar login.</span>
@@ -50,15 +50,20 @@
   </div>
 
   <script>
-    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';[cite: 6]
+    const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    function mostrarErro(mensagem) {
+    function mostrarErro(mensagem, ehSucesso = false) {
       const box = document.getElementById('box-erro');
       const texto = document.getElementById('texto-erro');
       if (box && texto) {
         texto.innerText = mensagem;
+        if (ehSucesso) {
+          box.className = "bg-emerald-950/80 border border-emerald-600 text-emerald-200 text-xs p-3 rounded-xl flex items-center gap-2";
+        } else {
+          box.className = "bg-red-950/80 border border-red-600 text-red-200 text-xs p-3 rounded-xl flex items-center gap-2";
+        }
         box.classList.remove('hidden');
       } else {
         alert(mensagem);
@@ -66,78 +71,65 @@
     }
 
     async function realizarLoginMotorista() {
-      const boxErro = document.getElementById('box-erro');
-      if (boxErro) boxErro.classList.add('hidden');
-      
       const inputCel = document.getElementById('login-celular-motorista');
       const inputSenha = document.getElementById('login-senha-motorista');
       const btn = document.getElementById('btn-entrar');
-
-      if (!inputCel || !inputSenha) {
-        mostrarErro("Erro interno: Campos não encontrados.");
-        return;
-      }
 
       const cel = inputCel.value.trim();
       const senha = inputSenha.value;
 
       if (!cel || !senha) {
-        mostrarErro("Por favor, preencha o celular e a senha.");
+        mostrarErro("Preencha o celular e a senha.");
         return;
       }
 
-      btn.innerText = "Verificando...";
+      btn.innerText = "Conectando ao Supabase...";
       btn.disabled = true;
 
       try {
-        // Consulta na tabela de usuários do Supabase
-        const { data: usuario, error } = await supabaseClient
+        // Teste de consulta estrito na tabela usuarios
+        console.log("Buscando telefone:", cel);
+        const { data, error } = await supabaseClient
           .from('usuarios')
           .select('*')
-          .eq('telefone', cel)
-          .eq('senha', senha)
-          .maybeSingle();
+          .eq('telefone', cel);
 
         if (error) {
-          throw new Error("Erro no Banco: " + error.message);
+          throw new Error("Erro do Supabase: " + error.message);
         }
+
+        if (!data || data.length === 0) {
+          throw new Error("Nenhum usuário encontrado com o telefone: " + cel);
+        }
+
+        console.log("Usuários encontrados:", data);
+        
+        // Procura se algum bate com a senha
+        const usuario = data.find(u => String(u.senha) === String(senha));
 
         if (!usuario) {
-          throw new Error("Telefone ou senha incorretos.");
+          throw new Error("Telefone existe, mas a senha está incorreta.");
         }
 
-        // Validação estrita de motorista (tipo motorista ou possui veículo cadastrado)
-        const isMotorista = usuario.tipo === 'motorista' || (usuario.veiculo_modelo && usuario.veiculo_modelo.trim() !== '');
-        if (!isMotorista) {
-          throw new Error("Acesso negado: Este cadastro é de passageiro, não possui perfil de motorista.");
-        }
-
-        if (usuario.status === 'bloqueado' || usuario.status === 'pendente') {
-          throw new Error("Sua conta está bloqueada ou pendente de aprovação.");
-        }
-
-        // Gera token de sessão e salva
-        const sessionToken = 'sessao_mot_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+        // Sucesso total!
+        mostrarErro("Login OK! Redirecionando...", true);
         
         localStorage.removeItem('passageiro_logado');
         usuario.tipo = 'motorista';
-        usuario.session_token = sessionToken;
-        
         localStorage.setItem('motorista_logado', JSON.stringify(usuario));
-        localStorage.setItem('session_token', sessionToken);
         
-        // Redireciona para o painel
-        window.location.href = 'motorista.html';
+        setTimeout(() => {
+          window.location.href = 'motorista.html';
+        }, 1000);
 
       } catch (err) {
-        console.error("Falha no login:", err);
-        mostrarErro(err.message || "Erro de conexão com o Supabase.");
+        console.error("Erro capturado:", err);
+        mostrarErro(err.message);
         btn.innerText = "Entrar como Motorista";
         btn.disabled = false;
       }
     }
 
-    // Garante que o evento de clique seja atrelado via script de forma blindada
     document.addEventListener('DOMContentLoaded', () => {
       const btnEntrar = document.getElementById('btn-entrar');
       if (btnEntrar) {
