@@ -158,7 +158,7 @@
       if (canalRealtimeAdminSuporte) supabaseClient.removeChannel(canalRealtimeAdminSuporte);
 
       canalRealtimeAdminSuporte = supabaseClient
-        .channel('admin_suporte_instantaneo_v5')
+        .channel('admin_suporte_instantaneo_v6')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens_suporte_app' }, payload => {
           if (payload.new && payload.new.remetente === 'passageiro') {
             tocarSomAlertaAdmin();
@@ -192,14 +192,12 @@
     }
 
     async function carregarChamadosSuporte() {
-      // 1. Busca corridas com avaliações baixas (tanto motorista avaliando passageiro quanto passageiro avaliando motorista)
       const { data: corridasData } = await supabaseClient
         .from('corridas')
-        .select('id, origem, destino, avaliacao_motorista, motivo_avaliacao_motorista, avaliacao_passageiro, motivo_avaliacao_passageiro, motorista_id, passageiro_id, motorista:motorista_id(id, nome), passageiro:passageiro_id(id, nome)')
+        .select('id, origem, destino, criado_em, avaliacao_motorista, motivo_avaliacao_motorista, avaliacao_passageiro, motivo_avaliacao_passageiro, motorista_id, passageiro_id, motorista:motorista_id(id, nome), passageiro:passageiro_id(id, nome)')
         .or('avaliacao_motorista.lt.5,avaliacao_passageiro.lt.5')
         .order('id', { ascending: false });
 
-      // 2. Busca mensagens na tabela 'mensagens_suporte' (reportes de motoristas ou passageiros)
       const { data: msgsSupData } = await supabaseClient
         .from('mensagens_suporte')
         .select('*, usuario:usuario_id(id, nome, tipo)')
@@ -207,10 +205,8 @@
 
       let listaUnificada = [];
 
-      // Processa avaliações de corridas
       if (corridasData) {
         corridasData.forEach(c => {
-          // Se o motorista avaliou mal o passageiro
           if (c.avaliacao_motorista && c.avaliacao_motorista < 5) {
             listaUnificada.push({
               tipo_reporte: 'motorista_avalia_passageiro',
@@ -224,10 +220,9 @@
               origem: c.origem,
               destino: c.destino,
               observacao: c.motivo_avaliacao_motorista || 'Nenhuma observação informada.',
-              criado_em: c.criado_em || Date.now()
+              criado_em: c.criado_em || new Date().toISOString()
             });
           }
-          // Se o passageiro avaliou mal o motorista
           if (c.avaliacao_passageiro && c.avaliacao_passageiro < 5) {
             listaUnificada.push({
               tipo_reporte: 'passageiro_avalia_motorista',
@@ -241,13 +236,12 @@
               origem: c.origem,
               destino: c.destino,
               observacao: c.motivo_avaliacao_passageiro || 'Nenhuma observação informada.',
-              criado_em: c.criado_em || Date.now()
+              criado_em: c.criado_em || new Date().toISOString()
             });
           }
         });
       }
 
-      // Processa mensagens da tabela suporte geral
       if (msgsSupData) {
         msgsSupData.forEach(m => {
           const isMotorista = m.remetente === 'motorista';
@@ -263,10 +257,13 @@
             origem: null,
             destino: null,
             observacao: m.mensagem || m.texto || 'Mensagem de suporte.',
-            criado_em: m.criado_em || m.created_at || Date.now()
+            criado_em: m.criado_em || m.created_at || new Date().toISOString()
           });
         });
       }
+
+      // ORDENAÇÃO POR ORDEM DE CHEGADA (MAIS RECENTE PRIMEIRO)
+      listaUnificada.sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em));
 
       suporteGlobal = listaUnificada;
       renderizarChamadosSuporte();
@@ -275,8 +272,6 @@
     function renderizarChamadosSuporte() {
       const idsLidos = JSON.parse(localStorage.getItem('admin_suporte_lidos') || '[]');
       
-      // Sub-aba Motoristas: exibe reportes iniciados/enviados por motoristas
-      // Sub-aba Passageiros: exibe reportes iniciados/enviados por passageiros
       let filtrados = suporteGlobal.filter(s => {
         if (subAbaChamadosAtual === 'motoristas') {
           return s.tipo_reporte.startsWith('motorista');
@@ -284,6 +279,9 @@
           return s.tipo_reporte.startsWith('passageiro');
         }
       });
+
+      // Filtra os itens limpos visualmente pela administração
+      let visiveis = filtrados.filter(s => !idsLidos.includes(String(s.id_unico)));
 
       const totalNaoLidosGeral = suporteGlobal.filter(s => !idsLidos.includes(String(s.id_unico))).length;
       const badgeChamados = document.getElementById('badge-count-chamados');
@@ -295,15 +293,20 @@
       }
 
       const containerChamados = document.getElementById('lista-admin-suporte');
-      if (filtrados.length === 0) {
-        containerChamados.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum reporte na aba ${subAbaChamadosAtual}.</div>`;
+      if (visiveis.length === 0) {
+        containerChamados.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum alerta ou reporte visual pendente na aba ${subAbaChamadosAtual}.</div>`;
         return;
       }
 
-      containerChamados.innerHTML = filtrados.map(s => {
+      containerChamados.innerHTML = visiveis.map(s => {
         const descRelacao = s.tipo_reporte.includes('avalia_') 
           ? `Reporte feito por <u>${s.autor_nome}</u> para <u>${s.alvo_nome}</u>`
           : `Mensagem de suporte enviada por <u>${s.autor_nome}</u>`;
+
+        const dataFormatada = new Date(s.criado_em).toLocaleString('pt-BR', {
+          dateStyle: 'short',
+          timeStyle: 'medium'
+        });
 
         return `
           <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40 space-y-3 shadow">
@@ -311,7 +314,10 @@
               <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1">
                 ${s.estrelas ? `<i class="fa-solid fa-star"><b>${s.estrelas}</b> Estrelas</i>` : '<i class="fa-solid fa-triangle-exclamation">Reporte de Suporte</i>'}
               </span>
-              <span class="text-[10px] text-slate-400">Ref #${s.id_referencia}</span>
+              <div class="text-right">
+                <span class="text-[10px] text-emerald-400 font-mono block"><i class="fa-regular fa-clock mr-1"></i>${dataFormatada}</span>
+                <span class="text-[9px] text-slate-400">Ref #${s.id_referencia}</span>
+              </div>
             </div>
             
             <div class="text-[11px] space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
