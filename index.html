@@ -44,7 +44,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.3</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.4</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -100,14 +100,9 @@
         <button onclick="fecharModalSuporte()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
       </div>
 
-      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] space-y-1 shrink-0">
-        <span class="text-emerald-400 font-bold block">Assunto Selecionado:</span>
-        <p id="sup-assunto-label" class="text-slate-200 font-semibold">Suporte Geral</p>
-      </div>
-
       <div class="space-y-2 flex-1 flex flex-col min-h-0">
         <span class="text-[11px] font-bold text-slate-300 block shrink-0"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Histórico de Mensagens</span>
-        <div id="sup-historico-lista" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2.5 overflow-y-auto text-[11px] flex-1 max-h-56">
+        <div id="sup-historico-lista" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2.5 overflow-y-auto text-[11px] flex-1 max-h-64">
           <p class="text-slate-500 text-center py-2">Carregando mensagens...</p>
         </div>
       </div>
@@ -212,7 +207,6 @@
       } else {
         assuntoAtualSuporte = assunto;
       }
-      document.getElementById('sup-assunto-label').innerText = assuntoAtualSuporte;
       document.getElementById('modal-suporte-passageiro').classList.remove('hidden');
       carregarHistoricoMensagensSuporte();
     }
@@ -242,27 +236,34 @@
           return;
         }
 
-        // Pega apenas o primeiro nome do usuário logado
         const primeiroNomeUsuario = (usuarioLogado.nome || 'Usuário').split(' ')[0];
 
         container.innerHTML = msgs.map(m => {
           const isAdmin = m.remetente === 'admin';
           const remetenteNome = isAdmin ? 'Suporte' : primeiroNomeUsuario;
+          
+          // Remove qualquer colchete de assunto antigo que esteja gravado no banco para exibir limpo ao usuário
+          let textoMensagem = m.mensagem || '';
+          if (textoMensagem.startsWith('[')) {
+            const fimColchete = textoMensagem.indexOf(']');
+            if (fimColchete !== -1) {
+              textoMensagem = textoMensagem.substring(fimColchete + 1).trim();
+            }
+          }
+
           return `
             <div class="bg-slate-900 p-2.5 rounded-xl border ${m.lido ? 'border-slate-800' : 'border-emerald-500/40'} space-y-1">
               <div class="flex justify-between text-[9px] text-slate-400">
                 <span class="${isAdmin ? 'text-emerald-400 font-bold' : 'text-sky-400'}">${remetenteNome}:</span>
                 <span>${new Date(m.criado_em || Date.now()).toLocaleString('pt-BR')}</span>
               </div>
-              <p class="text-slate-200 whitespace-pre-line">${m.mensagem || '-'}</p>
+              <p class="text-slate-200 whitespace-pre-line">${textoMensagem}</p>
             </div>
           `;
         }).join('');
 
-        // Rola automaticamente para a última mensagem
         container.scrollTop = container.scrollHeight;
 
-        // Marca como lidas
         await supabaseClient
           .from('mensagens_suporte_app')
           .update({ lido: true })
@@ -281,11 +282,11 @@
       const texto = inputEl.value.trim();
       if (!texto) return;
 
-      // Limpa o campo imediatamente para o usuário continuar digitando sem fechar o teclado
       inputEl.value = '';
       inputEl.focus();
 
       try {
+        // Envia o assunto formatado oculto no texto para o Admin, enquanto a limpeza acima oculta para o usuário
         const payload = {
           usuario_id: String(usuarioLogado.id),
           mensagem: `[${assuntoAtualSuporte}] ${texto}`,
@@ -299,7 +300,6 @@
           return;
         }
 
-        // Atualiza o histórico sem reconstruir a tela do modal inteiro
         carregarHistoricoMensagensSuporte(true);
       } catch (e) {
         alert("Erro ao enviar mensagem.");
