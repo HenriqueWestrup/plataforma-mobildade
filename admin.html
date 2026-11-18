@@ -11,9 +11,14 @@
 <body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs">
 
   <main class="flex-1 overflow-y-auto p-4 space-y-4 pb-16">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-      <h2 class="text-sm font-extrabold text-white">Visão Geral da Operação</h2>
-      <p class="text-[11px] text-slate-400">Selecione um módulo abaixo ou na barra superior para gerenciar.</p>
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex justify-between items-center">
+      <div>
+        <h2 class="text-sm font-extrabold text-white">Visão Geral da Operação</h2>
+        <p class="text-[11px] text-slate-400">Selecione um módulo abaixo ou na barra superior para gerenciar.</p>
+      </div>
+      <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1.5 bg-emerald-950/40 px-3 py-1.5 rounded-xl border border-emerald-500/30">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-ping"></span> Tempo Real Ativo
+      </span>
     </div>
 
     <!-- CARDS DE ATALHO PARA AS PÁGINAS SEPARADAS -->
@@ -49,7 +54,7 @@
           <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-base">
             <i class="fa-solid fa-route"></i>
           </div>
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">Tempo Real</span>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">Ativas</span>
         </div>
         <div>
           <p class="text-lg font-extrabold text-white" id="dash-total-viagens">0</p>
@@ -62,11 +67,11 @@
           <div class="w-10 h-10 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center text-base">
             <i class="fa-solid fa-headset"></i>
           </div>
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">Chamados</span>
+          <span id="badge-dash-suporte" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 animate-pulse">Novas</span>
         </div>
         <div>
           <p class="text-lg font-extrabold text-white" id="dash-total-suporte">0</p>
-          <p class="text-[11px] text-slate-400 font-semibold">Alertas de Suporte</p>
+          <p class="text-[11px] text-slate-400 font-semibold">Mensagens / Suporte</p>
         </div>
       </a>
     </div>
@@ -74,6 +79,27 @@
 
   <script src="admin_shared.js"></script>
   <script>
+    let canalRealtimeAdminPrincipal = null;
+
+    function tocarSomAlertaAdmin() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const agora = audioCtx.currentTime;
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, agora);
+        osc.frequency.setValueAtTime(880.00, agora + 0.2);
+        gain.gain.setValueAtTime(0.3, agora);
+        gain.gain.exponentialRampToValueAtTime(0.01, agora + 0.6);
+        osc.start(agora);
+        osc.stop(agora + 0.6);
+      } catch (e) {}
+    }
+
     async function carregarPaginaAtual() {
       const { data: usuarios } = await supabaseClient.from('usuarios').select('*');
       const todos = usuarios || [];
@@ -94,10 +120,44 @@
         .in('status', ['aceita', 'em_andamento', 'em_curso', 'pendente']);
       document.getElementById('dash-total-viagens').innerText = viagensAtivas || 0;
 
-      const { data: sup } = await supabaseClient.from('corridas').select('id').lt('avaliacao_motorista', 5);
-      const idsLidos = JSON.parse(localStorage.getItem('admin_suporte_lidos') || '[]');
-      const pendentes = (sup || []).filter(s => !idsLidos.includes(String(s.id))).length;
-      document.getElementById('dash-total-suporte').innerText = pendentes;
+      // Conta mensagens de suporte novas enviadas pelos passageiros
+      const { data: msgs } = await supabaseClient
+        .from('mensagens_suporte_app')
+        .select('id, lido, remetente')
+        .eq('remetente', 'passageiro')
+        .eq('lido', false);
+
+      const totalMsgsNovas = (msgs || []).length;
+      document.getElementById('dash-total-suporte').innerText = totalMsgsNovas;
+      
+      const badgeSup = document.getElementById('badge-dash-suporte');
+      if (totalMsgsNovas > 0) {
+        badgeSup.classList.remove('hidden');
+      } else {
+        badgeSup.classList.add('hidden');
+      }
+
+      iniciarEscutaRealtimeAdminPrincipal();
+    }
+
+    function iniciarEscutaRealtimeAdminPrincipal() {
+      if (canalRealtimeAdminPrincipal) supabaseClient.removeChannel(canalRealtimeAdminPrincipal);
+
+      canalRealtimeAdminPrincipal = supabaseClient
+        .channel('admin_principal_realtime')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens_suporte_app' }, payload => {
+          if (payload.new && payload.new.remetente === 'passageiro') {
+            tocarSomAlertaAdmin();
+            carregarPaginaAtual();
+          }
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'corridas' }, payload => {
+          if (payload.new && payload.new.avaliacao_motorista && payload.new.avaliacao_motorista < 5) {
+            tocarSomAlertaAdmin();
+            carregarPaginaAtual();
+          }
+        })
+        .subscribe();
     }
 
     window.onload = () => verificarSessaoAdmin('inicio', carregarPaginaAtual);
