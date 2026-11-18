@@ -44,7 +44,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.2</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.3</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -92,28 +92,28 @@
 
   <!-- MODAL DE SUPORTE E MENSAGENS -->
   <div id="modal-suporte-passageiro" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+    <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3 shrink-0">
         <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
           <i class="fa-solid fa-headset text-emerald-400"></i> Mensagens do Suporte
         </h3>
         <button onclick="fecharModalSuporte()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
       </div>
 
-      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] space-y-1">
+      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] space-y-1 shrink-0">
         <span class="text-emerald-400 font-bold block">Assunto Selecionado:</span>
         <p id="sup-assunto-label" class="text-slate-200 font-semibold">Suporte Geral</p>
       </div>
 
-      <div class="space-y-2">
-        <span class="text-[11px] font-bold text-slate-300 block"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Histórico de Mensagens</span>
-        <div id="sup-historico-lista" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 max-h-48 overflow-y-auto text-[11px]">
+      <div class="space-y-2 flex-1 flex flex-col min-h-0">
+        <span class="text-[11px] font-bold text-slate-300 block shrink-0"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Histórico de Mensagens</span>
+        <div id="sup-historico-lista" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2.5 overflow-y-auto text-[11px] flex-1 max-h-56">
           <p class="text-slate-500 text-center py-2">Carregando mensagens...</p>
         </div>
       </div>
 
-      <div class="space-y-2 pt-2 border-t border-slate-800">
-        <textarea id="sup-input-mensagem" rows="3" placeholder="Escreva sua dúvida ou mensagem para o suporte..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs outline-none focus:border-emerald-500"></textarea>
+      <div class="space-y-2 pt-2 border-t border-slate-800 shrink-0">
+        <textarea id="sup-input-mensagem" rows="2" placeholder="Escreva sua dúvida ou mensagem para o suporte..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs outline-none focus:border-emerald-500 resize-none"></textarea>
         <button onclick="enviarMensagemSuportePassageiro()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow transition">
           Enviar para o Suporte
         </button>
@@ -226,32 +226,41 @@
       document.getElementById('modal-suporte-passageiro').classList.add('hidden');
     }
 
-    async function carregarHistoricoMensagensSuporte() {
+    async function carregarHistoricoMensagensSuporte(manterFoco = false) {
       const container = document.getElementById('sup-historico-lista');
       if (!container) return;
-      container.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Carregando...</p>';
 
       try {
         const { data: msgs, error } = await supabaseClient
           .from('mensagens_suporte_app')
           .select('*')
           .eq('usuario_id', usuarioLogado.id)
-          .order('criado_em', { ascending: false });
+          .order('criado_em', { ascending: true });
 
         if (error || !msgs || msgs.length === 0) {
           container.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma mensagem anterior no suporte.</p>';
           return;
         }
 
-        container.innerHTML = msgs.map(m => `
-          <div class="bg-slate-900 p-2.5 rounded-xl border ${m.lido ? 'border-slate-800' : 'border-emerald-500/40'} space-y-1">
-            <div class="flex justify-between text-[9px] text-slate-400">
-              <span class="${m.remetente === 'admin' ? 'text-emerald-400 font-bold' : 'text-sky-400'}">${m.remetente === 'admin' ? 'Equipe de Suporte' : 'Você'}</span>
-              <span>${new Date(m.criado_em || Date.now()).toLocaleString('pt-BR')}</span>
+        // Pega apenas o primeiro nome do usuário logado
+        const primeiroNomeUsuario = (usuarioLogado.nome || 'Usuário').split(' ')[0];
+
+        container.innerHTML = msgs.map(m => {
+          const isAdmin = m.remetente === 'admin';
+          const remetenteNome = isAdmin ? 'Suporte' : primeiroNomeUsuario;
+          return `
+            <div class="bg-slate-900 p-2.5 rounded-xl border ${m.lido ? 'border-slate-800' : 'border-emerald-500/40'} space-y-1">
+              <div class="flex justify-between text-[9px] text-slate-400">
+                <span class="${isAdmin ? 'text-emerald-400 font-bold' : 'text-sky-400'}">${remetenteNome}:</span>
+                <span>${new Date(m.criado_em || Date.now()).toLocaleString('pt-BR')}</span>
+              </div>
+              <p class="text-slate-200 whitespace-pre-line">${m.mensagem || '-'}</p>
             </div>
-            <p class="text-slate-200 whitespace-pre-line">${m.mensagem || '-'}</p>
-          </div>
-        `).join('');
+          `;
+        }).join('');
+
+        // Rola automaticamente para a última mensagem
+        container.scrollTop = container.scrollHeight;
 
         // Marca como lidas
         await supabaseClient
@@ -261,13 +270,20 @@
           .eq('lido', false);
 
       } catch (e) {
-        container.innerHTML = '<p class="text-slate-500 text-center py-2">Erro ao carregar histórico.</p>';
+        if (!manterFoco) {
+          container.innerHTML = '<p class="text-slate-500 text-center py-2">Erro ao carregar histórico.</p>';
+        }
       }
     }
 
     async function enviarMensagemSuportePassageiro() {
-      const texto = document.getElementById('sup-input-mensagem').value.trim();
+      const inputEl = document.getElementById('sup-input-mensagem');
+      const texto = inputEl.value.trim();
       if (!texto) return;
+
+      // Limpa o campo imediatamente para o usuário continuar digitando sem fechar o teclado
+      inputEl.value = '';
+      inputEl.focus();
 
       try {
         const payload = {
@@ -283,8 +299,8 @@
           return;
         }
 
-        document.getElementById('sup-input-mensagem').value = '';
-        carregarHistoricoMensagensSuporte();
+        // Atualiza o histórico sem reconstruir a tela do modal inteiro
+        carregarHistoricoMensagensSuporte(true);
       } catch (e) {
         alert("Erro ao enviar mensagem.");
       }
