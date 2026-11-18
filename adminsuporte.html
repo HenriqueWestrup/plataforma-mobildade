@@ -10,13 +10,15 @@
 </head>
 <body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs">
 
-  <!-- ABAS SUPERIORES DA PÁGINA DE SUPORTE -->
+  <!-- ABAS SUPERIORES DA PÁGINA DE SUPORTE COM BADGES DE CONTAGEM -->
   <div class="bg-slate-900 border-b border-slate-800 p-3 grid grid-cols-2 gap-2 shrink-0">
-    <button onclick="mudarAbaSup('chamados')" id="btn-aba-chamados" class="py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow">
-      <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Chamados / Avaliações
+    <button onclick="mudarAbaSup('chamados')" id="btn-aba-chamados" class="py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow flex items-center justify-center gap-2">
+      <span><i class="fa-solid fa-triangle-exclamation mr-1"></i> Chamados / Avaliações</span>
+      <span id="badge-count-chamados" class="hidden bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold shadow">0</span>
     </button>
-    <button onclick="mudarAbaSup('mensagens')" id="btn-aba-mensagens" class="py-2.5 px-3 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center shadow">
-      <i class="fa-solid fa-comments mr-1.5"></i> Central de Mensagens (<span id="count-msg-novas">0</span>)
+    <button onclick="mudarAbaSup('mensagens')" id="btn-aba-mensagens" class="py-2.5 px-3 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center shadow flex items-center justify-center gap-2">
+      <span><i class="fa-solid fa-comments mr-1"></i> Central de Mensagens</span>
+      <span id="badge-count-mensagens" class="hidden bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold shadow">0</span>
     </button>
   </div>
 
@@ -107,12 +109,12 @@
       document.getElementById('secao-mensagens').classList.toggle('hidden', aba !== 'mensagens');
 
       document.getElementById('btn-aba-chamados').className = aba === 'chamados' 
-        ? 'py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow' 
-        : 'py-2.5 px-3 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center shadow';
+        ? 'py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow flex items-center justify-center gap-2' 
+        : 'py-2.5 px-3 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center shadow flex items-center justify-center gap-2';
 
       document.getElementById('btn-aba-mensagens').className = aba === 'mensagens' 
-        ? 'py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow' 
-        : 'py-2.5 px-3 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center shadow';
+        ? 'py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow flex items-center justify-center gap-2' 
+        : 'py-2.5 px-3 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center shadow flex items-center justify-center gap-2';
 
       if (aba === 'mensagens') {
         carregarMensagensSuporteCentral();
@@ -132,15 +134,18 @@
       if (canalRealtimeAdminSuporte) supabaseClient.removeChannel(canalRealtimeAdminSuporte);
 
       canalRealtimeAdminSuporte = supabaseClient
-        .channel('admin_suporte_instantaneo')
+        .channel('admin_suporte_instantaneo_v3')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens_suporte_app' }, payload => {
-          tocarSomAlertaAdmin();
+          if (payload.new && payload.new.remetente === 'passageiro') {
+            tocarSomAlertaAdmin();
+          }
           carregarContadorMensagensNovas();
+          
           if (abaSupAtual === 'mensagens') {
             carregarMensagensSuporteCentral();
           }
-          // Se o chat com esse usuário estiver aberto, atualiza as mensagens na tela na hora
-          if (usuarioChatAtivoId && payload.new && payload.new.usuario_id == usuarioChatAtivoId) {
+
+          if (usuarioChatAtivoId && payload.new && String(payload.new.usuario_id) === String(usuarioChatAtivoId)) {
             carregarHistoricoChatCentral();
           }
         })
@@ -163,6 +168,15 @@
       suporteGlobal = data || [];
       const idsLidos = JSON.parse(localStorage.getItem('admin_suporte_lidos') || '[]');
       const naoLidos = suporteGlobal.filter(s => !idsLidos.includes(String(s.id)));
+
+      // Atualiza badge de chamados nas abas
+      const badgeChamados = document.getElementById('badge-count-chamados');
+      if (naoLidos.length > 0) {
+        badgeChamados.innerText = naoLidos.length;
+        badgeChamados.classList.remove('hidden');
+      } else {
+        badgeChamados.classList.add('hidden');
+      }
 
       const containerChamados = document.getElementById('lista-admin-suporte');
       if (naoLidos.length === 0) {
@@ -204,7 +218,14 @@
       try {
         const { data } = await supabaseClient.from('mensagens_suporte_app').select('id, lido').eq('remetente', 'passageiro').eq('lido', false);
         const total = (data || []).length;
-        document.getElementById('count-msg-novas').innerText = total;
+        
+        const badgeMensagens = document.getElementById('badge-count-mensagens');
+        if (total > 0) {
+          badgeMensagens.innerText = total;
+          badgeMensagens.classList.remove('hidden');
+        } else {
+          badgeMensagens.classList.add('hidden');
+        }
       } catch (e) {}
     }
 
@@ -287,7 +308,7 @@
 
     async function carregarHistoricoChatCentral() {
       const container = document.getElementById('chat-central-historico');
-      container.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Carregando histórico...</p>';
+      if (!container || !usuarioChatAtivoId) return;
 
       try {
         const { data: msgs } = await supabaseClient

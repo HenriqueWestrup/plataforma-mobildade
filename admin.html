@@ -62,12 +62,13 @@
         </div>
       </a>
 
-      <a href="adminsuporte.html" class="bg-slate-900 hover:bg-slate-800/80 border border-slate-800 hover:border-red-500/40 p-4 rounded-2xl space-y-2 transition shadow">
+      <a href="adminsuporte.html" class="bg-slate-900 hover:bg-slate-800/80 border border-slate-800 hover:border-red-500/40 p-4 rounded-2xl space-y-2 transition shadow relative">
         <div class="flex justify-between items-center">
           <div class="w-10 h-10 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center text-base">
             <i class="fa-solid fa-headset"></i>
           </div>
-          <span id="badge-dash-suporte" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 animate-pulse">Novas</span>
+          <!-- Bolinha vermelha com quantidade de mensagens novas -->
+          <span id="badge-dash-suporte" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-600 text-white animate-bounce shadow-lg">0</span>
         </div>
         <div>
           <p class="text-lg font-extrabold text-white" id="dash-total-suporte">0</p>
@@ -132,6 +133,7 @@
       
       const badgeSup = document.getElementById('badge-dash-suporte');
       if (totalMsgsNovas > 0) {
+        badgeSup.innerText = totalMsgsNovas;
         badgeSup.classList.remove('hidden');
       } else {
         badgeSup.classList.add('hidden');
