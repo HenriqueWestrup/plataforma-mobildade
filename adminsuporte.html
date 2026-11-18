@@ -158,7 +158,7 @@
       if (canalRealtimeAdminSuporte) supabaseClient.removeChannel(canalRealtimeAdminSuporte);
 
       canalRealtimeAdminSuporte = supabaseClient
-        .channel('admin_suporte_instantaneo_v6')
+        .channel('admin_suporte_instantaneo_v7')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens_suporte_app' }, payload => {
           if (payload.new && payload.new.remetente === 'passageiro') {
             tocarSomAlertaAdmin();
@@ -262,7 +262,7 @@
         });
       }
 
-      // ORDENAÇÃO POR ORDEM DE CHEGADA (MAIS RECENTE PRIMEIRO)
+      // Ordenação rigorosa por ordem de chegada (mais recente primeiro)
       listaUnificada.sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em));
 
       suporteGlobal = listaUnificada;
@@ -280,7 +280,6 @@
         }
       });
 
-      // Filtra os itens limpos visualmente pela administração
       let visiveis = filtrados.filter(s => !idsLidos.includes(String(s.id_unico)));
 
       const totalNaoLidosGeral = suporteGlobal.filter(s => !idsLidos.includes(String(s.id_unico))).length;
@@ -362,6 +361,7 @@
       container.innerHTML = '<p class="text-slate-400 text-center py-4 animate-pulse">Carregando conversas...</p>';
 
       try {
+        // Exibe estritamente conversas reais da tabela mensagens_suporte_app (chat de suporte do usuário)
         const { data: msgs, error } = await supabaseClient
           .from('mensagens_suporte_app')
           .select('*')
@@ -439,6 +439,7 @@
       if (!container || !usuarioChatAtivoId) return;
 
       try {
+        // Exibe estritamente o histórico do chat de suporte app. Avaliações de corridas não aparecem aqui.
         const { data: msgs } = await supabaseClient
           .from('mensagens_suporte_app')
           .select('*')
@@ -446,7 +447,7 @@
           .order('criado_em', { ascending: true });
 
         if (!msgs || msgs.length === 0) {
-          container.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma mensagem nesta conversa.</p>';
+          container.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma mensagem nesta conversa de suporte.</p>';
           return;
         }
 
