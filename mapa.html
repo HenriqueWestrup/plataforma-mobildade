@@ -93,10 +93,8 @@
       </div>
     </div>
 
-    <!-- ILUSTRAÇÃO DINÂMICA DA JORNADA (CARRINHO / TRAJETO / CASA) -->
-    <div id="container-ilustracjon-jornada" class="bg-slate-950 px-3 py-2.5 rounded-xl border border-slate-800 flex items-center justify-center gap-3 text-emerald-400 text-sm">
-      <!-- Conteúdo inserido dinamicamente via JS conforme o status -->
-    </div>
+    <!-- ILUSTRAÇÃO DINÂMICA DA JORNADA (CARRINHO / TRAJETO / CASA / DESTINO) -->
+    <div id="container-ilustracao-jornada" class="bg-slate-950 px-3 py-2.5 rounded-xl border border-slate-800 flex items-center justify-center gap-3 text-emerald-400 text-sm"></div>
 
     <div class="space-y-1.5 text-xs text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800">
       <p id="bloco-embarque-container"><strong>Embarque:</strong> <span id="pass-ativa-origem" class="text-white">-</span></p>
@@ -181,18 +179,18 @@
   }
 
   function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
-    const R = 6371e3; // Raio da terra em metros
-    const φ1 = lat1 * Math.PI/180;
-    const φ2 = lat2 * Math.PI/180;
-    const Δφ = (lat2-lat1) * Math.PI/180;
-    const Δλ = (lon2-lon1) * Math.PI/180;
+    const R = 6371e3;
+    const phi1 = lat1 * Math.PI / 180;
+    const phi2 = lat2 * Math.PI / 180;
+    const dPhi = (lat2 - lat1) * Math.PI / 180;
+    const dLambda = (lon2 - lon1) * Math.PI / 180;
 
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(dPhi / 2) * Math.sin(dPhi / 2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-    return R * c; // Distância em metros
+    return R * c;
   }
 
   function tocarSom(tipo) {
@@ -285,7 +283,7 @@
     try {
       const { data } = await supabaseMapa
         .from('corridas')
-        .select('*, motorista:motorista_id(nome, foto_url, nota, lat, lng)')
+        .select('*, motorista:motorista_id(nome, foto_url, nota)')
         .eq('passageiro_id', dadosUsuario.id)
         .in('status', ['procurando', 'aceito', 'a_caminho', 'no_local', 'em_andamento'])
         .order('id', { ascending: false })
@@ -358,7 +356,7 @@
         }
       });
 
-      // VERIFICAÇÃO DE PROXIMIDADE (100 METROS)
+      // Verificação de proximidade (100 metros)
       if (corridaAtualId) {
         const { data: corridaAtual } = await supabaseMapa.from('corridas').select('motorista_id, status').eq('id', corridaAtualId).single();
         if (corridaAtual && corridaAtual.motorista_id && ['a_caminho', 'aceito'].includes(corridaAtual.status)) {
@@ -520,10 +518,10 @@
     const R = 6371;
     const dLat = (coordsDestino.lat - coordsOrigem.lat) * Math.PI / 180;
     const dLon = (coordsDestino.lng - coordsOrigem.lng) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
               Math.cos(coordsOrigem.lat * Math.PI / 180) * Math.cos(coordsDestino.lat * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distanciaKm = R * c;
 
     let valorCalculado = 5.0 + (distanciaKm * 3.50);
@@ -654,16 +652,15 @@
 
     const textoStatus = document.getElementById('passageiro-status-viagem-texto');
     const btnCancelarAtivo = document.getElementById('btn-cancelar-passageiro-ativo');
-    const containerIlustracao = document.getElementById('container-ilustracjon-jornada');
+    const containerIlustracao = document.getElementById('container-ilustracao-jornada');
     const blocoEmbarque = document.getElementById('bloco-embarque-container');
 
     if (corrida.status === 'em_andamento') {
       textoStatus.innerText = "Viagem em andamento";
       btnCancelarAtivo.classList.add('hidden');
-      blocoEmbarque.style.display = 'none'; // Oculta o endereço de embarque, mostrando apenas o destino final
-      
-      // Ilustração para Viagem em Andamento: Casa -> Carrinho -> Destino
-      containerIlustracjon-jornada.innerHTML = `
+      blocoEmbarque.style.display = 'none';
+
+      containerIlustracao.innerHTML = `
         <i class="fa-solid fa-house text-sky-400 text-base" title="Início do Trajeto"></i>
         <div class="flex-1 border-t-2 border-dashed border-emerald-500/50 relative flex items-center justify-center">
           <i class="fa-solid fa-car text-emerald-400 absolute bg-slate-950 px-1 text-xs"></i>
@@ -676,8 +673,7 @@
       blocoEmbarque.style.display = 'block';
       document.getElementById('pass-ativa-origem').innerText = corrida.origem;
 
-      // Ilustração para Motorista a Caminho: Carrinho -> Trajeto -> Casa
-      containerIlustracjon-jornada.innerHTML = `
+      containerIlustracao.innerHTML = `
         <i class="fa-solid fa-car text-emerald-400 text-base" title="Motorista a Caminho"></i>
         <div class="flex-1 border-t-2 border-dashed border-emerald-500/50 relative flex items-center justify-center">
           <i class="fa-solid fa-arrow-right text-emerald-500/80 absolute bg-slate-950 px-1 text-[10px]"></i>
@@ -759,8 +755,7 @@
         if (dadosUsuario.id) {
           await supabaseMapa.from('mensagens_suporte').insert([{
             usuario_id: dadosUsuario.id,
-            corrida_id: corridaAtualId,
-            mensagem: `[Relato de Nota Baixa ao Motorista - Corrida #${corridaAtualId}] Nota: ${passageiroNotaSelecionada} estrelas. Motivo: ${motivo}`,
+            mensagem: `[Relato de Nota Baixa - Corrida #${corridaAtualId}] Nota: ${passageiroNotaSelecionada} estrelas. Motivo: ${motivo}`,
             remetente: 'passageiro',
             lido: false
           }]);
