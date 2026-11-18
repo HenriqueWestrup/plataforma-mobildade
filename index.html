@@ -48,7 +48,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.5</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.6</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -133,6 +133,25 @@
     let canalRealtimeSuporte = null;
     let assuntoAtualSuporte = 'Suporte Geral';
 
+    function tocarSomAlertaPassageiro() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const agora = audioCtx.currentTime;
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, agora);
+        osc.frequency.setValueAtTime(880.00, agora + 0.2);
+        gain.gain.setValueAtTime(0.3, agora);
+        gain.gain.exponentialRampToValueAtTime(0.01, agora + 0.6);
+        osc.start(agora);
+        osc.stop(agora + 0.6);
+      } catch (e) {}
+    }
+
     async function inicializarApp() {
       const passageiroStorage = localStorage.getItem('passageiro_logado');
       const motoristaStorage = localStorage.getItem('motorista_logado');
@@ -203,10 +222,10 @@
           table: 'mensagens_suporte_app',
           filter: `usuario_id=eq.${usuarioLogado.id}`
         }, payload => {
-          atualizarContadorNotificacoes();
-          // Se a mensagem nova for do admin, podemos abrir o modal automaticamente se desejar
+          // Se a mensagem nova vier do admin, toca o alarme sonoro e atualiza os contadores em segundo plano sem abrir o modal
           if (payload.new && payload.new.remetente === 'admin') {
-            abrirSuporteAssunto('Mensagem Nova da Administração');
+            tocarSomAlertaPassageiro();
+            atualizarContadorNotificacoes();
           }
         })
         .subscribe();
