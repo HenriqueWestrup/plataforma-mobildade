@@ -54,7 +54,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v42</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v43</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -161,14 +161,24 @@
         </div>
       </div>
 
-      <div id="bloco-cobranca-avaliacao" class="hidden bg-slate-950 border border-emerald-500/50 rounded-2xl p-3 space-y-3">
+      <!-- ETAPA 1: TELA DE COBRANÇA E VALOR DA CORRIDA -->
+      <div id="bloco-cobranca-valor" class="hidden bg-slate-950 border border-emerald-500/50 rounded-2xl p-3 space-y-3">
         <div class="text-center space-y-1 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
           <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Cobrar do Passageiro</span>
           <h3 id="conclusao-valor-total" class="text-2xl font-extrabold text-emerald-400">R$ 0,00</h3>
         </div>
+        <button onclick="avancarParaTelaAvaliacao(); event.stopPropagation();" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow-lg transition text-xs flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check"></i> Confirmar Pagamento e Avaliar
+        </button>
+      </div>
+
+      <!-- ETAPA 2: TELA DE AVALIAÇÃO NORMAL -->
+      <div id="bloco-cobranca-avaliacao" class="hidden bg-slate-950 border border-emerald-500/50 rounded-2xl p-3 space-y-3">
+        <div class="text-center space-y-1">
+          <span class="text-[11px] font-extrabold text-white">Avalie o Passageiro</span>
+        </div>
 
         <div class="space-y-1.5 text-center">
-          <label class="text-[11px] font-bold text-slate-300 block">Avalie o Passageiro:</label>
           <div id="container-estrelas" class="flex justify-center gap-2 text-xl text-slate-600 cursor-pointer">
             <i class="fa-solid fa-star transition hover:text-amber-400" data-value="1" onclick="selecionarEstrela(1); event.stopPropagation();"></i>
             <i class="fa-solid fa-star transition hover:text-amber-400" data-value="2" onclick="selecionarEstrela(2); event.stopPropagation();"></i>
@@ -186,8 +196,8 @@
           <textarea id="input-motivo-negativo" rows="2" placeholder="Descreva o motivo..." class="w-full bg-slate-900 border border-red-500/50 rounded-xl p-2 text-white text-xs focus:outline-none" onclick="event.stopPropagation();"></textarea>
         </div>
 
-        <button onclick="encerrarCorrida(); event.stopPropagation();" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow-lg transition text-xs flex items-center justify-center gap-2">
-          <i class="fa-solid fa-check"></i> Encerrar
+        <button onclick="encerrarCorridaComAvaliacao(); event.stopPropagation();" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow-lg transition text-xs flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check"></i> Encerrar e Enviar
         </button>
       </div>
 
@@ -465,7 +475,6 @@
 
       const estadoOnlineSalvo = localStorage.getItem('motorista_online');
       if (estadoOnlineSalvo === 'true') {
-        // Validação de segurança ao iniciar o app caso estivesse salvo online mas esteja bloqueado
         if (motoristaLogado.status === 'bloqueado' || motoristaLogado.status === 'pendente') {
           statusOnline = false;
           localStorage.setItem('motorista_online', 'false');
@@ -506,7 +515,6 @@
             if (motoristaLogado.status === 'bloqueado' || motoristaLogado.status === 'pendente') {
               document.getElementById('banner-bloqueio').classList.remove('hidden');
               if (statusOnline) {
-                // Força ficar offline imediatamente se receber bloqueio em tempo real
                 statusOnline = false;
                 localStorage.setItem('motorista_online', 'false');
                 pararRastreamentoGPS();
@@ -523,7 +531,6 @@
         .subscribe();
     }
 
-    // CARREGAMENTO UNIFICADO DO HISTÓRICO NA BARRA INFERIOR DO MOTORISTA
     async function carregarHistoricoBarraInferiorMotorista() {
       const container = document.getElementById('lista-historico-suporte-motorista');
       if (!container) return;
@@ -653,25 +660,15 @@
       }
     }
 
-    // FUNÇÃO PRINCIPAL DE ALTERNAR O POWER (LIGAR/DESLIGAR O APLICATIVO) COM TRAVA DE CONTA BLOQUEADA
     async function alternarPowerMotorista() {
-      // VERIFICAÇÃO DE BLOQUEIO OU PENDÊNCIA ANTES DE LIGAR
       if (motoristaLogado && (motoristaLogado.status === 'bloqueado' || motoristaLogado.status === 'pendente')) {
-        // Expande a barra se estiver fechada
         setGavetaAberta(true);
-        
-        // Adiciona classe de oscilação vermelha por 3 segundos na central de avisos / barra inferior
         const blocoAvisos = document.getElementById('bloco-central-avisos');
         blocoAvisos.classList.add('alerta-bloqueio-animado');
-        
         mostrarToastAdmin("Conta suspensa ou bloqueada! Não é permitido ativar o aplicativo.", "erro");
         tocarSomAlerta('cancelado');
-
-        setTimeout(() => {
-          blocoAvisos.classList.remove('alerta-bloqueio-animado');
-        }, 3000);
-
-        return; // Interrompe a execução impedindo de ficar online
+        setTimeout(() => blocoAvisos.classList.remove('alerta-bloqueio-animado'), 3000);
+        return;
       }
 
       statusOnline = !statusOnline;
@@ -683,7 +680,6 @@
       if (statusOnline) {
         containerBtnDesligarRedondo.classList.remove('hidden');
         indicador.className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping";
-        
         if (!corridaAtiva) iniciarOscilacaoStatus();
         setGavetaAberta(true);
         iniciarRastreamentoGPS();
@@ -692,9 +688,7 @@
       } else {
         containerBtnDesligarRedondo.classList.add('hidden');
         indicador.className = "w-3 h-3 rounded-full bg-slate-500";
-        
         if (intervaloOscilacaoTexto) clearInterval(intervaloOscilacaoTexto);
-        
         if (!corridaAtiva) {
           document.getElementById('status-texto-principal').innerText = "Offline";
           document.getElementById('status-subtexto').innerText = "Toque ou puxe para cima para gerenciar";
@@ -702,7 +696,6 @@
         } else {
           document.getElementById('status-subtexto').innerText = "Aplicativo offline (Corrida ativa em andamento)";
         }
-
         document.getElementById('modal-nova-corrida').classList.add('hidden');
         filaPedidosPendentes = [];
         corridaPendenteAtual = null;
@@ -710,9 +703,7 @@
         mostrarToastAdmin("Aplicativo offline.", "aviso");
       }
 
-      if (typeof sincronizarEstadoRadar === 'function') {
-        sincronizarEstadoRadar();
-      }
+      if (typeof sincronizarEstadoRadar === 'function') sincronizarEstadoRadar();
     }
 
     function iniciarOscilacaoStatus() {
@@ -790,9 +781,7 @@
 
         if (data && data.length > 0) {
           filaPedidosPendentes = data;
-          if (!corridaPendenteAtual) {
-            processarProximaFila();
-          }
+          if (!corridaPendenteAtual) processarProximaFila();
         } else {
           filaPedidosPendentes = [];
         }
@@ -877,9 +866,7 @@
           try {
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}`);
             const dados = await res.json();
-            if (dados && dados.length > 0) {
-              return { lat: parseFloat(dados[0].lat), lon: parseFloat(dados[0].lon) };
-            }
+            if (dados && dados.length > 0) return { lat: parseFloat(dados[0].lat), lon: parseFloat(dados[0].lon) };
           } catch(e) {}
           return null;
         }
@@ -903,7 +890,6 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapaPreviaInstancia);
 
         let pontosRota = [[latOrigem, lngOrigem]];
-
         L.marker([latOrigem, lngOrigem]).addTo(mapaPreviaInstancia).bindPopup('Embarque');
 
         if (latParada && lngParada) {
@@ -968,21 +954,18 @@
           document.getElementById('modal-nova-corrida').classList.add('hidden');
           corridaPendenteAtual = null;
           
-          if (abaAtual !== 'radar') {
-            await carregarModulo('radar');
-          }
+          if (abaAtual !== 'radar') await carregarModulo('radar');
           
           exibirPainelCorridaAtiva();
           mostrarToastAdmin("Corrida aceita com sucesso!", "sucesso");
         }
-      } catch (err) {
-        console.error(err);
-      }
+      } catch (err) {}
     }
 
     function exibirPainelCorridaAtiva() {
       if (intervaloOscilacaoTexto) clearInterval(intervaloOscilacaoTexto);
       document.getElementById('modal-nova-corrida').classList.add('hidden');
+      document.getElementById('bloco-cobranca-valor').classList.add('hidden');
       document.getElementById('bloco-cobranca-avaliacao').classList.add('hidden');
       document.getElementById('bloco-detalhes-corrida-ativa').classList.remove('hidden');
       document.getElementById('container-btn-desligar-redondo').classList.remove('hidden');
@@ -1051,6 +1034,14 @@
       if (!corridaAtiva) return;
 
       if (corridaAtiva.status === 'em_andamento') {
+        // Atualiza imediatamente o status para 'concluido' no banco (sincronizando instantaneamente a tela do passageiro)
+        try {
+          await supabaseClient
+            .from('corridas')
+            .update({ status: 'concluido' })
+            .eq('id', corridaAtiva.id);
+        } catch (e) {}
+
         abrirPainelCobrancaNaGaveta();
       } else {
         try {
@@ -1082,15 +1073,24 @@
       }
     }
 
+    // ETAPA 1: Mostra o valor da corrida primeiro
     function abrirPainelCobrancaNaGaveta() {
       document.getElementById('bloco-detalhes-corrida-ativa').classList.add('hidden');
-      document.getElementById('bloco-cobranca-avaliacao').classList.remove('hidden');
+      document.getElementById('bloco-cobranca-valor').classList.remove('hidden');
+      document.getElementById('bloco-cobranca-avaliacao').classList.add('hidden');
+      
       document.getElementById('conclusao-valor-total').innerText = `R$ ${(corridaAtiva.valor || 15.0).toFixed(2).replace('.', ',')}`;
+      document.getElementById('status-subtexto').innerText = "Aguardando confirmação de pagamento";
+      setGavetaAberta(true);
+    }
+
+    // ETAPA 2: Avança para a tela de avaliação após confirmar o pagamento
+    function avancarParaTelaAvaliacao() {
+      document.getElementById('bloco-cobranca-valor').classList.add('hidden');
+      document.getElementById('bloco-cobranca-avaliacao').classList.remove('hidden');
       selecionarEstrela(5);
       document.getElementById('input-motivo-negativo').value = '';
-      
-      document.getElementById('status-subtexto').innerText = "Cobrança e avaliação pendentes";
-      setGavetaAberta(true);
+      document.getElementById('status-subtexto').innerText = "Avaliação do passageiro pendente";
     }
 
     function selecionarEstrela(nota) {
@@ -1124,32 +1124,69 @@
       }
     }
 
-    async function encerrarCorrida() {
+    // ETAPA 3: Encerra salvando a nota e enviando ao suporte se necessário, calculando a média das últimas 500 avaliações
+    async function encerrarCorridaComAvaliacao() {
       if (!corridaAtiva) return;
 
       const motivo = document.getElementById('input-motivo-negativo').value.trim();
       if (notaSelecionada < 5 && !motivo) {
-        mostrarToastAdmin("Por favor, informe o motivo da avaliação.", "erro");
+        mostrarToastAdmin("Por favor, informe o motivo da avaliação baixa.", "erro");
         return;
       }
 
       try {
+        // Atualiza a avaliação do motorista na corrida
         const { error } = await supabaseClient.from('corridas').update({
-          status: 'concluido',
           avaliacao_motorista: notaSelecionada,
           motivo_avaliacao_motorista: motivo || null
         }).eq('id', corridaAtiva.id);
 
         if (error) {
-          mostrarToastAdmin("Erro ao salvar no banco. Tente novamente.", "erro");
+          mostrarToastAdmin("Erro ao salvar avaliação. Tente novamente.", "erro");
           return;
         }
+
+        // Se a nota for menor que 5, envia automaticamente para o suporte do passageiro
+        if (notaSelecionada < 5) {
+          await supabaseClient.from('mensagens_suporte').insert([{
+            usuario_id: corridaAtiva.passageiro_id,
+            mensagem: `[Relato de Nota Baixa - Corrida #${corridaAtiva.id}] Nota atribuída ao passageiro: ${notaSelecionada} estrelas. Motivo: ${motivo}`,
+            remetente: 'motorista',
+            lido: false
+          }]);
+        }
+
+        // Recalcula a nota média do passageiro baseada nas últimas 500 avaliações
+        await recalcularNotaMediaPassageiro(corridaAtiva.passageiro_id);
 
         mostrarToastAdmin("Viagem encerrada com sucesso!", "sucesso");
         limparCorridaAtivaLocal();
       } catch (e) {
         mostrarToastAdmin("Erro de conexão ao finalizar.", "erro");
       }
+    }
+
+    // Cálculo da média móvel das últimas 500 avaliações
+    async function recalcularNotaMediaPassageiro(passageiroId) {
+      try {
+        const { data: historicoCorridas } = await supabaseClient
+          .from('corridas')
+          .select('avaliacao_motorista')
+          .eq('passageiro_id', passageiroId)
+          .eq('status', 'concluido')
+          .not('avaliacao_motorista', 'is', null)
+          .order('id', { ascending: false })
+          .limit(500);
+
+        if (historicoCorridas && historicoCorridas.length > 0) {
+          let soma = 0;
+          historicoCorridas.forEach(c => soma += c.avaliacao_motorista);
+          let novaMedia = soma / historicoCorridas.length;
+          novaMedia = Math.round(novaMedia * 100) / 100; // Arredonda para 2 casas decimais (ex: 4.96)
+
+          await supabaseClient.from('usuarios').update({ nota: novaMedia }).eq('id', passageiroId);
+        }
+      } catch (e) {}
     }
 
     async function forcarLimpezaTravamento() {
@@ -1172,6 +1209,7 @@
       corridaAtiva = null;
 
       document.getElementById('bloco-detalhes-corrida-ativa').classList.add('hidden');
+      document.getElementById('bloco-cobranca-valor').classList.add('hidden');
       document.getElementById('bloco-cobranca-avaliacao').classList.add('hidden');
       
       if (statusOnline) {
@@ -1238,9 +1276,7 @@
         clearInterval(intervaloVerificacaoPedidos);
         intervaloVerificacaoPedidos = null;
       }
-      if (typeof removerMarcadorCarroRadar === 'function') {
-        removerMarcadorCarroRadar();
-      }
+      if (typeof removerMarcadorCarroRadar === 'function') removerMarcadorCarroRadar();
       if (motoristaLogado && !corridaAtiva) {
         await supabaseClient.from('usuarios').update({ online: false }).eq('id', motoristaLogado.id);
       }
