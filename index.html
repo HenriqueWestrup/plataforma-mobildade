@@ -29,9 +29,13 @@
   <!-- TOPO DO APP -->
   <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0 z-40">
     <div class="flex items-center gap-3">
-      <button onclick="toggleMenuLateral()" class="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800 border border-slate-700">
-        <i class="fa-solid fa-bars text-sm"></i>
-      </button>
+      <!-- Botão do menu hambúrguer com badge de contagem -->
+      <div class="relative">
+        <button onclick="toggleMenuLateral()" class="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800 border border-slate-700 block">
+          <i class="fa-solid fa-bars text-sm"></i>
+        </button>
+        <span id="badge-menu-topo" class="hidden absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center shadow animate-bounce">0</span>
+      </div>
       <div class="flex items-center gap-2">
         <div class="bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 p-2 rounded-xl">
           <i class="fa-solid fa-user text-sm"></i>
@@ -44,7 +48,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.4</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.5</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -70,8 +74,10 @@
       <a href="perfil.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
         <i class="fa-solid fa-user text-sky-400 w-5"></i> Meu Perfil
       </a>
-      <button onclick="abrirModalSuporteGeral()" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
-        <i class="fa-solid fa-headset text-emerald-400 w-5"></i> Mensagens do Suporte
+      <!-- Opção de suporte com badge de contagem lateral -->
+      <button onclick="abrirModalSuporteGeral()" class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
+        <span class="flex items-center gap-3"><i class="fa-solid fa-headset text-emerald-400 w-5"></i> Mensagens do Suporte</span>
+        <span id="badge-menu-lateral" class="hidden bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold shadow">0</span>
       </button>
     </div>
 
@@ -145,6 +151,7 @@
       await verificarDadosUsuarioAtualizados();
       iniciarEscutaRealtimeStatus();
       iniciarEscutaSuporteRealtime();
+      atualizarContadorNotificacoes();
 
       document.getElementById('menu-nome').innerText = usuarioLogado.nome || 'Passageiro';
       document.getElementById('menu-foto').src = usuarioLogado.foto_url || 'https://ui-avatars.com/api/?name=Passageiro';
@@ -196,9 +203,41 @@
           table: 'mensagens_suporte_app',
           filter: `usuario_id=eq.${usuarioLogado.id}`
         }, payload => {
-          abrirSuporteAssunto('Mensagem Nova da Administração');
+          atualizarContadorNotificacoes();
+          // Se a mensagem nova for do admin, podemos abrir o modal automaticamente se desejar
+          if (payload.new && payload.new.remetente === 'admin') {
+            abrirSuporteAssunto('Mensagem Nova da Administração');
+          }
         })
         .subscribe();
+    }
+
+    async function atualizarContadorNotificacoes() {
+      if (!usuarioLogado || !usuarioLogado.id) return;
+      try {
+        const { data, error } = await supabaseClient
+          .from('mensagens_suporte_app')
+          .select('id, lido, remetente')
+          .eq('usuario_id', usuarioLogado.id)
+          .eq('remetente', 'admin')
+          .eq('lido', false);
+
+        if (!error && data) {
+          const total = data.length;
+          const badgeTopo = document.getElementById('badge-menu-topo');
+          const badgeLateral = document.getElementById('badge-menu-lateral');
+
+          if (total > 0) {
+            badgeTopo.innerText = total;
+            badgeTopo.classList.remove('hidden');
+            badgeLateral.innerText = total;
+            badgeLateral.classList.remove('hidden');
+          } else {
+            badgeTopo.classList.add('hidden');
+            badgeLateral.classList.add('hidden');
+          }
+        }
+      } catch (e) {}
     }
 
     function abrirSuporteAssunto(assunto) {
@@ -218,6 +257,7 @@
 
     function fecharModalSuporte() {
       document.getElementById('modal-suporte-passageiro').classList.add('hidden');
+      atualizarContadorNotificacoes();
     }
 
     async function carregarHistoricoMensagensSuporte(manterFoco = false) {
@@ -242,7 +282,6 @@
           const isAdmin = m.remetente === 'admin';
           const remetenteNome = isAdmin ? 'Suporte' : primeiroNomeUsuario;
           
-          // Remove qualquer colchete de assunto antigo que esteja gravado no banco para exibir limpo ao usuário
           let textoMensagem = m.mensagem || '';
           if (textoMensagem.startsWith('[')) {
             const fimColchete = textoMensagem.indexOf(']');
@@ -264,11 +303,15 @@
 
         container.scrollTop = container.scrollHeight;
 
+        // Marca as mensagens do admin como lidas no banco
         await supabaseClient
           .from('mensagens_suporte_app')
           .update({ lido: true })
           .eq('usuario_id', usuarioLogado.id)
+          .eq('remetente', 'admin')
           .eq('lido', false);
+
+        atualizarContadorNotificacoes();
 
       } catch (e) {
         if (!manterFoco) {
@@ -286,7 +329,6 @@
       inputEl.focus();
 
       try {
-        // Envia o assunto formatado oculto no texto para o Admin, enquanto a limpeza acima oculta para o usuário
         const payload = {
           usuario_id: String(usuarioLogado.id),
           mensagem: `[${assuntoAtualSuporte}] ${texto}`,
