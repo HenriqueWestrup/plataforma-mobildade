@@ -54,7 +54,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v43</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v44</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -245,28 +245,28 @@
 
   <!-- MODAL DE ATENDIMENTO DIRECIONADO PARA O MOTORISTA -->
   <div id="modal-suporte-motorista" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+    <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3 shrink-0">
         <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
           <i class="fa-solid fa-headset text-emerald-400"></i> Suporte do Motorista
         </h3>
         <button onclick="fecharModalSuporteMotorista()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
       </div>
 
-      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] space-y-1">
+      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] space-y-1 shrink-0">
         <span class="text-emerald-400 font-bold block">Assunto / Ocorrência:</span>
         <p id="sup-motorista-assunto-label" class="text-slate-200 font-semibold">Suporte Geral</p>
       </div>
 
-      <div class="space-y-2">
-        <span class="text-[11px] font-bold text-slate-300 block"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Histórico de Respostas da Central</span>
-        <div id="sup-motorista-historico-lista" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 max-h-48 overflow-y-auto text-[11px]">
+      <div class="space-y-2 flex-1 flex flex-col min-h-0">
+        <span class="text-[11px] font-bold text-slate-300 block shrink-0"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Histórico de Respostas da Central</span>
+        <div id="sup-motorista-historico-lista" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2.5 overflow-y-auto text-[11px] flex-1 max-h-56">
           <p class="text-slate-500 text-center py-2">Carregando histórico...</p>
         </div>
       </div>
 
-      <div class="space-y-2 pt-2 border-t border-slate-800">
-        <textarea id="sup-motorista-input-mensagem" rows="3" placeholder="Escreva sua mensagem para o suporte..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs outline-none focus:border-emerald-500"></textarea>
+      <div class="space-y-2 pt-2 border-t border-slate-800 shrink-0">
+        <textarea id="sup-motorista-input-mensagem" rows="2" placeholder="Escreva sua mensagem para o suporte..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs outline-none focus:border-emerald-500 resize-none"></textarea>
         <button onclick="enviarMensagemSuporteMotorista()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow transition">
           Enviar para o Suporte
         </button>
@@ -288,6 +288,7 @@
     let intervaloOscilacaoTexto = null;
     let canalCorridaAtiva = null;
     let canalRealtimeMotorista = null;
+    let canalRealtimeSuporteMotorista = null;
     let corridaPendenteAtual = null;
     let filaPedidosPendentes = [];
     let corridaAtiva = null;
@@ -466,6 +467,7 @@
 
       await verificarDadosMotoristaAtualizados();
       iniciarEscutaRealtimeMotorista();
+      iniciarEscutaSuporteRealtimeMotorista();
 
       intervaloValidacaoSessao = setInterval(validarSessaoUnica, 7000);
       
@@ -531,13 +533,35 @@
         .subscribe();
     }
 
+    function iniciarEscutaSuporteRealtimeMotorista() {
+      if (!motoristaLogado || !motoristaLogado.id) return;
+      if (canalRealtimeSuporteMotorista) supabaseClient.removeChannel(canalRealtimeSuporteMotorista);
+
+      canalRealtimeSuporteMotorista = supabaseClient
+        .channel('suporte_motorista_' + motoristaLogado.id)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'mensagens_suporte_app',
+          filter: `usuario_id=eq.${motoristaLogado.id}`
+        }, payload => {
+          if (payload.new && payload.new.remetente === 'admin') {
+            tocarSomAlerta('novo_pedido');
+            carregarHistoricoBarraInferiorMotorista();
+            carregarHistoricoModalMotorista(true);
+          }
+        })
+        .subscribe();
+    }
+
     async function carregarHistoricoBarraInferiorMotorista() {
       const container = document.getElementById('lista-historico-suporte-motorista');
       if (!container) return;
 
       try {
+        // CORREÇÃO: Utilizando a tabela unificada 'mensagens_suporte_app'
         const { data: msgs, error } = await supabaseClient
-          .from('mensagens_suporte')
+          .from('mensagens_suporte_app')
           .select('*')
           .eq('usuario_id', motoristaLogado.id)
           .order('id', { ascending: false });
@@ -547,15 +571,25 @@
           return;
         }
 
-        container.innerHTML = msgs.map(m => `
-          <div onclick="abrirSuporteAssuntoMotorista('${m.mensagem || 'Suporte'}')" class="bg-slate-900 p-2 rounded-xl border border-slate-800 space-y-0.5 cursor-pointer hover:border-emerald-500/50 transition">
-            <div class="flex justify-between items-center text-[9px] text-slate-400">
-              <span class="text-emerald-400 font-bold">${m.remetente === 'admin' ? 'Suporte Central' : 'Você'}</span>
-              <span>${new Date(m.criado_em || m.created_at || Date.now()).toLocaleDateString()}</span>
+        container.innerHTML = msgs.map(m => {
+          const isAdmin = m.remetente === 'admin';
+          let textoMensagem = m.mensagem || '';
+          if (textoMensagem.startsWith('[')) {
+            const fimColchete = textoMensagem.indexOf(']');
+            if (fimColchete !== -1) {
+              textoMensagem = textoMensagem.substring(fimColchete + 1).trim();
+            }
+          }
+          return `
+            <div onclick="abrirSuporteAssuntoMotorista('${textoMensagem || 'Suporte'}')" class="bg-slate-900 p-2 rounded-xl border border-slate-800 space-y-0.5 cursor-pointer hover:border-emerald-500/50 transition">
+              <div class="flex justify-between items-center text-[9px] text-slate-400">
+                <span class="${isAdmin ? 'text-emerald-400 font-bold' : 'text-sky-400'}">${isAdmin ? 'Suporte Central' : 'Você'}</span>
+                <span>${new Date(m.criado_em || Date.now()).toLocaleDateString()}</span>
+              </div>
+              <p class="text-slate-200 text-[10px] truncate">${textoMensagem}</p>
             </div>
-            <p class="text-slate-200 text-[10px] truncate">${m.mensagem || m.texto || '-'}</p>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       } catch (e) {
         container.innerHTML = '<p class="text-slate-500 text-center py-1">Erro ao carregar avisos.</p>';
       }
@@ -576,49 +610,88 @@
       document.getElementById('modal-suporte-motorista').classList.add('hidden');
     }
 
-    async function carregarHistoricoModalMotorista() {
+    async function carregarHistoricoModalMotorista(manterFoco = false) {
       const container = document.getElementById('sup-motorista-historico-lista');
-      container.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Carregando...</p>';
+      if (!container) return;
 
       try {
+        // CORREÇÃO: Utilizando a tabela unificada 'mensagens_suporte_app'
         const { data: msgs, error } = await supabaseClient
-          .from('mensagens_suporte')
+          .from('mensagens_suporte_app')
           .select('*')
           .eq('usuario_id', motoristaLogado.id)
-          .order('id', { ascending: false });
+          .order('criado_em', { ascending: true });
 
         if (error || !msgs || msgs.length === 0) {
           container.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma mensagem anterior.</p>';
           return;
         }
 
-        container.innerHTML = msgs.map(m => `
-          <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 space-y-1">
-            <span class="text-[9px] text-slate-400 block">${m.remetente === 'admin' ? 'Suporte Central' : 'Você'} • ${new Date(m.criado_em || m.created_at || Date.now()).toLocaleString('pt-BR')}</span>
-            <p class="text-slate-200">${m.mensagem || m.texto || '-'}</p>
-          </div>
-        `).join('');
+        const primeiroNomeMotorista = (motoristaLogado.nome || 'Motorista').split(' ')[0];
+
+        container.innerHTML = msgs.map(m => {
+          const isAdmin = m.remetente === 'admin';
+          const remetenteNome = isAdmin ? 'Suporte Central' : primeiroNomeMotorista;
+          
+          let textoMensagem = m.mensagem || '';
+          if (textoMensagem.startsWith('[')) {
+            const fimColchete = textoMensagem.indexOf(']');
+            if (fimColchete !== -1) {
+              textoMensagem = textoMensagem.substring(fimColchete + 1).trim();
+            }
+          }
+
+          return `
+            <div class="bg-slate-900 p-2.5 rounded-xl border ${m.lido ? 'border-slate-800' : 'border-emerald-500/40'} space-y-1">
+              <div class="flex justify-between text-[9px] text-slate-400">
+                <span class="${isAdmin ? 'text-emerald-400 font-bold' : 'text-sky-400'}">${remetenteNome}:</span>
+                <span>${new Date(m.criado_em || Date.now()).toLocaleString('pt-BR')}</span>
+              </div>
+              <p class="text-slate-200 whitespace-pre-line">${textoMensagem}</p>
+            </div>
+          `;
+        }).join('');
+
+        container.scrollTop = container.scrollHeight;
+
+        // Marca mensagens do admin como lidas
+        await supabaseClient
+          .from('mensagens_suporte_app')
+          .update({ lido: true })
+          .eq('usuario_id', motoristaLogado.id)
+          .eq('remetente', 'admin')
+          .eq('lido', false);
+
       } catch (e) {
-        container.innerHTML = '<p class="text-slate-500 text-center py-2">Erro ao carregar.</p>';
+        if (!manterFoco) {
+          container.innerHTML = '<p class="text-slate-500 text-center py-2">Erro ao carregar.</p>';
+        }
       }
     }
 
     async function enviarMensagemSuporteMotorista() {
-      const texto = document.getElementById('sup-motorista-input-mensagem').value.trim();
+      const inputEl = document.getElementById('sup-motorista-input-mensagem');
+      const texto = inputEl.value.trim();
       if (!texto) return;
+
+      inputEl.value = '';
+      inputEl.focus();
 
       try {
         const payload = {
-          usuario_id: motoristaLogado.id,
+          usuario_id: String(motoristaLogado.id),
           mensagem: `[${assuntoAtualSuporteMotorista}] ${texto}`,
           remetente: 'motorista',
           lido: false
         };
 
-        await supabaseClient.from('mensagens_suporte').insert([payload]);
+        const { error } = await supabaseClient.from('mensagens_suporte_app').insert([payload]);
+        if (error) {
+          alert("Erro ao enviar mensagem: " + error.message);
+          return;
+        }
 
-        document.getElementById('sup-motorista-input-mensagem').value = '';
-        carregarHistoricoModalMotorista();
+        carregarHistoricoModalMotorista(true);
         carregarHistoricoBarraInferiorMotorista();
       } catch (e) {
         alert("Erro ao enviar mensagem.");
@@ -1034,7 +1107,6 @@
       if (!corridaAtiva) return;
 
       if (corridaAtiva.status === 'em_andamento') {
-        // Atualiza imediatamente o status para 'concluido' no banco (sincronizando instantaneamente a tela do passageiro)
         try {
           await supabaseClient
             .from('corridas')
@@ -1073,7 +1145,6 @@
       }
     }
 
-    // ETAPA 1: Mostra o valor da corrida primeiro
     function abrirPainelCobrancaNaGaveta() {
       document.getElementById('bloco-detalhes-corrida-ativa').classList.add('hidden');
       document.getElementById('bloco-cobranca-valor').classList.remove('hidden');
@@ -1084,7 +1155,6 @@
       setGavetaAberta(true);
     }
 
-    // ETAPA 2: Avança para a tela de avaliação após confirmar o pagamento
     function avancarParaTelaAvaliacao() {
       document.getElementById('bloco-cobranca-valor').classList.add('hidden');
       document.getElementById('bloco-cobranca-avaliacao').classList.remove('hidden');
@@ -1124,7 +1194,6 @@
       }
     }
 
-    // ETAPA 3: Encerra salvando a nota e enviando ao suporte se necessário, calculando a média das últimas 500 avaliações
     async function encerrarCorridaComAvaliacao() {
       if (!corridaAtiva) return;
 
@@ -1135,7 +1204,6 @@
       }
 
       try {
-        // Atualiza a avaliação do motorista na corrida
         const { error } = await supabaseClient.from('corridas').update({
           avaliacao_motorista: notaSelecionada,
           motivo_avaliacao_motorista: motivo || null
@@ -1146,17 +1214,15 @@
           return;
         }
 
-        // Se a nota for menor que 5, envia automaticamente para o suporte do passageiro
         if (notaSelecionada < 5) {
-          await supabaseClient.from('mensagens_suporte').insert([{
-            usuario_id: corridaAtiva.passageiro_id,
+          await supabaseClient.from('mensagens_suporte_app').insert([{
+            usuario_id: String(corridaAtiva.passageiro_id),
             mensagem: `[Relato de Nota Baixa - Corrida #${corridaAtiva.id}] Nota atribuída ao passageiro: ${notaSelecionada} estrelas. Motivo: ${motivo}`,
             remetente: 'motorista',
             lido: false
           }]);
         }
 
-        // Recalcula a nota média do passageiro baseada nas últimas 500 avaliações
         await recalcularNotaMediaPassageiro(corridaAtiva.passageiro_id);
 
         mostrarToastAdmin("Viagem encerrada com sucesso!", "sucesso");
@@ -1166,7 +1232,6 @@
       }
     }
 
-    // Cálculo da média móvel das últimas 500 avaliações
     async function recalcularNotaMediaPassageiro(passageiroId) {
       try {
         const { data: historicoCorridas } = await supabaseClient
@@ -1182,7 +1247,7 @@
           let soma = 0;
           historicoCorridas.forEach(c => soma += c.avaliacao_motorista);
           let novaMedia = soma / historicoCorridas.length;
-          novaMedia = Math.round(novaMedia * 100) / 100; // Arredonda para 2 casas decimais (ex: 4.96)
+          novaMedia = Math.round(novaMedia * 100) / 100;
 
           await supabaseClient.from('usuarios').update({ nota: novaMedia }).eq('id', passageiroId);
         }
