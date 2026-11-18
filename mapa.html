@@ -93,7 +93,7 @@
       </div>
     </div>
 
-    <!-- ILUSTRAÇÃO DINÂMICA DA JORNADA (CARRINHO / TRAJETO / CASA / DESTINO) -->
+    <!-- ILUSTRAÇÃO DINÂMICA DA JORNADA -->
     <div id="container-ilustracao-jornada" class="bg-slate-950 px-3 py-2.5 rounded-xl border border-slate-800 flex items-center justify-center gap-3 text-emerald-400 text-sm"></div>
 
     <div class="space-y-1.5 text-xs text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800">
@@ -285,7 +285,7 @@
         .from('corridas')
         .select('*, motorista:motorista_id(nome, foto_url, nota)')
         .eq('passageiro_id', dadosUsuario.id)
-        .in('status', ['procurando', 'aceito', 'a_caminho', 'no_local', 'em_andamento'])
+        .in('status', ['procurando', 'aceito', 'a_caminho', 'no_local', 'em_andamento', 'concluido'])
         .order('id', { ascending: false })
         .limit(1);
 
@@ -297,6 +297,8 @@
           document.getElementById('painel-solicitacao').classList.add('hidden');
           document.getElementById('painel-espera-corrida').classList.remove('hidden');
           iniciarTimerEsperaCorrida();
+        } else if (corrida.status === 'concluido') {
+          exibirPainelAvaliacaoPassageiro(corrida);
         } else {
           exibirPainelMotoristaEncontrado(corrida);
         }
@@ -614,6 +616,7 @@
             corridaAtualizada.motorista = motoristaInfo;
             exibirPainelMotoristaEncontrado(corridaAtualizada);
           } else if (corridaAtualizada.status === 'concluido') {
+            // Sincronização instantânea: exibe a tela de avaliação e o valor exato no mesmo instante para o passageiro
             exibirPainelAvaliacaoPassageiro(corridaAtualizada);
           } else if (corridaAtualizada.status === 'cancelado' || corridaAtualizada.status === 'expirado') {
             tocarSom('cancelar');
