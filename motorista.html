@@ -15,8 +15,16 @@
       50% { border-color: rgba(239, 68, 68, 1); background-color: rgba(153, 27, 27, 0.9); }
       100% { border-color: rgba(239, 68, 68, 0.4); background-color: rgba(127, 29, 29, 0.4); }
     }
+    @keyframes oscilarAmarelo {
+      0% { border-color: rgba(245, 158, 11, 0.4); background-color: rgba(120, 53, 15, 0.4); }
+      50% { border-color: rgba(245, 158, 11, 1); background-color: rgba(146, 64, 14, 0.9); }
+      100% { border-color: rgba(245, 158, 11, 0.4); background-color: rgba(120, 53, 15, 0.4); }
+    }
     .alerta-bloqueio-animado {
       animation: oscilarVermelho 0.6s ease-in-out infinite;
+    }
+    .alerta-mensagem-animado {
+      animation: oscilarAmarelo 0.6s ease-in-out infinite;
     }
   </style>
 </head>
@@ -54,7 +62,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v44</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v45</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -80,12 +88,12 @@
       <button onclick="carregarModulo('perfil')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <i class="fa-solid fa-user text-sky-400 w-5"></i> Meu Perfil
       </button>
+      <button onclick="abrirSuporteAssuntoMotorista('Suporte Geral')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
+        <i class="fa-solid fa-headset text-emerald-400 w-5"></i> Mensagens do Suporte
+      </button>
     </div>
 
     <div class="p-4 border-t border-slate-800 space-y-2">
-      <button onclick="forcarLimpezaTravamento()" class="w-full bg-amber-950/40 text-amber-400 font-bold py-2 rounded-xl border border-amber-800 hover:bg-amber-900/40 transition text-[11px]">
-        <i class="fa-solid fa-triangle-exclamation"></i> Destravar Corrida Presa
-      </button>
       <button onclick="sairConta()" class="w-full bg-red-950/40 text-red-400 font-bold py-2.5 rounded-xl border border-red-800 hover:bg-red-900/40 transition">
         Sair da Conta
       </button>
@@ -201,21 +209,16 @@
         </button>
       </div>
 
-      <!-- CENTRAL DE NOTIFICAÇÕES E AVISOS NA BARRA INFERIOR -->
-      <div id="bloco-central-avisos" class="bg-slate-950 border border-emerald-500/40 rounded-2xl p-3 space-y-2.5 shadow-inner" onclick="event.stopPropagation();">
-        <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
-          <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-xs">
+      <!-- NOTIFICAÇÃO DE MENSAGEM RECEBIDA DO SUPORTE -->
+      <div id="bloco-notificacao-mensagem" class="hidden bg-slate-950 border border-amber-500/60 rounded-2xl p-3 space-y-2 shadow-inner cursor-pointer" onclick="abrirSuporteAssuntoMotorista('Suporte Geral'); event.stopPropagation();">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-1">
+          <div class="flex items-center gap-2 text-amber-400 font-extrabold text-xs">
             <i class="fa-solid fa-headset text-sm"></i>
-            <span>Central de Notificações e Avisos</span>
+            <span>Nova Mensagem do Suporte</span>
           </div>
-          <button onclick="abrirSuporteAssuntoMotorista('Suporte Geral')" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold">
-            <i class="fa-solid fa-paper-plane mr-1"></i> Contato Direto
-          </button>
+          <span class="text-[9px] text-slate-400">Toque para responder</span>
         </div>
-
-        <div id="lista-historico-suporte-motorista" class="space-y-1.5 max-h-36 overflow-y-auto text-[11px]">
-          <p class="text-slate-500 text-center py-1">Nenhum aviso ou reporte pendente.</p>
-        </div>
+        <p id="texto-ultima-mensagem-suporte" class="text-slate-200 text-xs line-clamp-2">-</p>
       </div>
 
       <div id="container-btn-desligar-redondo" class="hidden flex justify-center pt-1">
@@ -294,8 +297,10 @@
     let corridaAtiva = null;
     let timer15sId = null;
     let timerEspera3mId = null;
+    let timerOcultarNotificacaoMensagemId = null;
     let gavetaAberta = false;
     let touchStartY = 0;
+    let touchStartX = 0;
     let notaSelecionada = 5;
     let abaAtual = 'radar';
     let mapaPreviaInstancia = null;
@@ -333,11 +338,25 @@
     }
 
     const barraInf = document.getElementById('barra-inferior-notificacao');
-    barraInf.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; }, {passive: true});
+    barraInf.addEventListener('touchstart', (e) => { 
+      touchStartY = e.touches[0].clientY; 
+      touchStartX = e.touches[0].clientX; 
+    }, {passive: true});
+
     barraInf.addEventListener('touchend', (e) => {
       let touchEndY = e.changedTouches[0].clientY;
-      if (touchStartY - touchEndY > 40) setGavetaAberta(true);
-      else if (touchEndY - touchStartY > 40) setGavetaAberta(false);
+      let touchEndX = e.changedTouches[0].clientX;
+      let diffY = touchStartY - touchEndY;
+      let diffX = touchStartX - touchEndX;
+
+      // Gestos laterais (esquerda ou direita) para ocultar a notificação/gaveta
+      if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY)) {
+        ocultarNotificacaoMensagemLateral();
+        return;
+      }
+
+      if (diffY > 40) setGavetaAberta(true);
+      else if (diffY < -40) setGavetaAberta(false);
     }, {passive: true});
 
     function toggleExpandirBarra(event) {
@@ -367,7 +386,7 @@
         gain.connect(audioCtx.destination);
         const agora = audioCtx.currentTime;
 
-        if (tipo === 'novo_pedido') {
+        if (tipo === 'novo_pedido' || tipo === 'mensagem_suporte') {
           osc.type = 'sine';
           osc.frequency.setValueAtTime(523.25, agora);
           osc.frequency.setValueAtTime(659.25, agora + 0.15);
@@ -473,7 +492,7 @@
       
       await carregarModulo('radar');
       await verificarCorridaAtivaExistente();
-      await carregarHistoricoBarraInferiorMotorista();
+      await atualizarUltimaMensagemSuporteBarra();
 
       const estadoOnlineSalvo = localStorage.getItem('motorista_online');
       if (estadoOnlineSalvo === 'true') {
@@ -524,7 +543,7 @@
             } else {
               document.getElementById('banner-bloqueio').classList.add('hidden');
             }
-            carregarHistoricoBarraInferiorMotorista();
+            atualizarUltimaMensagemSuporteBarra();
             if (motoristaLogado.notificacao_suporte) {
               mostrarToastAdmin(motoristaLogado.notificacao_suporte, "aviso");
             }
@@ -546,52 +565,86 @@
           filter: `usuario_id=eq.${motoristaLogado.id}`
         }, payload => {
           if (payload.new && payload.new.remetente === 'admin') {
-            tocarSomAlerta('novo_pedido');
-            carregarHistoricoBarraInferiorMotorista();
-            carregarHistoricoModalMotorista(true);
+            tocarSomAlerta('mensagem_suporte');
+            atualizarUltimaMensagemSuporteBarra();
+            
+            // Exibir notificação automaticamente por 3 segundos caso esteja oculta
+            notificarNovaMensagemRecebida(payload.new.mensagem);
           }
         })
         .subscribe();
     }
 
-    async function carregarHistoricoBarraInferiorMotorista() {
-      const container = document.getElementById('lista-historico-suporte-motorista');
-      if (!container) return;
+    function notificarNovaMensagemRecebida(textoMsg) {
+      const blocoMsg = document.getElementById('bloco-notificacao-mensagem');
+      let textoLimpo = textoMsg || '';
+      if (textoLimpo.startsWith('[')) {
+        const fimColchete = textoLimpo.indexOf(']');
+        if (fimColchete !== -1) textoLimpo = textoLimpo.substring(fimColchete + 1).trim();
+      }
+
+      document.getElementById('texto-ultima-mensagem-suporte').innerText = textoLimpo;
+      blocoMsg.classList.remove('hidden');
+      blocoMsg.classList.add('alerta-mensagem-animado');
+
+      // Se a gaveta estiver fechada, abre por 3 segundos
+      if (!gavetaAberta) {
+        setGavetaAberta(true);
+        if (timerOcultarNotificacaoMensagemId) clearTimeout(timerOcultarNotificacaoMensagemId);
+        
+        timerOcultarNotificacaoMensagemId = setTimeout(() => {
+          // Se o usuário não abriu a gaveta manualmente para ler, oculta após 3s
+          if (gavetaAberta) {
+            setGavetaAberta(false);
+          }
+        }, 3000);
+      }
+
+      setTimeout(() => {
+        blocoMsg.classList.remove('alerta-mensagem-animado');
+      }, 3000);
+    }
+
+    function ocultarNotificacaoMensagemLateral() {
+      const blocoMsg = document.getElementById('bloco-notificacao-mensagem');
+      blocoMsg.classList.add('hidden');
+      mostrarToastAdmin("Notificação descartada.", "aviso");
+    }
+
+    async function atualizarUltimaMensagemSuporteBarra() {
+      const blocoMsg = document.getElementById('bloco-notificacao-mensagem');
+      const textoEl = document.getElementById('texto-ultima-mensagem-suporte');
 
       try {
-        // CORREÇÃO: Utilizando a tabela unificada 'mensagens_suporte_app'
         const { data: msgs, error } = await supabaseClient
           .from('mensagens_suporte_app')
           .select('*')
           .eq('usuario_id', motoristaLogado.id)
-          .order('id', { ascending: false });
+          .order('id', { ascending: false })
+          .limit(1);
 
         if (error || !msgs || msgs.length === 0) {
-          container.innerHTML = '<p class="text-slate-500 text-center py-1">Nenhum aviso ou reporte pendente.</p>';
+          blocoMsg.classList.add('hidden');
           return;
         }
 
-        container.innerHTML = msgs.map(m => {
-          const isAdmin = m.remetente === 'admin';
-          let textoMensagem = m.mensagem || '';
-          if (textoMensagem.startsWith('[')) {
-            const fimColchete = textoMensagem.indexOf(']');
-            if (fimColchete !== -1) {
-              textoMensagem = textoMensagem.substring(fimColchete + 1).trim();
-            }
+        const ultima = msgs[0];
+        let textoMensagem = ultima.mensagem || '';
+        if (textoMensagem.startsWith('[')) {
+          const fimColchete = textoMensagem.indexOf(']');
+          if (fimColchete !== -1) {
+            textoMensagem = textoMensagem.substring(fimColchete + 1).trim();
           }
-          return `
-            <div onclick="abrirSuporteAssuntoMotorista('${textoMensagem || 'Suporte'}')" class="bg-slate-900 p-2 rounded-xl border border-slate-800 space-y-0.5 cursor-pointer hover:border-emerald-500/50 transition">
-              <div class="flex justify-between items-center text-[9px] text-slate-400">
-                <span class="${isAdmin ? 'text-emerald-400 font-bold' : 'text-sky-400'}">${isAdmin ? 'Suporte Central' : 'Você'}</span>
-                <span>${new Date(m.criado_em || Date.now()).toLocaleDateString()}</span>
-              </div>
-              <p class="text-slate-200 text-[10px] truncate">${textoMensagem}</p>
-            </div>
-          `;
-        }).join('');
+        }
+
+        textoEl.innerText = textoMensagem;
+        if (!ultima.lido && ultima.remetente === 'admin') {
+          blocoMsg.classList.remove('hidden');
+        } else {
+          blocoMsg.classList.add('hidden');
+        }
       } catch (e) {
-        container.innerHTML = '<p class="text-slate-500 text-center py-1">Erro ao carregar avisos.</p>';
+        blocoMsg.classList.add('hidden');
       }
     }
 
@@ -608,6 +661,7 @@
 
     function fecharModalSuporteMotorista() {
       document.getElementById('modal-suporte-motorista').classList.add('hidden');
+      atualizarUltimaMensagemSuporteBarra();
     }
 
     async function carregarHistoricoModalMotorista(manterFoco = false) {
@@ -615,7 +669,6 @@
       if (!container) return;
 
       try {
-        // CORREÇÃO: Utilizando a tabela unificada 'mensagens_suporte_app'
         const { data: msgs, error } = await supabaseClient
           .from('mensagens_suporte_app')
           .select('*')
@@ -654,7 +707,6 @@
 
         container.scrollTop = container.scrollHeight;
 
-        // Marca mensagens do admin como lidas
         await supabaseClient
           .from('mensagens_suporte_app')
           .update({ lido: true })
@@ -692,7 +744,7 @@
         }
 
         carregarHistoricoModalMotorista(true);
-        carregarHistoricoBarraInferiorMotorista();
+        atualizarUltimaMensagemSuporteBarra();
       } catch (e) {
         alert("Erro ao enviar mensagem.");
       }
@@ -736,11 +788,8 @@
     async function alternarPowerMotorista() {
       if (motoristaLogado && (motoristaLogado.status === 'bloqueado' || motoristaLogado.status === 'pendente')) {
         setGavetaAberta(true);
-        const blocoAvisos = document.getElementById('bloco-central-avisos');
-        blocoAvisos.classList.add('alerta-bloqueio-animado');
         mostrarToastAdmin("Conta suspensa ou bloqueada! Não é permitido ativar o aplicativo.", "erro");
         tocarSomAlerta('cancelado');
-        setTimeout(() => blocoAvisos.classList.remove('alerta-bloqueio-animado'), 3000);
         return;
       }
 
@@ -1252,20 +1301,6 @@
           await supabaseClient.from('usuarios').update({ nota: novaMedia }).eq('id', passageiroId);
         }
       } catch (e) {}
-    }
-
-    async function forcarLimpezaTravamento() {
-      if (!motoristaLogado) return;
-      if (confirm("Deseja forçar o encerramento de qualquer corrida travada no seu perfil?")) {
-        try {
-          await supabaseClient.from('corridas').update({ status: 'concluido' }).eq('motorista_id', motoristaLogado.id).in('status', ['aceito', 'a_caminho', 'no_local', 'em_andamento']);
-          limparCorridaAtivaLocal();
-          mostrarToastAdmin("Perfil destravado com sucesso!", "sucesso");
-          setTimeout(() => window.location.reload(), 1500);
-        } catch(e) {
-          mostrarToastAdmin("Erro ao destravar.", "erro");
-        }
-      }
     }
 
     function limparCorridaAtivaLocal() {
