@@ -40,9 +40,9 @@
     <div id="secao-mensagens" class="space-y-3 hidden">
       <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex justify-between items-center">
         <span class="text-slate-300 font-bold"><i class="fa-solid fa-headset text-emerald-400 mr-1.5"></i> Conversas de Suporte Ativas</span>
-        <button onclick="carregarMensagensSuporteCentral()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl font-bold border border-slate-700">
-          <i class="fa-solid fa-rotate"></i> Atualizar
-        </button>
+        <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-ping"></span> Tempo Real Ativo
+        </span>
       </div>
       <div id="lista-central-mensagens" class="space-y-3">
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Carregando conversas...</div>
@@ -80,6 +80,26 @@
     let suporteGlobal = [];
     let usuarioChatAtivoId = null;
     let abaSupAtual = 'chamados';
+    let canalRealtimeAdminSuporte = null;
+
+    function tocarSomAlertaAdmin() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const agora = audioCtx.currentTime;
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, agora);
+        osc.frequency.setValueAtTime(880.00, agora + 0.2);
+        gain.gain.setValueAtTime(0.3, agora);
+        gain.gain.exponentialRampToValueAtTime(0.01, agora + 0.6);
+        osc.start(agora);
+        osc.stop(agora + 0.6);
+      } catch (e) {}
+    }
 
     function mudarAbaSup(aba) {
       abaSupAtual = aba;
@@ -100,7 +120,40 @@
     }
 
     async function carregarPaginaAtual() {
-      // 1. Carregar chamados de corridas (avaliações baixas)
+      await carregarChamadosSuporte();
+      await carregarContadorMensagensNovas();
+      if (abaSupAtual === 'mensagens') {
+        await carregarMensagensSuporteCentral();
+      }
+      iniciarEscutaRealtimeAdminSuporte();
+    }
+
+    function iniciarEscutaRealtimeAdminSuporte() {
+      if (canalRealtimeAdminSuporte) supabaseClient.removeChannel(canalRealtimeAdminSuporte);
+
+      canalRealtimeAdminSuporte = supabaseClient
+        .channel('admin_suporte_instantaneo')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens_suporte_app' }, payload => {
+          tocarSomAlertaAdmin();
+          carregarContadorMensagensNovas();
+          if (abaSupAtual === 'mensagens') {
+            carregarMensagensSuporteCentral();
+          }
+          // Se o chat com esse usuário estiver aberto, atualiza as mensagens na tela na hora
+          if (usuarioChatAtivoId && payload.new && payload.new.usuario_id == usuarioChatAtivoId) {
+            carregarHistoricoChatCentral();
+          }
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'corridas' }, payload => {
+          if (payload.new && payload.new.avaliacao_motorista && payload.new.avaliacao_motorista < 5) {
+            tocarSomAlertaAdmin();
+            carregarChamadosSuporte();
+          }
+        })
+        .subscribe();
+    }
+
+    async function carregarChamadosSuporte() {
       const { data } = await supabaseClient
         .from('corridas')
         .select('id, origem, destino, avaliacao_motorista, motivo_avaliacao_motorista, motorista_id, passageiro_id, motorista:motorista_id(id, nome), passageiro:passageiro_id(id, nome)')
@@ -114,39 +167,37 @@
       const containerChamados = document.getElementById('lista-admin-suporte');
       if (naoLidos.length === 0) {
         containerChamados.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhuma notificação de suporte pendente.</div>';
-      } else {
-        containerChamados.innerHTML = naoLidos.map(s => {
-          const observacao = s.motivo_avaliacao_motorista || 'Nenhuma observação informada.';
-          return `
-            <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40 space-y-3 shadow">
-              <div class="flex justify-between items-start">
-                <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1">
-                  <i class="fa-solid fa-star"><b>${s.avaliacao_motorista}</b> Estrelas</i>
-                </span>
-                <span class="text-[10px] text-slate-400">Corrida #${s.id}</span>
-              </div>
-              <div class="text-[11px] space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-                <p class="text-emerald-400 font-bold mb-1"><i class="fa-solid fa-arrow-right-arrow-left"></i> Reporte feito por <u>${s.passageiro?.nome || 'Passageiro'}</u> para o motorista <u>${s.motorista?.nome || 'Motorista'}</u></p>
-                <p><strong>De:</strong> ${s.origem || '-'}</p>
-                <p><strong>Para:</strong> ${s.destino || '-'}</p>
-                <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${observacao}</p>
-              </div>
-              <div class="flex flex-col gap-2 pt-1">
-                <button onclick="abrirChatCentralComUsuario('${s.passageiro_id}', '${s.passageiro?.nome || 'Passageiro'}')" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5">
-                  <i class="fa-solid fa-comments"></i> Abrir Chat com (${s.passageiro?.nome || 'Passageiro'})
-                </button>
-                <div class="flex gap-2">
-                  ${s.passageiro_id ? `<button onclick="abrirModalEdicao('${s.passageiro_id}')" class="flex-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-user"></i> Ver Passageiro</button>` : ''}
-                  ${s.motorista_id ? `<button onclick="abrirModalEdicao('${s.motorista_id}')" class="flex-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-car"></i> Ver Motorista</button>` : ''}
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
+        return;
       }
 
-      // Atualizar contador de msgs novas na aba
-      carregarContadorMensagensNovas();
+      containerChamados.innerHTML = naoLidos.map(s => {
+        const observacao = s.motivo_avaliacao_motorista || 'Nenhuma observação informada.';
+        return `
+          <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40 space-y-3 shadow">
+            <div class="flex justify-between items-start">
+              <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1">
+                <i class="fa-solid fa-star"><b>${s.avaliacao_motorista}</b> Estrelas</i>
+              </span>
+              <span class="text-[10px] text-slate-400">Corrida #${s.id}</span>
+            </div>
+            <div class="text-[11px] space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+              <p class="text-emerald-400 font-bold mb-1"><i class="fa-solid fa-arrow-right-arrow-left"></i> Reporte feito por <u>${s.passageiro?.nome || 'Passageiro'}</u> para o motorista <u>${s.motorista?.nome || 'Motorista'}</u></p>
+              <p><strong>De:</strong> ${s.origem || '-'}</p>
+              <p><strong>Para:</strong> ${s.destino || '-'}</p>
+              <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${observacao}</p>
+            </div>
+            <div class="flex flex-col gap-2 pt-1">
+              <button onclick="abrirChatCentralComUsuario('${s.passageiro_id}', '${s.passageiro?.nome || 'Passageiro'}')" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-comments"></i> Abrir Chat com (${s.passageiro?.nome || 'Passageiro'})
+              </button>
+              <div class="flex gap-2">
+                ${s.passageiro_id ? `<button onclick="abrirModalEdicao('${s.passageiro_id}')" class="flex-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-user"></i> Ver Passageiro</button>` : ''}
+                ${s.motorista_id ? `<button onclick="abrirModalEdicao('${s.motorista_id}')" class="flex-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-car"></i> Ver Motorista</button>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     async function carregarContadorMensagensNovas() {
@@ -162,7 +213,6 @@
       container.innerHTML = '<p class="text-slate-400 text-center py-4 animate-pulse">Carregando conversas...</p>';
 
       try {
-        // Busca todas as mensagens agrupadas por usuário
         const { data: msgs, error } = await supabaseClient
           .from('mensagens_suporte_app')
           .select('*')
@@ -173,7 +223,6 @@
           return;
         }
 
-        // Agrupa por usuario_id
         const agrupado = {};
         for (const m of msgs) {
           if (!agrupado[m.usuario_id]) {
@@ -185,7 +234,6 @@
           }
         }
 
-        // Busca os nomes dos usuários
         const idsUsuarios = Object.keys(agrupado);
         const { data: usuarios } = await supabaseClient.from('usuarios').select('id, nome, telefone, foto_url').in('id', idsUsuarios);
         const mapaUsuarios = {};
@@ -228,7 +276,6 @@
 
       await carregarHistoricoChatCentral();
 
-      // Marca mensagens do usuário como lidas
       await supabaseClient
         .from('mensagens_suporte_app')
         .update({ lido: true })
@@ -298,6 +345,7 @@
 
     function fecharChatCentral() {
       document.getElementById('modal-chat-central').classList.add('hidden');
+      usuarioChatAtivoId = null;
       if (abaSupAtual === 'mensagens') carregarMensagensSuporteCentral();
     }
 
