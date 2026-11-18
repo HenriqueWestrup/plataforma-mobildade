@@ -10,24 +10,97 @@
 </head>
 <body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs">
 
+  <!-- ABAS SUPERIORES DA PÁGINA DE SUPORTE -->
+  <div class="bg-slate-900 border-b border-slate-800 p-3 grid grid-cols-2 gap-2 shrink-0">
+    <button onclick="mudarAbaSup('chamados')" id="btn-aba-chamados" class="py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow">
+      <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Chamados / Avaliações
+    </button>
+    <button onclick="mudarAbaSup('mensagens')" id="btn-aba-mensagens" class="py-2.5 px-3 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center shadow">
+      <i class="fa-solid fa-comments mr-1.5"></i> Central de Mensagens (<span id="count-msg-novas">0</span>)
+    </button>
+  </div>
+
   <main class="flex-1 overflow-y-auto p-4 space-y-3 pb-16">
-    <div class="flex justify-between items-center bg-slate-900 p-3 rounded-2xl border border-slate-800">
-      <span class="text-slate-400 text-[11px]">Gerenciamento de Alertas de Suporte</span>
-      <button onclick="limparNotificacoesSuporte()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition text-[11px]">
-        <i class="fa-solid fa-broom"></i> Limpar Notificações Visuais
-      </button>
+    
+    <!-- SEÇÃO 1: CHAMADOS DE AVALIAÇÃO -->
+    <div id="secao-chamados" class="space-y-3">
+      <div class="flex justify-between items-center bg-slate-900 p-3 rounded-2xl border border-slate-800">
+        <span class="text-slate-400 text-[11px]">Gerenciamento de Alertas de Suporte</span>
+        <button onclick="limparNotificacoesSuporte()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition text-[11px]">
+          <i class="fa-solid fa-broom"></i> Limpar Notificações Visuais
+        </button>
+      </div>
+
+      <div id="lista-admin-suporte" class="space-y-3">
+        <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Carregando chamados...</div>
+      </div>
     </div>
 
-    <div id="lista-admin-suporte" class="space-y-3">
-      <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Carregando chamados...</div>
+    <!-- SEÇÃO 2: CENTRAL DE MENSAGENS DIRETAS -->
+    <div id="secao-mensagens" class="space-y-3 hidden">
+      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex justify-between items-center">
+        <span class="text-slate-300 font-bold"><i class="fa-solid fa-headset text-emerald-400 mr-1.5"></i> Conversas de Suporte Ativas</span>
+        <button onclick="carregarMensagensSuporteCentral()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl font-bold border border-slate-700">
+          <i class="fa-solid fa-rotate"></i> Atualizar
+        </button>
+      </div>
+      <div id="lista-central-mensagens" class="space-y-3">
+        <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Carregando conversas...</div>
+      </div>
     </div>
+
   </main>
+
+  <!-- MODAL DE CHAT DIRETO NA CENTRAL DE MENSAGENS -->
+  <div id="modal-chat-central" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3 shrink-0">
+        <div>
+          <h3 id="chat-central-nome" class="font-extrabold text-white text-sm">Usuário</h3>
+          <p id="chat-central-id" class="text-[10px] text-slate-400 font-mono">ID: -</p>
+        </div>
+        <button onclick="fecharChatCentral()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div id="chat-central-historico" class="flex-1 bg-slate-950 p-3 rounded-2xl border border-slate-800 overflow-y-auto space-y-2.5 max-h-60 text-xs">
+        <p class="text-slate-500 text-center py-4">Carregando mensagens...</p>
+      </div>
+
+      <div class="space-y-2 pt-2 border-t border-slate-800 shrink-0">
+        <textarea id="chat-central-input" rows="2" placeholder="Digite sua resposta para o usuário..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs outline-none focus:border-emerald-500"></textarea>
+        <button onclick="enviarRespostaChatCentral()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow transition">
+          Enviar Resposta
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script src="admin_shared.js"></script>
   <script>
     let suporteGlobal = [];
+    let usuarioChatAtivoId = null;
+    let abaSupAtual = 'chamados';
+
+    function mudarAbaSup(aba) {
+      abaSupAtual = aba;
+      document.getElementById('secao-chamados').classList.toggle('hidden', aba !== 'chamados');
+      document.getElementById('secao-mensagens').classList.toggle('hidden', aba !== 'mensagens');
+
+      document.getElementById('btn-aba-chamados').className = aba === 'chamados' 
+        ? 'py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow' 
+        : 'py-2.5 px-3 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center shadow';
+
+      document.getElementById('btn-aba-mensagens').className = aba === 'mensagens' 
+        ? 'py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow' 
+        : 'py-2.5 px-3 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center shadow';
+
+      if (aba === 'mensagens') {
+        carregarMensagensSuporteCentral();
+      }
+    }
 
     async function carregarPaginaAtual() {
+      // 1. Carregar chamados de corridas (avaliações baixas)
       const { data } = await supabaseClient
         .from('corridas')
         .select('id, origem, destino, avaliacao_motorista, motivo_avaliacao_motorista, motorista_id, passageiro_id, motorista:motorista_id(id, nome), passageiro:passageiro_id(id, nome)')
@@ -38,53 +111,200 @@
       const idsLidos = JSON.parse(localStorage.getItem('admin_suporte_lidos') || '[]');
       const naoLidos = suporteGlobal.filter(s => !idsLidos.includes(String(s.id)));
 
-      const container = document.getElementById('lista-admin-suporte');
+      const containerChamados = document.getElementById('lista-admin-suporte');
       if (naoLidos.length === 0) {
-        container.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhuma notificação de suporte pendente. (Os registros antigos continuam salvos no histórico dos usuários).</div>';
-        return;
-      }
-
-      container.innerHTML = naoLidos.map(s => {
-        const observacao = s.motivo_avaliacao_motorista || 'Nenhuma observação informada.';
-        return `
-          <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40 space-y-3 shadow">
-            <div class="flex justify-between items-start">
-              <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1">
-                <i class="fa-solid fa-star"><b>${s.avaliacao_motorista}</b> Estrelas</i>
-              </span>
-              <span class="text-[10px] text-slate-400">Corrida #${s.id}</span>
-            </div>
-            <div class="text-[11px] space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-              <p class="text-emerald-400 font-bold mb-1"><i class="fa-solid fa-arrow-right-arrow-left"></i> Reporte feito por <u>${s.passageiro?.nome || 'Passageiro'}</u> para o motorista <u>${s.motorista?.nome || 'Motorista'}</u></p>
-              <p><strong>De:</strong> ${s.origem || '-'}</p>
-              <p><strong>Para:</strong> ${s.destino || '-'}</p>
-              <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${observacao}</p>
-            </div>
-            <div class="flex flex-col gap-2 pt-1">
-              <button onclick="responderSuporteDireto('${s.passageiro_id}', \`${observacao.replace(/`/g, '\\`')}\`)" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5">
-                <i class="fa-solid fa-headset"></i> Responder Suporte ao Passageiro (${s.passageiro?.nome || 'Passageiro'})
-              </button>
-              <div class="flex gap-2">
-                ${s.passageiro_id ? `<button onclick="abrirModalEdicao('${s.passageiro_id}')" class="flex-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-user"></i> Ver Passageiro</button>` : ''}
-                ${s.motorista_id ? `<button onclick="abrirModalEdicao('${s.motorista_id}')" class="flex-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-car"></i> Ver Motorista</button>` : ''}
+        containerChamados.innerHTML = '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhuma notificação de suporte pendente.</div>';
+      } else {
+        containerChamados.innerHTML = naoLidos.map(s => {
+          const observacao = s.motivo_avaliacao_motorista || 'Nenhuma observação informada.';
+          return `
+            <div class="bg-slate-900 p-4 rounded-2xl border border-amber-500/40 space-y-3 shadow">
+              <div class="flex justify-between items-start">
+                <span class="text-xs font-extrabold text-amber-400 flex items-center gap-1">
+                  <i class="fa-solid fa-star"><b>${s.avaliacao_motorista}</b> Estrelas</i>
+                </span>
+                <span class="text-[10px] text-slate-400">Corrida #${s.id}</span>
+              </div>
+              <div class="text-[11px] space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <p class="text-emerald-400 font-bold mb-1"><i class="fa-solid fa-arrow-right-arrow-left"></i> Reporte feito por <u>${s.passageiro?.nome || 'Passageiro'}</u> para o motorista <u>${s.motorista?.nome || 'Motorista'}</u></p>
+                <p><strong>De:</strong> ${s.origem || '-'}</p>
+                <p><strong>Para:</strong> ${s.destino || '-'}</p>
+                <p class="text-red-300 pt-1 border-t border-slate-800/80"><strong>Motivo / Observação:</strong> ${observacao}</p>
+              </div>
+              <div class="flex flex-col gap-2 pt-1">
+                <button onclick="abrirChatCentralComUsuario('${s.passageiro_id}', '${s.passageiro?.nome || 'Passageiro'}')" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-comments"></i> Abrir Chat com (${s.passageiro?.nome || 'Passageiro'})
+                </button>
+                <div class="flex gap-2">
+                  ${s.passageiro_id ? `<button onclick="abrirModalEdicao('${s.passageiro_id}')" class="flex-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-user"></i> Ver Passageiro</button>` : ''}
+                  ${s.motorista_id ? `<button onclick="abrirModalEdicao('${s.motorista_id}')" class="flex-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-car"></i> Ver Motorista</button>` : ''}
+                </div>
               </div>
             </div>
-          </div>
-        `;
-      }).join('');
+          `;
+        }).join('');
+      }
+
+      // Atualizar contador de msgs novas na aba
+      carregarContadorMensagensNovas();
+    }
+
+    async function carregarContadorMensagensNovas() {
+      try {
+        const { data } = await supabaseClient.from('mensagens_suporte_app').select('id, lido').eq('remetente', 'passageiro').eq('lido', false);
+        const total = (data || []).length;
+        document.getElementById('count-msg-novas').innerText = total;
+      } catch (e) {}
+    }
+
+    async function carregarMensagensSuporteCentral() {
+      const container = document.getElementById('lista-central-mensagens');
+      container.innerHTML = '<p class="text-slate-400 text-center py-4 animate-pulse">Carregando conversas...</p>';
+
+      try {
+        // Busca todas as mensagens agrupadas por usuário
+        const { data: msgs, error } = await supabaseClient
+          .from('mensagens_suporte_app')
+          .select('*')
+          .order('id', { ascending: false });
+
+        if (error || !msgs || msgs.length === 0) {
+          container.innerHTML = '<p class="text-slate-500 text-center py-4">Nenhuma mensagem de suporte registrada.</p>';
+          return;
+        }
+
+        // Agrupa por usuario_id
+        const agrupado = {};
+        for (const m of msgs) {
+          if (!agrupado[m.usuario_id]) {
+            agrupado[m.usuario_id] = {
+              ult_msg: m.mensagem,
+              data: m.criado_em,
+              nao_lido: !m.lido && m.remetente === 'passageiro'
+            };
+          }
+        }
+
+        // Busca os nomes dos usuários
+        const idsUsuarios = Object.keys(agrupado);
+        const { data: usuarios } = await supabaseClient.from('usuarios').select('id, nome, telefone, foto_url').in('id', idsUsuarios);
+        const mapaUsuarios = {};
+        (usuarios || []).forEach(u => mapaUsuarios[u.id] = u);
+
+        let html = '';
+        for (const uid of idsUsuarios) {
+          const info = agrupado[uid];
+          const userObj = mapaUsuarios[uid] || { nome: 'Usuário Desconhecido', telefone: '-' };
+          
+          html += `
+            <div onclick="abrirChatCentralComUsuario('${uid}', \`${userObj.nome}\`)" class="bg-slate-900 hover:bg-slate-800/80 p-3.5 rounded-2xl border ${info.nao_lido ? 'border-emerald-500/60 bg-emerald-950/20' : 'border-slate-800'} flex items-center gap-3 cursor-pointer transition shadow">
+              <img src="${userObj.foto_url || 'https://ui-avatars.com/api/?name=Usuario'}" class="w-11 h-11 rounded-full object-cover border border-slate-700">
+              <div class="flex-1 min-w-0">
+                <div class="flex justify-between items-center">
+                  <h4 class="font-extrabold text-white text-xs truncate">${userObj.nome}</h4>
+                  <span class="text-[10px] text-slate-400">${new Date(info.data || Date.now()).toLocaleDateString()}</span>
+                </div>
+                <p class="text-slate-300 text-[11px] truncate mt-0.5">${info.ult_msg}</p>
+                <p class="text-[10px] text-slate-400 mt-1">Tel: ${userObj.telefone || '-'}</p>
+              </div>
+              ${info.nao_lido ? '<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>' : ''}
+            </div>
+          `;
+        }
+
+        container.innerHTML = html;
+        carregarContadorMensagensNovas();
+      } catch (e) {
+        container.innerHTML = '<p class="text-red-400 text-center py-4">Erro ao carregar conversas.</p>';
+      }
+    }
+
+    async function abrirChatCentralComUsuario(usuarioId, nomeUsuario) {
+      usuarioChatAtivoId = usuarioId;
+      document.getElementById('chat-central-nome').innerText = nomeUsuario;
+      document.getElementById('chat-central-id').innerText = "ID: " + usuarioId;
+      document.getElementById('chat-central-input').value = '';
+      document.getElementById('modal-chat-central').classList.remove('hidden');
+
+      await carregarHistoricoChatCentral();
+
+      // Marca mensagens do usuário como lidas
+      await supabaseClient
+        .from('mensagens_suporte_app')
+        .update({ lido: true })
+        .eq('usuario_id', usuarioId)
+        .eq('remetente', 'passageiro');
+
+      carregarContadorMensagensNovas();
+    }
+
+    async function carregarHistoricoChatCentral() {
+      const container = document.getElementById('chat-central-historico');
+      container.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Carregando histórico...</p>';
+
+      try {
+        const { data: msgs } = await supabaseClient
+          .from('mensagens_suporte_app')
+          .select('*')
+          .eq('usuario_id', usuarioChatAtivoId)
+          .order('criado_em', { ascending: true });
+
+        if (!msgs || msgs.length === 0) {
+          container.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma mensagem nesta conversa.</p>';
+          return;
+        }
+
+        container.innerHTML = msgs.map(m => {
+          const isAdmin = m.remetente === 'admin';
+          return `
+            <div class="flex flex-col ${isAdmin ? 'items-end' : 'items-start'}">
+              <div class="max-w-[85%] p-2.5 rounded-2xl ${isAdmin ? 'bg-emerald-600/30 border border-emerald-500/40 text-emerald-100' : 'bg-slate-900 border border-slate-800 text-slate-200'} space-y-1">
+                <span class="text-[9px] text-slate-400 block font-bold">${isAdmin ? 'Você (Admin)' : 'Usuário'}</span>
+                <p class="text-xs whitespace-pre-line">${m.mensagem}</p>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        container.scrollTop = container.scrollHeight;
+      } catch (e) {
+        container.innerHTML = '<p class="text-red-400 text-center py-2">Erro ao carregar mensagens.</p>';
+      }
+    }
+
+    async function enviarRespostaChatCentral() {
+      const texto = document.getElementById('chat-central-input').value.trim();
+      if (!texto || !usuarioChatAtivoId) return;
+
+      try {
+        const { error } = await supabaseClient.from('mensagens_suporte_app').insert([{
+          usuario_id: String(usuarioChatAtivoId),
+          mensagem: texto,
+          remetente: 'admin',
+          lido: false
+        }]);
+
+        if (error) {
+          alert("Erro ao enviar: " + error.message);
+          return;
+        }
+
+        document.getElementById('chat-central-input').value = '';
+        carregarHistoricoChatCentral();
+      } catch (e) {
+        alert("Erro ao enviar mensagem.");
+      }
+    }
+
+    function fecharChatCentral() {
+      document.getElementById('modal-chat-central').classList.add('hidden');
+      if (abaSupAtual === 'mensagens') carregarMensagensSuporteCentral();
     }
 
     function limparNotificacoesSuporte() {
       const idsAtuais = suporteGlobal.map(s => String(s.id));
       localStorage.setItem('admin_suporte_lidos', JSON.stringify(idsAtuais));
       atualizarDadosGlobais();
-    }
-
-    function responderSuporteDireto(idUsuario, observacao) {
-      if (!idUsuario) return;
-      abrirModalEdicao(idUsuario);
-      mudarAbaModal('suporte');
-      document.getElementById('input-resposta-suporte').value = `Referente à ocorrência: "${observacao}"\nOlá, entramos em contato sobre o seu reporte: `;
     }
 
     window.onload = () => verificarSessaoAdmin('suporte', carregarPaginaAtual);
