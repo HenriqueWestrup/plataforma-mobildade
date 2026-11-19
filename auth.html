@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-center items-center p-4">
 
@@ -50,17 +51,24 @@
     </div>
   </div>
 
-  <!-- MODAL 1: CADASTRO DE NOVO PASSAGEIRO -->
+  <!-- MODAL 1: CADASTRO DE NOVO PASSAGEIRO EM 3 ETAPAS -->
   <div id="modal-cadastro-passageiro" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <div>
           <h2 class="text-sm font-extrabold text-white">Cadastro de Passageiro</h2>
-          <p class="text-[10px] text-slate-400">Seu rosto capturado será sua foto de perfil</p>
+          <p id="subtitulo-etapa-cadastro" class="text-[10px] text-slate-400">Etapa 1 de 3 • Dados pessoais</p>
         </div>
         <button type="button" onclick="fecharModalCadastro()" class="text-slate-400 hover:text-white p-1">
           <i class="fa-solid fa-xmark text-base"></i>
         </button>
+      </div>
+
+      <!-- INDICADOR VISUAL DAS 3 ETAPAS -->
+      <div class="grid grid-cols-3 gap-1.5">
+        <div id="ind-etapa-1" class="h-1.5 rounded-full bg-emerald-500 transition-all"></div>
+        <div id="ind-etapa-2" class="h-1.5 rounded-full bg-slate-800 transition-all"></div>
+        <div id="ind-etapa-3" class="h-1.5 rounded-full bg-slate-800 transition-all"></div>
       </div>
 
       <div id="box-erro-modal" class="hidden bg-red-950/80 border border-red-600 text-red-200 text-[11px] p-2.5 rounded-xl flex items-center gap-2">
@@ -68,112 +76,138 @@
         <span id="texto-erro-modal">Erro ao cadastrar.</span>
       </div>
 
-      <form id="form-cadastro-modal" class="space-y-3 text-xs" oninput="validarFormularioCadastro()" onsubmit="realizarCadastro(event)">
-        <div class="space-y-1">
-          <label class="text-slate-300 font-medium">Nome completo <span class="text-emerald-400">*</span></label>
-          <input type="text" id="cad-nome" required placeholder="Seu nome completo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
-        </div>
+      <form id="form-cadastro-modal" class="space-y-3 text-xs" oninput="validarEtapaAtual()" onsubmit="realizarCadastro(event)">
 
-        <div class="space-y-1">
-          <label class="text-slate-300 font-medium">CPF <span class="text-emerald-400">*</span></label>
-          <input type="text" id="cad-cpf" inputmode="numeric" maxlength="14" required placeholder="000.000.000-00" oninput="formatarCpfInput(this); validarFormularioCadastro();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-emerald-500">
-        </div>
-
-        <div class="space-y-1">
-          <label class="text-slate-300 font-medium">Celular <span class="text-emerald-400">*</span></label>
-          <input type="tel" id="cad-celular" required placeholder="(48) 9 9999-9999" oninput="formatarTelefoneInput(this); validarFormularioCadastro();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
-        </div>
-
-        <div class="space-y-1">
-          <label class="text-slate-300 font-medium">Endereço <span class="text-emerald-400">*</span></label>
-          <input type="text" id="cad-endereco" required placeholder="Rua, bairro, Laguna - SC" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
-        </div>
-
-        <!-- CONTATO DE EMERGÊNCIA 1 (OBRIGATÓRIO) + BOTÃO PARA MODAL DE MAIS 2 CONTATOS -->
-        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2.5">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-[11px] font-bold text-slate-200">
-              Contato de emergência 1 <span class="text-emerald-400">*</span>
-            </span>
-            <button type="button" onclick="abrirModalEmergenciaExtra()" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-amber-300 px-2.5 py-1 rounded-lg font-bold transition">
-              + Outros 2 (opcional)
-            </button>
-          </div>
-          <input type="text" id="emerg-1-nome" required placeholder="Nome do contato de emergência" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
-          <input type="tel" id="emerg-1-fone" required placeholder="(48) 9 9999-9999" oninput="formatarTelefoneInput(this); validarFormularioCadastro();" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
-          <p id="resumo-emerg-extra" class="hidden text-[10px] text-emerald-400"></p>
-        </div>
-
-        <!-- SENHA (MÍN. 8 CARACTERES + LETRA E NÚMERO + SÍMBOLOS LIVRES + BARRA DE FORÇA) -->
-        <div class="space-y-1.5">
-          <div class="flex items-center justify-between gap-2">
-            <label class="text-slate-300 font-medium">Senha <span class="text-emerald-400">*</span></label>
-            <span id="aviso-senha-regra" class="text-[10px] text-amber-400 font-medium text-right">
-              Mín. 8 • Letra e número
-            </span>
-          </div>
-          <input type="password" id="cad-senha" minlength="8" required placeholder="Mín. 8 caracteres (letra e número)" oninput="atualizarStatusSenha(); validarFormularioCadastro();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
-          <p class="text-[10px] text-slate-500">Você pode digitar quantos caracteres quiser e usar símbolos livremente.</p>
-
-          <!-- BARRA DE FORÇA DA SENHA -->
-          <div class="space-y-1 pt-0.5">
-            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-              <div id="barra-forca-senha" class="h-full w-0 bg-red-500 transition-all duration-300"></div>
-            </div>
-            <div class="flex justify-between items-center text-[10px]">
-              <span class="text-slate-500">Força da senha:</span>
-              <span id="texto-forca-senha" class="font-bold text-slate-400">—</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- CONFIRMAR SENHA (DIGITAR DUAS VEZES) -->
-        <div class="space-y-1">
-          <div class="flex items-center justify-between gap-2">
-            <label class="text-slate-300 font-medium">Confirmar senha <span class="text-emerald-400">*</span></label>
-            <span id="aviso-confirma-senha" class="text-[10px] text-slate-400">Digite novamente</span>
-          </div>
-          <input type="password" id="cad-senha-confirmar" minlength="8" required placeholder="Repita a senha para confirmar" oninput="atualizarStatusSenha(); validarFormularioCadastro();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
-        </div>
-
-        <!-- CAPTURA FACIAL (FOTO DE PERFIL OBRIGATÓRIA) -->
-        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
-              <i class="fa-solid fa-camera"></i> Reconhecimento Facial <span class="text-emerald-400">*</span>
-            </span>
-            <button type="button" onclick="abrirCamera('cad')" class="bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition">
-              Abrir Câmera
-            </button>
+        <!-- ETAPA 1: NOME COMPLETO, CPF E CELULAR -->
+        <div id="etapa-cad-1" class="space-y-3">
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Nome completo <span class="text-emerald-400">*</span></label>
+            <input type="text" id="cad-nome" required placeholder="Seu nome completo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
           </div>
 
-          <div class="relative w-full h-44 bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
-            <video id="cad-video" autoplay playsinline class="hidden w-full h-full object-cover scale-x-[-1]"></video>
-            <img id="cad-preview" class="hidden w-full h-full object-cover" alt="Foto do rosto">
-            <div id="cad-placeholder" class="text-center text-slate-500 text-[11px] px-3">
-              <i class="fa-solid fa-face-smile text-xl mb-1 block"></i>
-              Capture seu rosto para definir sua foto de perfil
-            </div>
-
-            <!-- SILHUETA CENTRALIZADA DE CABEÇA E OMBROS -->
-            <svg viewBox="0 0 200 160" class="pointer-events-none absolute inset-0 w-full h-full" aria-hidden="true">
-              <ellipse cx="100" cy="64" rx="28" ry="36" fill="none" stroke="#10b981" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.8" />
-              <path d="M 42 152 C 46 118, 70 108, 100 108 C 130 108, 154 118, 158 152" fill="none" stroke="#10b981" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.8" />
-            </svg>
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">CPF <span class="text-emerald-400">*</span></label>
+            <input type="text" id="cad-cpf" inputmode="numeric" maxlength="14" required placeholder="000.000.000-00" oninput="formatarCpfInput(this); validarEtapaAtual();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-mono focus:outline-none focus:border-emerald-500">
           </div>
 
-          <p id="status-rosto-cad" class="text-[10px] text-slate-400 text-center">
-            Rosto obrigatório para liberar o cadastro
-          </p>
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Celular <span class="text-emerald-400">*</span></label>
+            <input type="tel" id="cad-celular" required placeholder="(48) 9 9999-9999" oninput="formatarTelefoneInput(this); validarEtapaAtual();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
+          </div>
 
-          <button type="button" id="btn-capturar-cad" onclick="capturarRosto('cad')" class="hidden w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 rounded-xl transition text-[11px]">
-            Capturar Rosto
+          <button type="button" id="btn-continuar-1" disabled onclick="irParaEtapa(2)" class="w-full bg-emerald-600 disabled:bg-slate-700 disabled:text-slate-400 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
+            Continuar
           </button>
         </div>
 
-        <button type="submit" id="btn-cadastrar" disabled class="w-full bg-emerald-600 disabled:bg-slate-700 disabled:text-slate-400 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
-          Concluir Cadastro
-        </button>
+        <!-- ETAPA 2: ENDEREÇO + CONTATO DE EMERGÊNCIA 1 + MODAL EXTRAS (OPCIONAL) -->
+        <div id="etapa-cad-2" class="hidden space-y-3">
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Endereço <span class="text-emerald-400">*</span></label>
+            <input type="text" id="cad-endereco" required placeholder="Rua, bairro, Laguna - SC" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
+          </div>
+
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[11px] font-bold text-slate-200">
+                Contato de emergência <span class="text-emerald-400">*</span>
+              </span>
+              <button type="button" onclick="abrirModalEmergenciaExtra()" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-amber-300 px-2.5 py-1 rounded-lg font-bold transition">
+                + Mais 2 contatos (opcional)
+              </button>
+            </div>
+            <input type="text" id="emerg-1-nome" required placeholder="Nome do contato de emergência" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            <input type="tel" id="emerg-1-fone" required placeholder="(48) 9 9999-9999" oninput="formatarTelefoneInput(this); validarEtapaAtual();" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            <p id="resumo-emerg-extra" class="hidden text-[10px] text-emerald-400"></p>
+          </div>
+
+          <div class="flex gap-2">
+            <button type="button" onclick="irParaEtapa(1)" class="w-1/3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl transition">
+              Voltar
+            </button>
+            <button type="button" id="btn-continuar-2" disabled onclick="irParaEtapa(3)" class="w-2/3 bg-emerald-600 disabled:bg-slate-700 disabled:text-slate-400 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
+              Continuar
+            </button>
+          </div>
+        </div>
+
+        <!-- ETAPA 3: SENHA, CONFIRMAR SENHA E RECONHECIMENTO FACIAL OBRIGATÓRIO -->
+        <div id="etapa-cad-3" class="hidden space-y-3">
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between gap-2">
+              <label class="text-slate-300 font-medium">Senha <span class="text-emerald-400">*</span></label>
+              <span id="aviso-senha-regra" class="text-[10px] text-amber-400 font-medium text-right">
+                Mín. 8 • Letra e número
+              </span>
+            </div>
+            <input type="password" id="cad-senha" minlength="8" required placeholder="Mín. 8 caracteres (letra e número)" oninput="atualizarStatusSenha(); validarEtapaAtual();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+            <p class="text-[10px] text-slate-500">Você pode digitar quantos caracteres quiser e usar símbolos livremente.</p>
+
+            <!-- BARRA DE FORÇA DA SENHA -->
+            <div class="space-y-1 pt-0.5">
+              <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div id="barra-forca-senha" class="h-full w-0 bg-red-500 transition-all duration-300"></div>
+              </div>
+              <div class="flex justify-between items-center text-[10px]">
+                <span class="text-slate-500">Força da senha:</span>
+                <span id="texto-forca-senha" class="font-bold text-slate-400">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <div class="flex items-center justify-between gap-2">
+              <label class="text-slate-300 font-medium">Confirmar senha <span class="text-emerald-400">*</span></label>
+              <span id="aviso-confirma-senha" class="text-[10px] text-slate-400">Digite novamente</span>
+            </div>
+            <input type="password" id="cad-senha-confirmar" minlength="8" required placeholder="Repita a senha para confirmar" oninput="atualizarStatusSenha(); validarEtapaAtual();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          </div>
+
+          <!-- CAPTURA FACIAL (FOTO DE PERFIL OBRIGATÓRIA COM DETECÇÃO REAL DE ROSTO) -->
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-camera"></i> Reconhecimento Facial <span class="text-emerald-400">*</span>
+              </span>
+              <button type="button" onclick="abrirCamera('cad')" class="bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition">
+                Abrir Câmera
+              </button>
+            </div>
+
+            <div class="relative w-full h-44 bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+              <video id="cad-video" autoplay playsinline class="hidden w-full h-full object-cover scale-x-[-1]"></video>
+              <img id="cad-preview" class="hidden w-full h-full object-cover" alt="Foto do rosto">
+              <div id="cad-placeholder" class="text-center text-slate-500 text-[11px] px-3">
+                <i class="fa-solid fa-face-smile text-xl mb-1 block"></i>
+                Enquadre seu rosto na silhueta para foto de perfil
+              </div>
+
+              <!-- SILHUETA CENTRALIZADA DE CABEÇA E OMBROS -->
+              <svg viewBox="0 0 200 160" class="pointer-events-none absolute inset-0 w-full h-full" aria-hidden="true">
+                <ellipse cx="100" cy="64" rx="28" ry="36" fill="none" stroke="#10b981" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.85" />
+                <path d="M 42 152 C 46 118, 70 108, 100 108 C 130 108, 154 118, 158 152" fill="none" stroke="#10b981" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.85" />
+              </svg>
+            </div>
+
+            <p id="status-rosto-cad" class="text-[10px] text-slate-400 text-center">
+              Rosto obrigatório para liberar o cadastro
+            </p>
+
+            <button type="button" id="btn-capturar-cad" onclick="capturarRosto('cad')" class="hidden w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 rounded-xl transition text-[11px]">
+              Capturar Rosto
+            </button>
+          </div>
+
+          <div class="flex gap-2">
+            <button type="button" onclick="irParaEtapa(2)" class="w-1/3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl transition">
+              Voltar
+            </button>
+            <button type="submit" id="btn-cadastrar" disabled class="w-2/3 bg-emerald-600 disabled:bg-slate-700 disabled:text-slate-400 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
+              Concluir Cadastro
+            </button>
+          </div>
+        </div>
+
       </form>
     </div>
   </div>
@@ -239,8 +273,8 @@
           Posicione o rosto na silhueta
         </div>
         <svg viewBox="0 0 200 160" class="pointer-events-none absolute inset-0 w-full h-full" aria-hidden="true">
-          <ellipse cx="100" cy="64" rx="28" ry="36" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.8" />
-          <path d="M 42 152 C 46 118, 70 108, 100 108 C 130 108, 154 118, 158 152" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.8" />
+          <ellipse cx="100" cy="64" rx="28" ry="36" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.85" />
+          <path d="M 42 152 C 46 118, 70 108, 100 108 C 130 108, 154 118, 158 152" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.85" />
         </svg>
       </div>
 
@@ -267,12 +301,39 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const DIAS_REVALIDACAO_FACIAL = 15;
+    const MODELO_FACIAL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+    let modeloFacialCarregado = false;
+    let carregandoModeloFacial = null;
+
+    let etapaCadastroAtual = 1;
     let streamAtivo = null;
     let fotoCadastroDataUrl = null;
     let fotoVerificacaoDataUrl = null;
     let usuarioPendenteFacial = null;
     let tokenPendenteFacial = null;
     let contatosEmergenciaExtras = [];
+
+    async function garantirModeloFacial() {
+      if (modeloFacialCarregado) return true;
+      if (typeof faceapi === 'undefined') return false;
+      if (!carregandoModeloFacial) {
+        carregandoModeloFacial = faceapi.nets.tinyFaceDetector
+          .loadFromUri(MODELO_FACIAL_URL)
+          .then(() => {
+            modeloFacialCarregado = true;
+            return true;
+          })
+          .catch(() => {
+            carregandoModeloFacial = null;
+            return false;
+          });
+      }
+      return carregandoModeloFacial;
+    }
+
+    window.addEventListener('load', () => {
+      garantirModeloFacial();
+    });
 
     function mostrarErro(mensagem) {
       const box = document.getElementById('box-erro');
@@ -404,30 +465,65 @@
       }
     }
 
-    function validarFormularioCadastro() {
+    function etapa1Valida() {
       const nome = document.getElementById('cad-nome').value.trim();
       const cpfDigitos = document.getElementById('cad-cpf').value.replace(/\D/g, '');
       const celDigitos = document.getElementById('cad-celular').value.replace(/\D/g, '');
+      return Boolean(nome && cpfDigitos.length === 11 && celDigitos.length >= 10);
+    }
+
+    function etapa2Valida() {
       const endereco = document.getElementById('cad-endereco').value.trim();
       const emerg1Nome = document.getElementById('emerg-1-nome').value.trim();
       const emerg1FoneDigitos = document.getElementById('emerg-1-fone').value.replace(/\D/g, '');
+      return Boolean(endereco && emerg1Nome && emerg1FoneDigitos.length >= 10);
+    }
+
+    function etapa3Valida() {
       const senha = document.getElementById('cad-senha').value;
       const confSenha = document.getElementById('cad-senha-confirmar').value;
       const senhaOk = validarSenhaRegras(senha).valida && senha === confSenha;
+      return Boolean(senhaOk && fotoCadastroDataUrl);
+    }
 
-      const tudoOk = Boolean(
-        nome &&
-        cpfDigitos.length === 11 &&
-        celDigitos.length >= 10 &&
-        endereco &&
-        emerg1Nome &&
-        emerg1FoneDigitos.length >= 10 &&
-        senhaOk &&
-        fotoCadastroDataUrl
-      );
-
+    function validarEtapaAtual() {
+      document.getElementById('btn-continuar-1').disabled = !etapa1Valida();
+      document.getElementById('btn-continuar-2').disabled = !etapa2Valida();
+      const tudoOk = etapa1Valida() && etapa2Valida() && etapa3Valida();
       document.getElementById('btn-cadastrar').disabled = !tudoOk;
       return tudoOk;
+    }
+
+    function irParaEtapa(numero) {
+      document.getElementById('box-erro-modal').classList.add('hidden');
+      if (numero === 2 && !etapa1Valida()) {
+        mostrarErroModal('Preencha Nome completo, CPF (11 dígitos) e Celular para continuar.');
+        return;
+      }
+      if (numero === 3 && !etapa2Valida()) {
+        mostrarErroModal('Preencha seu Endereço e o Contato de emergência obrigatório para continuar.');
+        return;
+      }
+
+      if (etapaCadastroAtual === 3 && numero !== 3) {
+        pararCamera();
+      }
+
+      etapaCadastroAtual = numero;
+
+      [1, 2, 3].forEach(n => {
+        document.getElementById(`etapa-cad-${n}`).classList.toggle('hidden', n !== numero);
+        document.getElementById(`ind-etapa-${n}`).className =
+          n <= numero ? 'h-1.5 rounded-full bg-emerald-500 transition-all' : 'h-1.5 rounded-full bg-slate-800 transition-all';
+      });
+
+      const subtitulos = {
+        1: 'Etapa 1 de 3 • Dados pessoais',
+        2: 'Etapa 2 de 3 • Endereço e emergência',
+        3: 'Etapa 3 de 3 • Senha e reconhecimento facial'
+      };
+      document.getElementById('subtitulo-etapa-cadastro').innerText = subtitulos[numero];
+      validarEtapaAtual();
     }
 
     function pararCamera() {
@@ -451,7 +547,8 @@
       document.getElementById('status-rosto-cad').innerText = 'Rosto obrigatório para liberar o cadastro';
       document.getElementById('status-rosto-cad').className = 'text-[10px] text-slate-400 text-center';
       atualizarStatusSenha();
-      validarFormularioCadastro();
+      irParaEtapa(1);
+      garantirModeloFacial();
       document.getElementById('modal-cadastro-passageiro').classList.remove('hidden');
     }
 
@@ -508,6 +605,14 @@
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           throw new Error('Câmera não suportada neste navegador.');
         }
+
+        if (contexto === 'cad') {
+          document.getElementById('status-rosto-cad').innerText = 'Preparando câmera e reconhecimento facial...';
+          document.getElementById('status-rosto-cad').className = 'text-[10px] text-amber-400 text-center';
+        }
+
+        await garantirModeloFacial();
+
         streamAtivo = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'user' },
           audio: false
@@ -519,6 +624,7 @@
         btnCapturar.classList.remove('hidden');
         if (contexto === 'cad') {
           document.getElementById('status-rosto-cad').innerText = 'Alinhe seu rosto dentro da silhueta e clique em Capturar Rosto';
+          document.getElementById('status-rosto-cad').className = 'text-[10px] text-slate-300 text-center';
         }
       } catch (err) {
         const msg = 'Não foi possível acessar a câmera: ' + err.message;
@@ -528,16 +634,33 @@
     }
 
     async function detectarRostoNoCanvas(canvas) {
+      // 1. Tenta via face-api.js (funciona em qualquer navegador moderno)
+      const carregado = await garantirModeloFacial();
+      if (carregado && typeof faceapi !== 'undefined') {
+        try {
+          const opcoes = new faceapi.TinyFaceDetectorOptions({
+            inputSize: 224,
+            scoreThreshold: 0.45
+          });
+          const deteccoes = await faceapi.detectAllFaces(canvas, opcoes);
+          return Array.isArray(deteccoes) && deteccoes.length > 0;
+        } catch (_) {
+          // Segue para fallback abaixo se houver falha pontual
+        }
+      }
+
+      // 2. Fallback para FaceDetector nativo do navegador
       if ('FaceDetector' in window) {
         try {
           const detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 3 });
           const faces = await detector.detect(canvas);
-          return faces && faces.length > 0;
+          return Array.isArray(faces) && faces.length > 0;
         } catch (_) {
-          return true;
+          return false;
         }
       }
-      return true;
+
+      return false;
     }
 
     async function capturarRosto(contexto) {
@@ -547,6 +670,9 @@
       const btnCapturar = document.getElementById(`btn-capturar-${contexto}`);
 
       if (!video.videoWidth || !video.videoHeight) return;
+
+      btnCapturar.disabled = true;
+      btnCapturar.innerText = 'Analisando rosto...';
 
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -558,13 +684,19 @@
       ctx.restore();
 
       const temRosto = await detectarRostoNoCanvas(canvas);
+      btnCapturar.disabled = false;
+      btnCapturar.innerText = contexto === 'cad' ? 'Capturar Rosto' : 'Capturar';
+
       if (!temRosto) {
-        const msg = 'Nenhum rosto detectado na silhueta. Ajuste sua posição e tente novamente.';
+        const msg = 'Nenhum rosto detectado na imagem. Enquadre seu rosto dentro da silhueta com boa iluminação e tente novamente.';
         if (contexto === 'cad') {
+          fotoCadastroDataUrl = null;
           mostrarErroModal(msg);
-          document.getElementById('status-rosto-cad').innerText = 'Rosto não detectado';
+          document.getElementById('status-rosto-cad').innerText = 'Nenhum rosto detectado • Cadastro bloqueado';
           document.getElementById('status-rosto-cad').className = 'text-[10px] text-red-400 font-bold text-center';
+          validarEtapaAtual();
         } else {
+          fotoVerificacaoDataUrl = null;
           mostrarErroVerif(msg);
         }
         return;
@@ -574,7 +706,7 @@
       if (contexto === 'cad') {
         document.getElementById('box-erro-modal').classList.add('hidden');
         fotoCadastroDataUrl = dataUrl;
-        document.getElementById('status-rosto-cad').innerText = 'Rosto capturado com sucesso';
+        document.getElementById('status-rosto-cad').innerText = 'Rosto detectado e aprovado para o perfil';
         document.getElementById('status-rosto-cad').className = 'text-[10px] text-emerald-400 font-bold text-center';
       } else {
         document.getElementById('box-erro-verif').classList.add('hidden');
@@ -586,7 +718,7 @@
       video.classList.add('hidden');
       btnCapturar.classList.add('hidden');
       pararCamera();
-      if (contexto === 'cad') validarFormularioCadastro();
+      if (contexto === 'cad') validarEtapaAtual();
     }
 
     function chaveFacialUsuario(userId) {
@@ -635,8 +767,8 @@
       e.preventDefault();
       document.getElementById('box-erro-modal').classList.add('hidden');
 
-      if (!validarFormularioCadastro()) {
-        mostrarErroModal('Preencha todos os campos obrigatórios e capture seu rosto.');
+      if (!validarEtapaAtual()) {
+        mostrarErroModal('Preencha todas as etapas obrigatórias e capture uma foto com rosto válido.');
         return;
       }
 
@@ -699,7 +831,7 @@
       } catch (err) {
         mostrarErroModal(err.message || 'Erro ao realizar cadastro.');
         btn.innerText = 'Concluir Cadastro';
-        validarFormularioCadastro();
+        validarEtapaAtual();
       }
     }
 
@@ -708,7 +840,7 @@
       if (!usuarioPendenteFacial) return;
 
       if (!fotoVerificacaoDataUrl) {
-        mostrarErroVerif('Capture seu rosto antes de confirmar.');
+        mostrarErroVerif('Capture uma foto com rosto válido antes de confirmar.');
         return;
       }
 
