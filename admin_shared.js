@@ -1,4 +1,4 @@
-// admin_shared.js
+// admin_shared.js (v8)
 const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -9,6 +9,15 @@ function obterSenhaMestre() {
 }
 
 let listaUsuariosCache = [];
+let usuarioModalAtual = null;
+
+function normalizarStatusConta(status) {
+  const s = String(status || '').toLowerCase().trim();
+  if (s === 'em_analise' || s === 'pendente') return 'pendente';
+  if (s === 'bloqueado') return 'bloqueado';
+  if (s === 'aprovado' || s === 'ativo') return 'aprovado';
+  return 'aprovado';
+}
 
 // Injeta Layout Base (Login, Header, Navegação e Modais)
 function inicializarLayoutAdmin(paginaAtiva) {
@@ -50,7 +59,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <i class="fa-solid fa-shield-halved text-base"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Painel Administrativo</h1>
+          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v8</span></h1>
           <p class="text-[10px] text-slate-400">Gestão Avançada e Suporte</p>
         </div>
       </a>
@@ -87,7 +96,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
   `;
 
   const modaisHtml = `
-    <!-- MODAL DE EDIÇÃO AVANÇADA (MANTIDO 100% IGUAL AO ORIGINAL) -->
+    <!-- MODAL DE EDIÇÃO AVANÇADA -->
     <div id="modal-edicao" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
         
@@ -369,9 +378,9 @@ function salvarNovaSenhaMestre() {
 
 // --- CARD PADRÃO DE USUÁRIO / MOTORISTA ---
 function gerarCardAdmin(user) {
-  const status = user.status || 'aprovado';
-  const isBloqueado = status === 'bloqueado';
-  const isPendente = status === 'pendente';
+  const statusNorm = normalizarStatusConta(user.status);
+  const isBloqueado = statusNorm === 'bloqueado';
+  const isPendente = statusNorm === 'pendente';
   const isMotorista = user.tipo === 'motorista' || user.veiculo_modelo;
   const isOnline = user.online === true;
 
@@ -427,10 +436,11 @@ function mudarAbaModal(aba) {
 }
 
 function definirStatusModal(status) {
-  document.getElementById('edit-status-valor').value = status;
-  document.getElementById('btn-status-ativo').className = "py-2 rounded-xl font-bold " + (status === 'aprovado' ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
-  document.getElementById('btn-status-analise').className = "py-2 rounded-xl font-bold " + (status === 'pendente' ? "bg-amber-600/20 text-amber-400 border border-emerald-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
-  document.getElementById('btn-status-bloqueado').className = "py-2 rounded-xl font-bold " + (status === 'bloqueado' ? "bg-red-600/20 text-red-400 border border-emerald-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
+  const st = normalizarStatusConta(status);
+  document.getElementById('edit-status-valor').value = st;
+  document.getElementById('btn-status-ativo').className = "py-2 rounded-xl font-bold " + (st === 'aprovado' ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
+  document.getElementById('btn-status-analise').className = "py-2 rounded-xl font-bold " + (st === 'pendente' ? "bg-amber-600/20 text-amber-400 border border-amber-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
+  document.getElementById('btn-status-bloqueado').className = "py-2 rounded-xl font-bold " + (st === 'bloqueado' ? "bg-red-600/20 text-red-400 border border-red-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
 }
 
 function gerarSenhaTemporaria() {
@@ -445,12 +455,13 @@ function copiarSenhaTemporaria() {
 }
 
 async function abrirModalEdicao(id) {
-  let user = listaUsuariosCache.find(item => item.id == id);
+  let user = listaUsuariosCache.find(item => String(item.id) === String(id));
   if (!user) {
     const { data } = await supabaseClient.from('usuarios').select('*').eq('id', id).single();
     user = data;
   }
   if (!user) return;
+  usuarioModalAtual = user;
 
   document.getElementById('modal-alerta-toast').classList.add('hidden');
   document.getElementById('edit-id').value = user.id;
@@ -480,6 +491,7 @@ async function abrirModalEdicao(id) {
 }
 
 function fecharModalEdicao() {
+  usuarioModalAtual = null;
   document.getElementById('modal-edicao').classList.add('hidden');
 }
 
@@ -530,30 +542,86 @@ async function carregarHistoricoEGanhosModal(id, isMotorista) {
 
 async function carregarHistoricoSuporteModal(user) {
   const containerSuporte = document.getElementById('detalhes-suporte-usuario');
-  containerSuporte.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Buscando ocorrências...</p>';
+  containerSuporte.innerHTML = '<p class="text-slate-400 text-center py-2 animate-pulse">Buscando ocorrências e mensagens...</p>';
 
+  const itensUsuario = [];
+
+  // 1. Mensagens diretas de suporte (mensagens_suporte_app) exclusivamente deste usuário
+  const { data: msgsApp } = await supabaseClient
+    .from('mensagens_suporte_app')
+    .select('*')
+    .eq('usuario_id', String(user.id))
+    .order('criado_em', { ascending: false });
+
+  (msgsApp || []).forEach(m => {
+    const isAdmin = m.remetente === 'admin';
+    itensUsuario.push({
+      tipo: 'msg_app',
+      data: m.criado_em || new Date().toISOString(),
+      html: `
+        <div class="bg-slate-900 p-2.5 rounded-xl border ${isAdmin ? 'border-emerald-500/30' : 'border-sky-500/30'} space-y-1">
+          <div class="flex justify-between items-center text-[10px] text-slate-400">
+            <span class="${isAdmin ? 'text-emerald-400' : 'text-sky-400'} font-bold">
+              <i class="fa-solid ${isAdmin ? 'fa-shield-halved' : 'fa-user'} mr-1"></i>${isAdmin ? 'Admin (Suporte)' : (user.nome || 'Usuário')}
+            </span>
+            <span>${new Date(m.criado_em || Date.now()).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+          </div>
+          <p class="text-slate-200 whitespace-pre-line">${m.mensagem}</p>
+        </div>
+      `
+    });
+  });
+
+  // 2. Avaliações / ocorrências ligadas a este usuário
   const { data: corridas } = await supabaseClient
     .from('corridas')
     .select('*, motorista:motorista_id(id, nome), passageiro:passageiro_id(id, nome)')
     .or(`motorista_id.eq.${user.id},passageiro_id.eq.${user.id}`)
-    .lt('avaliacao_motorista', 5)
+    .or('avaliacao_motorista.lt.5,avaliacao_passageiro.lt.5')
     .order('id', { ascending: false });
 
-  if (!corridas || corridas.length === 0) {
-    containerSuporte.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma ocorrência registrada.</p>';
+  (corridas || []).forEach(c => {
+    if (c.avaliacao_motorista && c.avaliacao_motorista < 5) {
+      itensUsuario.push({
+        tipo: 'avaliacao',
+        data: c.criado_em || new Date().toISOString(),
+        html: `
+          <div class="bg-slate-900 p-2.5 rounded-xl border border-amber-500/30 space-y-1.5">
+            <div class="flex justify-between items-center text-[10px] text-slate-400">
+              <span class="text-amber-400 font-bold"><i class="fa-solid fa-star"></i> ${c.avaliacao_motorista} Estrelas (Corrida #${c.id})</span>
+              <span>${new Date(c.criado_em || Date.now()).toLocaleDateString('pt-BR')}</span>
+            </div>
+            <p class="text-emerald-400 text-[11px]">Reporte de <b>${c.passageiro?.nome || 'Passageiro'}</b> para <b>${c.motorista?.nome || 'Motorista'}</b></p>
+            <p class="text-slate-300"><strong>Motivo:</strong> ${c.motivo_avaliacao_motorista || 'Nenhum motivo informado.'}</p>
+          </div>
+        `
+      });
+    }
+    if (c.avaliacao_passageiro && c.avaliacao_passageiro < 5) {
+      itensUsuario.push({
+        tipo: 'avaliacao',
+        data: c.criado_em || new Date().toISOString(),
+        html: `
+          <div class="bg-slate-900 p-2.5 rounded-xl border border-amber-500/30 space-y-1.5">
+            <div class="flex justify-between items-center text-[10px] text-slate-400">
+              <span class="text-amber-400 font-bold"><i class="fa-solid fa-star"></i> ${c.avaliacao_passageiro} Estrelas (Corrida #${c.id})</span>
+              <span>${new Date(c.criado_em || Date.now()).toLocaleDateString('pt-BR')}</span>
+            </div>
+            <p class="text-emerald-400 text-[11px]">Reporte de <b>${c.motorista?.nome || 'Motorista'}</b> para <b>${c.passageiro?.nome || 'Passageiro'}</b></p>
+            <p class="text-slate-300"><strong>Motivo:</strong> ${c.motivo_avaliacao_passageiro || 'Nenhum motivo informado.'}</p>
+          </div>
+        `
+      });
+    }
+  });
+
+  if (itensUsuario.length === 0) {
+    containerSuporte.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma ocorrência ou mensagem registrada para este usuário.</p>';
     return;
   }
 
-  containerSuporte.innerHTML = corridas.map(c => `
-    <div class="bg-slate-900 p-2.5 rounded-xl border border-amber-500/30 space-y-1.5">
-      <div class="flex justify-between items-center text-[10px] text-slate-400">
-        <span class="text-amber-400 font-bold"><i class="fa-solid fa-star"></i> ${c.avaliacao_motorista} Estrelas (Corrida #${c.id})</span>
-        <span>${new Date(c.criado_em || Date.now()).toLocaleDateString()}</span>
-      </div>
-      <p class="text-emerald-400 text-[11px]">Reporte de <b>${c.passageiro?.nome || 'Passageiro'}</b> para <b>${c.motorista?.nome || 'Motorista'}</b></p>
-      <p class="text-slate-300"><strong>Motivo:</strong> ${c.motivo_avaliacao_motorista || 'Nenhum motivo informado.'}</p>
-    </div>
-  `).join('');
+  itensUsuario.sort((a, b) => new Date(b.data) - new Date(a.data));
+  containerSuporte.innerHTML = itensUsuario.map(item => item.html).join('');
 }
 
 async function enviarMensagemSuporteUsuario() {
@@ -561,22 +629,34 @@ async function enviarMensagemSuporteUsuario() {
   const mensagem = document.getElementById('input-resposta-suporte').value.trim();
   if (!mensagem) return mostrarAlertaModal("Digite uma mensagem antes de enviar.", "erro");
 
-  await supabaseClient.from('mensagens_suporte_app').insert([{ usuario_id: idUsuario, mensagem, remetente: 'admin', lido: false }]);
+  const { error } = await supabaseClient.from('mensagens_suporte_app').insert([{
+    usuario_id: String(idUsuario),
+    mensagem,
+    remetente: 'admin',
+    lido: false
+  }]);
+
+  if (error) {
+    return mostrarAlertaModal("Erro ao enviar: " + error.message, "erro");
+  }
+
   mostrarAlertaModal("Mensagem enviada com sucesso para o app do usuário!", "sucesso");
   document.getElementById('input-resposta-suporte').value = '';
+  await carregarHistoricoSuporteModal(usuarioModalAtual || { id: idUsuario, nome: document.getElementById('edit-nome').value });
 }
 
 async function salvarEdicaoUsuario(e) {
   e.preventDefault();
   const id = document.getElementById('edit-id').value;
   const senhaTemp = document.getElementById('edit-senha-temp').value.trim();
+  const statusEscolhido = normalizarStatusConta(document.getElementById('edit-status-valor').value);
 
   const atualizacao = {
     nome: document.getElementById('edit-nome').value,
     cpf: document.getElementById('edit-cpf').value,
     telefone: document.getElementById('edit-telefone').value,
     endereco: document.getElementById('edit-endereco').value,
-    status: document.getElementById('edit-status-valor').value
+    status: statusEscolhido
   };
 
   if (senhaTemp !== '') atualizacao.senha = senhaTemp;
@@ -585,7 +665,14 @@ async function salvarEdicaoUsuario(e) {
     atualizacao.veiculo_placa = document.getElementById('edit-veiculo-placa').value.toUpperCase();
   }
 
-  const { error } = await supabaseClient.from('usuarios').update(atualizacao).eq('id', id);
+  let { error } = await supabaseClient.from('usuarios').update(atualizacao).eq('id', id);
+
+  // Tenta sincronizar status_aprovacao caso a coluna exista na tabela
+  if (!error) {
+    const statusAprovacaoAlvo = statusEscolhido === 'aprovado' ? 'aprovado' : (statusEscolhido === 'bloqueado' ? 'bloqueado' : 'pendente');
+    await supabaseClient.from('usuarios').update({ status_aprovacao: statusAprovacaoAlvo }).eq('id', id);
+  }
+
   if (error) {
     mostrarAlertaModal("Erro: " + error.message, "erro");
   } else {
@@ -598,7 +685,12 @@ async function salvarEdicaoUsuario(e) {
 }
 
 async function mudarStatusConta(id, novoStatus) {
-  const { error } = await supabaseClient.from('usuarios').update({ status: novoStatus }).eq('id', id);
+  const st = normalizarStatusConta(novoStatus);
+  const { error } = await supabaseClient.from('usuarios').update({ status: st }).eq('id', id);
+  if (!error) {
+    const statusAprovacaoAlvo = st === 'aprovado' ? 'aprovado' : (st === 'bloqueado' ? 'bloqueado' : 'pendente');
+    await supabaseClient.from('usuarios').update({ status_aprovacao: statusAprovacaoAlvo }).eq('id', id);
+  }
   if (error) alert("Erro ao atualizar status: " + error.message);
   else atualizarDadosGlobais();
 }
