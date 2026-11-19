@@ -41,14 +41,14 @@
           <i class="fa-solid fa-user text-sm"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Mobilidade Laguna</h1>
+          <h1 id="titulo-topo-passageiro" class="text-sm font-extrabold text-white">Mobilidade Laguna</h1>
           <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
             <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span> Online
           </span>
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.6</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.7</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -65,15 +65,15 @@
     </div>
 
     <div class="flex-1 p-3 space-y-2 overflow-y-auto">
-      <a href="index.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
+      <button onclick="carregarModuloMapa()" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <i class="fa-solid fa-house text-emerald-400 w-5"></i> Mapa / Início
-      </a>
+      </button>
       <a href="historico.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
         <i class="fa-solid fa-clock-rotate-left text-amber-400 w-5"></i> Histórico de Viagens
       </a>
-      <a href="perfil.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
+      <button onclick="carregarModuloPerfil()" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <i class="fa-solid fa-user text-sky-400 w-5"></i> Meu Perfil
-      </a>
+      </button>
       <!-- Opção de suporte com badge de contagem lateral -->
       <button onclick="abrirModalSuporteGeral()" class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <span class="flex items-center gap-3"><i class="fa-solid fa-headset text-emerald-400 w-5"></i> Mensagens do Suporte</span>
@@ -89,7 +89,7 @@
   </div>
 
   <!-- CONTEÚDO PRINCIPAL -->
-  <main id="main-app" class="flex-1 overflow-hidden relative flex flex-col bg-slate-950">
+  <main id="main-app" class="flex-1 overflow-hidden relative flex flex-col bg-slate-950 text-slate-100">
     <div id="map-loader" class="flex-1 flex flex-col justify-center items-center text-slate-500 gap-3">
       <i class="fa-solid fa-map-location-dot text-4xl animate-pulse"></i>
       Carregando mapa em Laguna...
@@ -222,7 +222,6 @@
           table: 'mensagens_suporte_app',
           filter: `usuario_id=eq.${usuarioLogado.id}`
         }, payload => {
-          // Se a mensagem nova vier do admin, toca o alarme sonoro e atualiza os contadores em segundo plano sem abrir o modal
           if (payload.new && payload.new.remetente === 'admin') {
             tocarSomAlertaPassageiro();
             atualizarContadorNotificacoes();
@@ -322,7 +321,6 @@
 
         container.scrollTop = container.scrollHeight;
 
-        // Marca as mensagens do admin como lidas no banco
         await supabaseClient
           .from('mensagens_suporte_app')
           .update({ lido: true })
@@ -368,7 +366,18 @@
     }
 
     async function carregarModuloMapa() {
+      const menu = document.getElementById('menu-lateral');
+      if (menu && !menu.classList.contains('-translate-x-full')) {
+        menu.classList.add('-translate-x-full');
+      }
+
       const mainApp = document.getElementById('main-app');
+      mainApp.classList.remove('overflow-y-auto');
+      mainApp.classList.add('overflow-hidden');
+
+      const tituloTopo = document.getElementById('titulo-topo-passageiro');
+      if (tituloTopo) tituloTopo.innerText = 'Mobilidade Laguna';
+
       try {
         const response = await fetch('mapa.html');
         if (!response.ok) throw new Error('Falha ao carregar mapa');
@@ -388,6 +397,41 @@
         });
       } catch (error) {
         mainApp.innerHTML = '<div class="flex-1 flex justify-center items-center text-red-400">Erro ao carregar o módulo do mapa.</div>';
+      }
+    }
+
+    async function carregarModuloPerfil() {
+      const menu = document.getElementById('menu-lateral');
+      if (menu && !menu.classList.contains('-translate-x-full')) {
+        menu.classList.add('-translate-x-full');
+      }
+
+      const mainApp = document.getElementById('main-app');
+      mainApp.classList.remove('overflow-hidden');
+      mainApp.classList.add('overflow-y-auto');
+
+      const tituloTopo = document.getElementById('titulo-topo-passageiro');
+      if (tituloTopo) tituloTopo.innerText = 'Meu Perfil';
+
+      try {
+        const response = await fetch('perfil.html');
+        if (!response.ok) throw new Error('Falha ao carregar perfil');
+        const htmlPerfil = await response.text();
+        mainApp.innerHTML = htmlPerfil;
+
+        const scripts = mainApp.querySelectorAll('script');
+        scripts.forEach(scriptAntigo => {
+          const novoScript = document.createElement('script');
+          if (scriptAntigo.src) {
+            novoScript.src = scriptAntigo.src;
+          } else {
+            novoScript.textContent = scriptAntigo.textContent;
+          }
+          document.body.appendChild(novoScript);
+          scriptAntigo.remove();
+        });
+      } catch (error) {
+        mainApp.innerHTML = '<div class="flex-1 flex justify-center items-center text-red-400 p-6 text-center">Erro ao carregar o perfil.</div>';
       }
     }
 
