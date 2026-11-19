@@ -75,8 +75,11 @@
         </div>
 
         <div class="space-y-1">
-          <label class="text-slate-300 font-medium">CPF</label>
-          <input type="text" id="cad-cpf" required placeholder="000.000.000-00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          <div class="flex items-center justify-between gap-2">
+            <label class="text-slate-300 font-medium">CPF</label>
+            <span id="aviso-cpf" class="text-[10px] text-slate-400">11 dígitos (000.000.000-00)</span>
+          </div>
+          <input type="text" id="cad-cpf" inputmode="numeric" maxlength="14" required placeholder="000.000.000-00" oninput="formatarCpfInput(this)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-emerald-500">
         </div>
 
         <div class="space-y-1">
@@ -89,9 +92,35 @@
           <input type="text" id="cad-endereco" placeholder="Rua, bairro, Laguna - SC" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
         </div>
 
+        <!-- SENHA (LIMITE 8 DÍGITOS + LETRA E NÚMERO + BARRA DE FORÇA) -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between gap-2">
+            <label class="text-slate-300 font-medium">Senha</label>
+            <span id="aviso-senha-regra" class="text-[10px] text-amber-400 font-medium text-right">
+              8 dígitos • Letra e número
+            </span>
+          </div>
+          <input type="password" id="cad-senha" maxlength="8" required placeholder="Ex: Pass1234 (8 dígitos)" oninput="atualizarStatusSenha()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+
+          <!-- BARRA DE FORÇA DA SENHA -->
+          <div class="space-y-1 pt-0.5">
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="barra-forca-senha" class="h-full w-0 bg-red-500 transition-all duration-300"></div>
+            </div>
+            <div class="flex justify-between items-center text-[10px]">
+              <span class="text-slate-500">Força da senha:</span>
+              <span id="texto-forca-senha" class="font-bold text-slate-400">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONFIRMAR SENHA (DIGITAR DUAS VEZES) -->
         <div class="space-y-1">
-          <label class="text-slate-300 font-medium">Senha</label>
-          <input type="password" id="cad-senha" required minlength="4" placeholder="Crie uma senha" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          <div class="flex items-center justify-between gap-2">
+            <label class="text-slate-300 font-medium">Confirmar senha</label>
+            <span id="aviso-confirma-senha" class="text-[10px] text-slate-400">Digite novamente</span>
+          </div>
+          <input type="password" id="cad-senha-confirmar" maxlength="8" required placeholder="Repita a senha de 8 dígitos" oninput="atualizarStatusSenha()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
         </div>
 
         <!-- CAPTURA FACIAL (FOTO DE PERFIL) -->
@@ -206,6 +235,112 @@
       box.classList.remove('hidden');
     }
 
+    function formatarCpfInput(input) {
+      const digitos = input.value.replace(/\D/g, '').slice(0, 11);
+      let formatado = digitos;
+
+      if (digitos.length > 9) {
+        formatado = `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6, 9)}-${digitos.slice(9, 11)}`;
+      } else if (digitos.length > 6) {
+        formatado = `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6)}`;
+      } else if (digitos.length > 3) {
+        formatado = `${digitos.slice(0, 3)}.${digitos.slice(3)}`;
+      }
+
+      input.value = formatado;
+
+      const avisoCpf = document.getElementById('aviso-cpf');
+      if (!avisoCpf) return;
+
+      if (digitos.length === 0) {
+        avisoCpf.innerText = '11 dígitos (000.000.000-00)';
+        avisoCpf.className = 'text-[10px] text-slate-400';
+      } else if (digitos.length < 11) {
+        avisoCpf.innerText = `${digitos.length}/11 dígitos`;
+        avisoCpf.className = 'text-[10px] text-amber-400 font-medium';
+      } else {
+        avisoCpf.innerText = '11 dígitos OK';
+        avisoCpf.className = 'text-[10px] text-emerald-400 font-bold';
+      }
+    }
+
+    function validarSenhaRegras(senha) {
+      const temTamanhoExato = senha.length === 8;
+      const temLetra = /[A-Za-zÀ-ÿ]/.test(senha);
+      const temNumero = /[0-9]/.test(senha);
+      const temMaiuscula = /[A-ZÀ-Ý]/.test(senha);
+      const temEspecial = /[^A-Za-z0-9À-ÿ]/.test(senha);
+
+      let pontos = 0;
+      if (senha.length >= 6) pontos += 1;
+      if (temTamanhoExato) pontos += 1;
+      if (temLetra && temNumero) pontos += 1;
+      if (temMaiuscula || temEspecial) pontos += 1;
+
+      let forca = { label: '—', width: '0%', corBarra: 'bg-slate-600', corTexto: 'text-slate-400' };
+      if (senha.length > 0) {
+        if (pontos <= 1 || !(temLetra && temNumero)) {
+          forca = { label: 'Fraca', width: '33%', corBarra: 'bg-red-500', corTexto: 'text-red-400' };
+        } else if (pontos === 2 || !temTamanhoExato) {
+          forca = { label: 'Média', width: '66%', corBarra: 'bg-amber-400', corTexto: 'text-amber-400' };
+        } else {
+          forca = { label: 'Forte', width: '100%', corBarra: 'bg-emerald-500', corTexto: 'text-emerald-400' };
+        }
+      }
+
+      return {
+        valida: temTamanhoExato && temLetra && temNumero,
+        temTamanhoExato,
+        temLetra,
+        temNumero,
+        forca
+      };
+    }
+
+    function atualizarStatusSenha() {
+      const senhaInput = document.getElementById('cad-senha');
+      const confInput = document.getElementById('cad-senha-confirmar');
+      const regraEl = document.getElementById('aviso-senha-regra');
+      const barraEl = document.getElementById('barra-forca-senha');
+      const textoForcaEl = document.getElementById('texto-forca-senha');
+      const avisoConfEl = document.getElementById('aviso-confirma-senha');
+
+      const senha = senhaInput.value;
+      const conf = confInput.value;
+      const analise = validarSenhaRegras(senha);
+
+      barraEl.style.width = analise.forca.width;
+      barraEl.className = `h-full transition-all duration-300 ${analise.forca.corBarra}`;
+      textoForcaEl.innerText = analise.forca.label;
+      textoForcaEl.className = `font-bold ${analise.forca.corTexto}`;
+
+      if (!senha) {
+        regraEl.innerText = '8 dígitos • Letra e número';
+        regraEl.className = 'text-[10px] text-amber-400 font-medium text-right';
+      } else if (analise.valida) {
+        regraEl.innerText = '8 dígitos com letra e número OK';
+        regraEl.className = 'text-[10px] text-emerald-400 font-bold text-right';
+      } else {
+        const faltas = [];
+        faltas.push(`${senha.length}/8 dígitos`);
+        if (!analise.temLetra) faltas.push('letra');
+        if (!analise.temNumero) faltas.push('número');
+        regraEl.innerText = `Falta: ${faltas.join(' + ')}`;
+        regraEl.className = 'text-[10px] text-red-400 font-medium text-right';
+      }
+
+      if (!conf) {
+        avisoConfEl.innerText = 'Digite novamente';
+        avisoConfEl.className = 'text-[10px] text-slate-400';
+      } else if (senha === conf) {
+        avisoConfEl.innerText = 'Senhas conferem';
+        avisoConfEl.className = 'text-[10px] text-emerald-400 font-bold';
+      } else {
+        avisoConfEl.innerText = 'Senhas não conferem';
+        avisoConfEl.className = 'text-[10px] text-red-400 font-bold';
+      }
+    }
+
     function pararCamera() {
       if (streamAtivo) {
         streamAtivo.getTracks().forEach(track => track.stop());
@@ -216,11 +351,14 @@
     function abrirModalCadastro() {
       document.getElementById('box-erro').classList.add('hidden');
       document.getElementById('box-erro-modal').classList.add('hidden');
+      document.getElementById('form-cadastro-modal').reset();
       fotoCadastroDataUrl = null;
       document.getElementById('cad-preview').classList.add('hidden');
       document.getElementById('cad-video').classList.add('hidden');
       document.getElementById('btn-capturar-cad').classList.add('hidden');
       document.getElementById('cad-placeholder').classList.remove('hidden');
+      formatarCpfInput(document.getElementById('cad-cpf'));
+      atualizarStatusSenha();
       document.getElementById('modal-cadastro-passageiro').classList.remove('hidden');
     }
 
@@ -338,11 +476,29 @@
       document.getElementById('box-erro-modal').classList.add('hidden');
 
       const nome = document.getElementById('cad-nome').value.trim();
-      const cpf = document.getElementById('cad-cpf').value.trim();
+      const cpfFormatado = document.getElementById('cad-cpf').value.trim();
+      const cpfDigitos = cpfFormatado.replace(/\D/g, '');
       const cel = document.getElementById('cad-celular').value.trim();
       const endereco = document.getElementById('cad-endereco').value.trim();
       const senha = document.getElementById('cad-senha').value;
+      const confirmarSenha = document.getElementById('cad-senha-confirmar').value;
       const btn = document.getElementById('btn-cadastrar');
+
+      if (cpfDigitos.length !== 11) {
+        mostrarErroModal('Informe um CPF válido com exatamente 11 dígitos.');
+        return;
+      }
+
+      const analiseSenha = validarSenhaRegras(senha);
+      if (!analiseSenha.valida) {
+        mostrarErroModal('A senha deve ter exatamente 8 dígitos, misturando letras e números.');
+        return;
+      }
+
+      if (senha !== confirmarSenha) {
+        mostrarErroModal('A confirmação de senha não coincide. Corrija para continuar.');
+        return;
+      }
 
       if (!fotoCadastroDataUrl) {
         mostrarErroModal('Capture seu rosto para definir sua foto de perfil.');
@@ -368,7 +524,7 @@
           .insert([{
             tipo: 'passageiro',
             nome,
-            cpf,
+            cpf: cpfFormatado,
             telefone: cel,
             endereco: endereco || null,
             senha,
