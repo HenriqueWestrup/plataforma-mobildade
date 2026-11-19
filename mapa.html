@@ -14,8 +14,8 @@
     <div class="relative">
       <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
         <i class="fa-solid fa-circle-dot text-emerald-500"></i>
-        <input type="text" id="origem-corrida" placeholder="Local de embarque" oninput="buscarSugestoes(this.value, 'origem')" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
-        <button onclick="usarMinhaLocalizacao()" title="Usar GPS" class="text-emerald-400 hover:text-emerald-300 px-1"><i class="fa-solid fa-crosshairs"></i></button>
+        <input type="text" id="origem-corrida" placeholder="Obtendo local de embarque..." oninput="aoDigitarEndereco('origem', this.value)" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
+        <button onclick="usarMinhaLocalizacao(true)" title="Usar GPS" class="text-emerald-400 hover:text-emerald-300 px-1"><i class="fa-solid fa-crosshairs"></i></button>
       </div>
       <div id="sugestoes-origem" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-36 overflow-y-auto"></div>
     </div>
@@ -27,15 +27,18 @@
     <div class="relative">
       <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
         <i class="fa-solid fa-location-dot text-amber-500"></i>
-        <input type="text" id="destino-corrida" placeholder="Para onde vamos?" oninput="buscarSugestoes(this.value, 'destino')" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
+        <input type="text" id="destino-corrida" placeholder="Para onde vamos?" oninput="aoDigitarEndereco('destino', this.value)" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
         <button onclick="adicionarCampoParada()" title="Adicionar Parada" class="text-amber-400 hover:text-amber-300 px-1"><i class="fa-solid fa-plus"></i></button>
       </div>
       <div id="sugestoes-destino" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-36 overflow-y-auto"></div>
     </div>
 
     <!-- ESTIMATIVA DE VALOR -->
-    <div id="bloco-estimativa" class="hidden flex justify-between items-center px-1 text-slate-300">
-      <span class="text-slate-400">Estimativa da Corrida</span>
+    <div id="bloco-estimativa" class="hidden flex justify-between items-center px-1 text-slate-300 bg-slate-950/80 p-2.5 rounded-xl border border-emerald-500/30">
+      <div class="flex flex-col">
+        <span class="text-slate-400 text-[10px]">Estimativa da Corrida</span>
+        <span id="distancia-estimada" class="text-[10px] text-slate-500">Calculando distância...</span>
+      </div>
       <span id="valor-estimado" class="text-sm font-extrabold text-emerald-400">R$ 0,00</span>
     </div>
 
@@ -49,9 +52,9 @@
       </button>
     </div>
 
-    <!-- BOTÃO CHAMAR MOTORISTA -->
-    <button onclick="chamarMotorista()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-      <i class="fa-solid fa-car-side"></i> Chamar Motorista
+    <!-- BOTÃO CHAMAR MOTORISTA (SÓ LIBERA APÓS O CÁLCULO PRONTO) -->
+    <button id="btn-chamar-motorista" onclick="chamarMotorista()" disabled class="w-full bg-slate-800 text-slate-500 cursor-not-allowed font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+      <i class="fa-solid fa-route"></i> <span>Preencha origem e destino</span>
     </button>
   </div>
 
@@ -98,6 +101,7 @@
 
     <div class="space-y-1.5 text-xs text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800">
       <p id="bloco-embarque-container"><strong>Embarque:</strong> <span id="pass-ativa-origem" class="text-white">-</span></p>
+      <p id="bloco-parada-ativa-container" class="hidden"><strong>Parada:</strong> <span id="pass-ativa-parada" class="text-amber-200">-</span></p>
       <p><strong>Destino:</strong> <span id="pass-ativa-destino" class="text-white">-</span></p>
     </div>
 
@@ -160,9 +164,11 @@
   let mapaLeaflet = null;
   let marcadorOrigem = null;
   let marcadorDestino = null;
+  let marcadoresParadas = {};
   let polylineRota = null;
   let coordsOrigem = null;
   let coordsDestino = null;
+  let coordsParadas = {};
   let formaPagamentoSelecionada = 'PIX';
   let marcadoresMotoristas = {};
   let intervaloRadarMotoristas = null;
@@ -172,10 +178,40 @@
   let canalPassageiroRealtime = null;
   let passageiroNotaSelecionada = 5;
   let ultimaNotificacaoProximidade = false;
+  let calculoRotaPronto = false;
+  let valorCalculadoAtual = 0;
+  let timerBuscaDebounced = {};
 
   function primeiroNome(nomeCompleto) {
     if (!nomeCompleto) return 'Motorista';
     return nomeCompleto.trim().split(' ')[0];
+  }
+
+  function atualizarEstadoBotaoChamar(estado, textoCustomizado = '') {
+    const btn = document.getElementById('btn-chamar-motorista');
+    if (!btn) return;
+
+    if (estado === 'pronto') {
+      calculoRotaPronto = true;
+      btn.disabled = false;
+      btn.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer";
+      btn.innerHTML = `<i class="fa-solid fa-car-side"></i> <span>Chamar Motorista (${document.getElementById('valor-estimado').innerText})</span>`;
+    } else if (estado === 'calculando') {
+      calculoRotaPronto = false;
+      btn.disabled = true;
+      btn.className = "w-full bg-slate-800 text-amber-400 cursor-wait font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 border border-amber-500/30";
+      btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>${textoCustomizado || 'Calculando rota e valor...'}</span>`;
+    } else {
+      calculoRotaPronto = false;
+      btn.disabled = true;
+      btn.className = "w-full bg-slate-800 text-slate-500 cursor-not-allowed font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2";
+      btn.innerHTML = `<i class="fa-solid fa-route"></i> <span>${textoCustomizado || 'Preencha origem e destino'}</span>`;
+      document.getElementById('bloco-estimativa').classList.add('hidden');
+      if (polylineRota && mapaLeaflet) {
+        mapaLeaflet.removeLayer(polylineRota);
+        polylineRota = null;
+      }
+    }
   }
 
   function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
@@ -271,7 +307,8 @@
     }).addTo(mapaLeaflet);
 
     setTimeout(() => mapaLeaflet.invalidateSize(), 300);
-    usarMinhaLocalizacao();
+    atualizarEstadoBotaoChamar('bloqueado');
+    usarMinhaLocalizacao(true);
     iniciarRadarMotoristasOnline();
     verificarCorridaAtivaPassageiro();
   }
@@ -307,11 +344,19 @@
     } catch (e) {}
   }
 
+  // BOTÃO DE CENTRALIZAR MAPA:
+  // Se o passageiro apagou o local de embarque (ou ainda não tem coordsOrigem), puxa do GPS e preenche o campo automaticamente.
   function centralizarNoUsuario() {
+    const inputOrigem = document.getElementById('origem-corrida');
+    const campoOrigemVazio = !inputOrigem || inputOrigem.value.trim() === '';
+
+    if (campoOrigemVazio || !coordsOrigem) {
+      usarMinhaLocalizacao(true);
+      return;
+    }
+
     if (coordsOrigem && mapaLeaflet) {
       mapaLeaflet.setView([coordsOrigem.lat, coordsOrigem.lng], 16);
-    } else {
-      usarMinhaLocalizacao();
     }
   }
 
@@ -358,7 +403,6 @@
         }
       });
 
-      // Verificação de proximidade (100 metros)
       if (corridaAtualId) {
         const { data: corridaAtual } = await supabaseMapa.from('corridas').select('motorista_id, status').eq('id', corridaAtualId).single();
         if (corridaAtual && corridaAtual.motorista_id && ['a_caminho', 'aceito'].includes(corridaAtual.status)) {
@@ -389,45 +433,98 @@
     }
   }
 
-  function usarMinhaLocalizacao() {
+  function usarMinhaLocalizacao(forcarPreenchimento = true) {
+    const inputOrigem = document.getElementById('origem-corrida');
+    if (forcarPreenchimento && inputOrigem) {
+      inputOrigem.placeholder = "Localizando via GPS...";
+    }
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        async (pos) => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           coordsOrigem = { lat, lng };
 
           if (mapaLeaflet) {
-            mapaLeaflet.setView([lat, lng], 15);
+            mapaLeaflet.setView([lat, lng], 16);
             if (marcadorOrigem) mapaLeaflet.removeLayer(marcadorOrigem);
-            marcadorOrigem = L.marker([lat, lng]).addTo(mapaLeaflet).bindPopup("Sua Localização").openPopup();
+            marcadorOrigem = L.marker([lat, lng]).addTo(mapaLeaflet).bindPopup("Local de Embarque").openPopup();
           }
 
-          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-            .then(res => res.json())
-            .then(data => {
+          if (forcarPreenchimento && inputOrigem) {
+            try {
+              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+              const data = await res.json();
               if (data && data.display_name) {
-                document.getElementById('origem-corrida').value = data.display_name;
+                inputOrigem.value = data.display_name;
+              } else {
+                inputOrigem.value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
               }
-            }).catch(() => {
-              document.getElementById('origem-corrida').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-            });
+            } catch (e) {
+              inputOrigem.value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            }
+            inputOrigem.placeholder = "Local de embarque";
+          }
+
+          verificarECalcularSePronto();
         },
-        () => {},
-        { enableHighAccuracy: true }
+        () => {
+          if (inputOrigem) inputOrigem.placeholder = "Local de embarque";
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
       );
+    } else if (inputOrigem) {
+      inputOrigem.placeholder = "Local de embarque";
     }
+  }
+
+  function aoDigitarEndereco(tipo, valor) {
+    // Sempre que o usuário edita manualmente o texto, invalida as coordenadas antigas daquele campo até selecionar uma sugestão
+    if (tipo === 'origem') {
+      coordsOrigem = null;
+      if (marcadorOrigem && mapaLeaflet) {
+        mapaLeaflet.removeLayer(marcadorOrigem);
+        marcadorOrigem = null;
+      }
+      atualizarEstadoBotaoChamar('bloqueado', 'Selecione o local de embarque');
+    } else if (tipo === 'destino') {
+      coordsDestino = null;
+      if (marcadorDestino && mapaLeaflet) {
+        mapaLeaflet.removeLayer(marcadorDestino);
+        marcadorDestino = null;
+      }
+      atualizarEstadoBotaoChamar('bloqueado', 'Selecione o destino');
+    } else if (tipo.startsWith('parada-')) {
+      delete coordsParadas[tipo];
+      if (marcadoresParadas[tipo] && mapaLeaflet) {
+        mapaLeaflet.removeLayer(marcadoresParadas[tipo]);
+        delete marcadoresParadas[tipo];
+      }
+      if (valor.trim() === '') {
+        verificarECalcularSePronto();
+      } else {
+        atualizarEstadoBotaoChamar('bloqueado', 'Selecione o endereço da parada');
+      }
+    }
+
+    if (timerBuscaDebounced[tipo]) clearTimeout(timerBuscaDebounced[tipo]);
+    timerBuscaDebounced[tipo] = setTimeout(() => {
+      buscarSugestoes(valor, tipo);
+    }, 350);
   }
 
   async function buscarSugestoes(termo, tipo) {
     const container = document.getElementById(`sugestoes-${tipo}`);
-    if (termo.length < 3) {
+    if (!container) return;
+
+    if (termo.trim().length < 3) {
       container.classList.add('hidden');
       return;
     }
 
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo)}`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(termo)}`);
       const resultados = await res.json();
 
       if (!resultados || resultados.length === 0) {
@@ -435,36 +532,47 @@
         return;
       }
 
-      container.innerHTML = resultados.map(item => `
-        <div onclick="selecionarEndereco('${item.display_name.replace(/'/g, "")}', ${item.lat}, ${item.lon}, '${tipo}')" class="p-2.5 hover:bg-slate-800 cursor-pointer border-b border-slate-800 text-slate-200 truncate">
-          <i class="fa-solid fa-location-dot text-emerald-400 mr-2"></i> ${item.display_name}
-        </div>
-      `).join('');
+      container.innerHTML = resultados.map(item => {
+        const nomeSeguro = item.display_name.replace(/'/g, "").replace(/"/g, "");
+        return `
+          <div onclick="selecionarEndereco('${nomeSeguro}', ${item.lat}, ${item.lon}, '${tipo}')" class="p-2.5 hover:bg-slate-800 cursor-pointer border-b border-slate-800 text-slate-200 truncate">
+            <i class="fa-solid fa-location-dot text-emerald-400 mr-2"></i> ${item.display_name}
+          </div>
+        `;
+      }).join('');
       container.classList.remove('hidden');
     } catch (e) {}
   }
 
   function selecionarEndereco(nome, lat, lon, tipo) {
-    document.getElementById(`${tipo}-corrida`).value = nome;
-    document.getElementById(`sugestoes-${tipo}`).classList.add('hidden');
+    const idInput = (tipo === 'origem' || tipo === 'destino') ? `${tipo}-corrida` : tipo;
+    const inputEl = document.getElementById(idInput);
+    if (inputEl) inputEl.value = nome;
 
-    const coord = { lat: parseFloat(lat), lng: parseFloat(lon) };
+    const sugEl = document.getElementById(`sugestoes-${tipo}`);
+    if (sugEl) sugEl.classList.add('hidden');
+
+    const coord = { lat: parseFloat(lat), lng: parseFloat(lon), nome: nome };
 
     if (tipo === 'origem') {
       coordsOrigem = coord;
       if (marcadorOrigem) mapaLeaflet.removeLayer(marcadorOrigem);
-      marcadorOrigem = L.marker([lat, lon]).addTo(mapaLeaflet);
-    } else {
+      marcadorOrigem = L.marker([coord.lat, coord.lng]).addTo(mapaLeaflet).bindPopup("Embarque");
+    } else if (tipo === 'destino') {
       coordsDestino = coord;
       if (marcadorDestino) mapaLeaflet.removeLayer(marcadorDestino);
-      marcadorDestino = L.marker([lat, lon], {
-        icon: L.divIcon({ className: 'bg-amber-500 w-3 h-3 rounded-full border-2 border-white' })
-      }).addTo(mapaLeaflet);
+      marcadorDestino = L.marker([coord.lat, coord.lng], {
+        icon: L.divIcon({ className: 'bg-amber-500 w-3.5 h-3.5 rounded-full border-2 border-white shadow' })
+      }).addTo(mapaLeaflet).bindPopup("Destino Final");
+    } else if (tipo.startsWith('parada-')) {
+      coordsParadas[tipo] = coord;
+      if (marcadoresParadas[tipo]) mapaLeaflet.removeLayer(marcadoresParadas[tipo]);
+      marcadoresParadas[tipo] = L.marker([coord.lat, coord.lng], {
+        icon: L.divIcon({ className: 'bg-sky-400 w-3 h-3 rounded-full border-2 border-white shadow' })
+      }).addTo(mapaLeaflet).bindPopup("Parada");
     }
 
-    if (coordsOrigem && coordsDestino) {
-      calcularRotaEValor();
-    }
+    verificarECalcularSePronto();
   }
 
   function adicionarCampoParada() {
@@ -478,18 +586,77 @@
     div.className = "relative flex items-center gap-2 bg-slate-950 border border-slate-800 p-2.5 rounded-xl";
     div.innerHTML = `
       <i class="fa-solid fa-stop text-sky-400"></i>
-      <input type="text" id="${idParada}" placeholder="Adicionar parada" oninput="buscarSugestoes(this.value, '${idParada}')" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
-      <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-300 px-1"><i class="fa-solid fa-xmark"></i></button>
+      <input type="text" id="${idParada}" placeholder="Adicionar parada" oninput="aoDigitarEndereco('${idParada}', this.value)" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
+      <button onclick="removerCampoParada('${idParada}', this)" class="text-red-400 hover:text-red-300 px-1"><i class="fa-solid fa-xmark"></i></button>
       <div id="sugestoes-${idParada}" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-36 overflow-y-auto"></div>
     `;
     container.appendChild(div);
   }
 
+  function removerCampoParada(idParada, btnEl) {
+    delete coordsParadas[idParada];
+    if (marcadoresParadas[idParada] && mapaLeaflet) {
+      mapaLeaflet.removeLayer(marcadoresParadas[idParada]);
+      delete marcadoresParadas[idParada];
+    }
+    btnEl.parentElement.remove();
+    verificarECalcularSePronto();
+  }
+
+  function obterListaParadasValidas() {
+    const container = document.getElementById('container-paradas');
+    if (!container) return [];
+    const inputs = container.querySelectorAll('input');
+    const lista = [];
+    inputs.forEach(inp => {
+      const id = inp.id;
+      const texto = inp.value.trim();
+      if (texto !== '') {
+        lista.push({
+          id: id,
+          texto: texto,
+          coord: coordsParadas[id] || null
+        });
+      }
+    });
+    return lista;
+  }
+
+  function verificarECalcularSePronto() {
+    const origemTexto = document.getElementById('origem-corrida')?.value.trim();
+    const destinoTexto = document.getElementById('destino-corrida')?.value.trim();
+
+    if (!origemTexto || !coordsOrigem) {
+      atualizarEstadoBotaoChamar('bloqueado', 'Defina o local de embarque');
+      return;
+    }
+
+    if (!destinoTexto || !coordsDestino) {
+      atualizarEstadoBotaoChamar('bloqueado', 'Defina o destino final');
+      return;
+    }
+
+    const paradas = obterListaParadasValidas();
+    const paradaSemCoord = paradas.find(p => !p.coord);
+    if (paradaSemCoord) {
+      atualizarEstadoBotaoChamar('bloqueado', 'Selecione o endereço da parada');
+      return;
+    }
+
+    calcularRotaEValor();
+  }
+
   async function calcularRotaEValor() {
     if (!coordsOrigem || !coordsDestino) return;
 
+    atualizarEstadoBotaoChamar('calculando', 'Calculando rota e valor...');
+
+    const paradasValidas = obterListaParadasValidas();
+    const pontosRota = [coordsOrigem, ...paradasValidas.map(p => p.coord), coordsDestino];
+
     try {
-      const urlOsrm = `https://router.project-osrm.org/route/v1/driving/${coordsOrigem.lng},${coordsOrigem.lat};${coordsDestino.lng},${coordsDestino.lat}?overview=full&geometries=geojson`;
+      const coordenadasString = pontosRota.map(p => `${p.lng},${p.lat}`).join(';');
+      const urlOsrm = `https://router.project-osrm.org/route/v1/driving/${coordenadasString}?overview=full&geometries=geojson`;
       const res = await fetch(urlOsrm);
       const data = await res.json();
 
@@ -502,41 +669,64 @@
         polylineRota = L.polyline(coordenadasGeo, {
           color: '#10b981',
           weight: 5,
-          opacity: 0.8
+          opacity: 0.85
         }).addTo(mapaLeaflet);
 
         const distanciaKm = route.distance / 1000;
         let valorCalculado = 5.0 + (distanciaKm * 3.50);
         if (valorCalculado < 10.0) valorCalculado = 10.0;
 
+        valorCalculadoAtual = valorCalculado;
         document.getElementById('valor-estimado').innerText = `R$ ${valorCalculado.toFixed(2).replace('.', ',')}`;
+        document.getElementById('distancia-estimada').innerText = `${distanciaKm.toFixed(1).replace('.', ',')} km${paradasValidas.length > 0 ? ` • ${paradasValidas.length} parada(s)` : ''}`;
         document.getElementById('bloco-estimativa').classList.remove('hidden');
 
         mapaLeaflet.fitBounds(polylineRota.getBounds(), { padding: [60, 60] });
+        atualizarEstadoBotaoChamar('pronto');
         return;
       }
     } catch (e) {}
 
-    const R = 6371;
-    const dLat = (coordsDestino.lat - coordsOrigem.lat) * Math.PI / 180;
-    const dLon = (coordsDestino.lng - coordsOrigem.lng) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(coordsOrigem.lat * Math.PI / 180) * Math.cos(coordsDestino.lat * Math.PI / 180) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distanciaKm = R * c;
+    // Fallback linear somando todos os trechos (Origem -> Paradas -> Destino)
+    let distanciaTotalMetros = 0;
+    const latLngsLinha = [];
+    for (let i = 0; i < pontosRota.length; i++) {
+      latLngsLinha.push([pontosRota[i].lat, pontosRota[i].lng]);
+      if (i > 0) {
+        distanciaTotalMetros += calcularDistanciaMetros(
+          pontosRota[i - 1].lat, pontosRota[i - 1].lng,
+          pontosRota[i].lat, pontosRota[i].lng
+        );
+      }
+    }
 
+    if (polylineRota) mapaLeaflet.removeLayer(polylineRota);
+    polylineRota = L.polyline(latLngsLinha, {
+      color: '#10b981',
+      weight: 5,
+      opacity: 0.85,
+      dashArray: '8, 8'
+    }).addTo(mapaLeaflet);
+
+    const distanciaKm = distanciaTotalMetros / 1000;
     let valorCalculado = 5.0 + (distanciaKm * 3.50);
     if (valorCalculado < 10.0) valorCalculado = 10.0;
 
+    valorCalculadoAtual = valorCalculado;
     document.getElementById('valor-estimado').innerText = `R$ ${valorCalculado.toFixed(2).replace('.', ',')}`;
+    document.getElementById('distancia-estimada').innerText = `~${distanciaKm.toFixed(1).replace('.', ',')} km${paradasValidas.length > 0 ? ` • ${paradasValidas.length} parada(s)` : ''}`;
     document.getElementById('bloco-estimativa').classList.remove('hidden');
 
-    const bounds = L.latLngBounds([coordsOrigem.lat, coordsOrigem.lng], [coordsDestino.lat, coordsDestino.lng]);
-    mapaLeaflet.fitBounds(bounds, { padding: [50, 50] });
+    mapaLeaflet.fitBounds(polylineRota.getBounds(), { padding: [50, 50] });
+    atualizarEstadoBotaoChamar('pronto');
   }
 
   async function chamarMotorista() {
+    if (!calculoRotaPronto || valorCalculadoAtual <= 0) {
+      mostrarModal("Aguarde o Cálculo", "Selecione os endereços e aguarde o cálculo do valor antes de chamar.", "cancelar", 3000);
+      return;
+    }
+
     const dadosUsuario = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
 
     if (!dadosUsuario.id) {
@@ -551,6 +741,10 @@
       return;
     }
 
+    const btn = document.getElementById('btn-chamar-motorista');
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Chamando motorista...</span>`;
+
     try {
       const { data: usuarioAtualizado } = await clienteSupabaseAtivo
         .from('usuarios')
@@ -560,32 +754,40 @@
 
       if (usuarioAtualizado && (usuarioAtualizado.status === 'bloqueado' || usuarioAtualizado.status === 'pendente')) {
         mostrarModal("Conta Suspensa", "Sua conta está suspensa ou pendente. Não é possível solicitar viagens.", "cancelar", 4000);
+        atualizarEstadoBotaoChamar('pronto');
         return;
       }
     } catch (e) {}
 
-    const origem = document.getElementById('origem-corrida').value;
-    const destino = document.getElementById('destino-corrida').value;
-    const valorTexto = document.getElementById('valor-estimado').innerText;
+    const origem = document.getElementById('origem-corrida').value.trim();
+    const destino = document.getElementById('destino-corrida').value.trim();
+    const paradasValidas = obterListaParadasValidas();
+    const paradaTexto = paradasValidas.length > 0 ? paradasValidas.map(p => p.texto).join(' | ') : null;
     
     if (!origem || !destino) {
       mostrarModal("Campos Incompletos", "Por favor, preencha a origem e o destino.", "cancelar", 3500);
+      atualizarEstadoBotaoChamar('bloqueado');
       return;
     }
 
-    const valorNumerico = parseFloat(valorTexto.replace('R$ ', '').replace(',', '.')) || 15.0;
-
-    const { data, error } = await clienteSupabaseAtivo.from('corridas').insert([{
+    const payloadCorrida = {
       passageiro_id: dadosUsuario.id,
       origem: origem,
       destino: destino,
-      valor: valorNumerico,
+      valor: Number(valorCalculadoAtual.toFixed(2)),
       forma_pagamento: String(formaPagamentoSelecionada || 'PIX'),
       status: 'procurando'
-    }]).select().single();
+    };
+
+    if (paradaTexto) {
+      payloadCorrida.parada = paradaTexto;
+    }
+
+    const { data, error } = await clienteSupabaseAtivo.from('corridas').insert([payloadCorrida]).select().single();
 
     if (error) {
       mostrarModal("Erro", "Erro ao solicitar corrida: " + error.message, "cancelar", 4000);
+      atualizarEstadoBotaoChamar('pronto');
     } else {
       corridaAtualId = data.id;
       document.getElementById('painel-solicitacao').classList.add('hidden');
@@ -616,7 +818,6 @@
             corridaAtualizada.motorista = motoristaInfo;
             exibirPainelMotoristaEncontrado(corridaAtualizada);
           } else if (corridaAtualizada.status === 'concluido') {
-            // Sincronização instantânea: exibe a tela de avaliação e o valor exato no mesmo instante para o passageiro
             exibirPainelAvaliacaoPassageiro(corridaAtualizada);
           } else if (corridaAtualizada.status === 'cancelado' || corridaAtualizada.status === 'expirado') {
             tocarSom('cancelar');
@@ -652,6 +853,14 @@
     document.getElementById('passageiro-motorista-nota').innerText = notaMotorista;
 
     document.getElementById('pass-ativa-destino').innerText = corrida.destino;
+
+    const blocoParadaAtiva = document.getElementById('bloco-parada-ativa-container');
+    if (corrida.parada) {
+      document.getElementById('pass-ativa-parada').innerText = corrida.parada;
+      blocoParadaAtiva.classList.remove('hidden');
+    } else {
+      blocoParadaAtiva.classList.add('hidden');
+    }
 
     const textoStatus = document.getElementById('passageiro-status-viagem-texto');
     const btnCancelarAtivo = document.getElementById('btn-cancelar-passageiro-ativo');
@@ -756,8 +965,8 @@
       if (passageiroNotaSelecionada < 5) {
         const dadosUsuario = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
         if (dadosUsuario.id) {
-          await supabaseMapa.from('mensagens_suporte').insert([{
-            usuario_id: dadosUsuario.id,
+          await supabaseMapa.from('mensagens_suporte_app').insert([{
+            usuario_id: String(dadosUsuario.id),
             mensagem: `[Relato de Nota Baixa - Corrida #${corridaAtualId}] Nota: ${passageiroNotaSelecionada} estrelas. Motivo: ${motivo}`,
             remetente: 'passageiro',
             lido: false
@@ -777,19 +986,35 @@
     if (canalPassageiroRealtime && supabaseMapa) supabaseMapa.removeChannel(canalPassageiroRealtime);
     corridaAtualId = null;
     ultimaNotificacaoProximidade = false;
+    coordsDestino = null;
+    coordsParadas = {};
+    valorCalculadoAtual = 0;
 
     document.getElementById('painel-espera-corrida').classList.add('hidden');
     document.getElementById('painel-motorista-encontrado').classList.add('hidden');
     document.getElementById('painel-avaliacao-passageiro').classList.add('hidden');
     document.getElementById('painel-solicitacao').classList.remove('hidden');
 
-    document.getElementById('origem-corrida').value = '';
     document.getElementById('destino-corrida').value = '';
+    document.getElementById('container-paradas').innerHTML = '';
     document.getElementById('bloco-estimativa').classList.add('hidden');
+
+    if (marcadorDestino && mapaLeaflet) {
+      mapaLeaflet.removeLayer(marcadorDestino);
+      marcadorDestino = null;
+    }
+    Object.values(marcadoresParadas).forEach(m => {
+      if (mapaLeaflet) mapaLeaflet.removeLayer(m);
+    });
+    marcadoresParadas = {};
+
     if (polylineRota && mapaLeaflet) {
       mapaLeaflet.removeLayer(polylineRota);
       polylineRota = null;
     }
+
+    atualizarEstadoBotaoChamar('bloqueado');
+    usarMinhaLocalizacao(true);
   }
 
   function iniciarTimerEsperaCorrida() {
