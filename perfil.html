@@ -1,6 +1,6 @@
-<!-- CONTEÚDO PRINCIPAL DO PERFIL (MODULARIZADO - v10) -->
+<!-- CONTEÚDO PRINCIPAL DO PERFIL (MODULARIZADO - v12) -->
 <div class="flex-1 overflow-y-auto p-4 space-y-4 max-w-lg mx-auto w-full pb-16 bg-slate-950 text-xs relative">
-  <span class="absolute top-1 right-4 text-[9px] text-slate-600 font-mono">v10</span>
+  <span class="absolute top-1 right-4 text-[9px] text-slate-600 font-mono">v12</span>
 
   <!-- BARRA DE NOTIFICAÇÃO INTERNA -->
   <div id="perfil-alerta-toast" class="hidden p-3 rounded-2xl text-xs font-bold flex items-center gap-2.5 shadow-md">
@@ -58,39 +58,35 @@
         <span id="view-endereco" class="text-slate-200">-</span>
       </div>
 
-      <!-- Bloco de Veículo cadastrado direto no usuário (visível se for motorista) -->
+      <!-- SELETOR DE VEÍCULO NA TELA INICIAL (MOTORISTA) -->
       <div id="view-bloco-veiculo" class="pt-3 border-t border-slate-800 space-y-2 hidden">
         <div class="flex items-center justify-between">
           <span class="text-[10px] text-emerald-400 font-bold uppercase flex items-center gap-1">
-            <i class="fa-solid fa-car"></i> Veículo Cadastrado
+            <i class="fa-solid fa-car"></i> Veículos da Conta
           </span>
-          <span id="view-doc-status" class="text-[10px] text-slate-400"></span>
+          <span id="view-app-status-label" class="text-[10px] text-slate-400"></span>
         </div>
-        <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <span class="text-[10px] text-slate-400 block">Marca:</span>
-              <span id="view-veiculo-marca" class="text-slate-200 font-semibold">-</span>
-            </div>
-            <div>
-              <span class="text-[10px] text-slate-400 block">Modelo:</span>
-              <span id="view-veiculo-modelo" class="text-slate-200 font-semibold">-</span>
-            </div>
+
+        <button type="button" onclick="abrirModalSelecaoVeiculo()" class="w-full bg-slate-950 hover:bg-slate-900/90 p-3 rounded-2xl border border-slate-800 text-left flex items-center justify-between gap-3 transition">
+          <div class="space-y-1 min-w-0">
+            <span class="text-[10px] text-slate-400 block">Veículo Selecionado (1º ou 2º carro):</span>
+            <p id="view-veiculo-resumo-ativo" class="text-white font-bold text-xs truncate">-</p>
+            <p id="view-veiculo-detalhe-ativo" class="text-[10px] text-slate-400 truncate">-</p>
           </div>
-          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
-            <div>
-              <span class="text-[10px] text-slate-400 block">Ano:</span>
-              <span id="view-veiculo-ano" class="text-slate-200">-</span>
-            </div>
-            <div>
-              <span class="text-[10px] text-slate-400 block">Placa:</span>
-              <span id="view-veiculo-placa" class="font-mono text-emerald-400 font-bold uppercase">-</span>
-            </div>
-          </div>
-          <div id="view-doc-box" class="pt-2 border-t border-slate-800/80 text-[10px] text-slate-400 hidden">
-            <span>Documento: </span>
-            <span id="view-documento-nome" class="text-slate-200 font-mono">-</span>
-          </div>
+          <span class="shrink-0 bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-1.5 rounded-xl text-[10px] font-bold">
+            Escolher carro
+          </span>
+        </button>
+
+        <!-- ALERTA QUANDO HÁ 2º CARRO EM ANÁLISE / PENDENTE PARA O ADMIN -->
+        <div id="view-alerta-segundo-carro-admin" class="bg-amber-950/35 border border-amber-500/40 p-2.5 rounded-2xl text-[10px] text-amber-200 flex items-center gap-2 hidden">
+          <i class="fa-solid fa-bell text-amber-400 shrink-0"></i>
+          <span id="view-texto-alerta-segundo-carro">2º veículo aguardando análise do administrador.</span>
+        </div>
+
+        <div id="view-doc-box" class="text-[10px] text-slate-400 hidden px-1">
+          <span>Documento: </span>
+          <span id="view-documento-nome" class="text-slate-200 font-mono">-</span>
         </div>
       </div>
     </div>
@@ -126,7 +122,7 @@
           Dados & Foto
         </button>
         <button type="button" onclick="mudarSubAbaEdicao('veiculo')" id="subtab-edit-veiculo" class="py-1.5 rounded-lg font-bold bg-slate-900 text-slate-400 transition">
-          Editar Veículo
+          Veículo / 2º Carro
         </button>
       </div>
 
@@ -156,10 +152,10 @@
           </div>
         </div>
 
-        <!-- FOTO DE PERFIL: GALERIA, CÂMERA OU URL -->
+        <!-- FOTO DE PERFIL: APENAS GALERIA OU CÂMERA -->
         <div class="space-y-2 pt-2 border-t border-slate-800">
           <div class="flex items-center justify-between">
-            <label class="text-slate-300 font-medium">Foto de Perfil</label>
+            <label class="text-slate-300 font-medium">Foto de Perfil (Galeria ou Câmera)</label>
             <span id="status-compactacao-foto" class="text-[10px] text-slate-400"></span>
           </div>
           <div class="flex items-center gap-3 bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
@@ -175,23 +171,38 @@
           </div>
           <input type="file" id="input-foto-galeria" accept="image/*" class="hidden" onchange="processarArquivoFotoPerfil(event)">
           <input type="file" id="input-foto-camera" accept="image/*" capture="user" class="hidden" onchange="processarArquivoFotoPerfil(event)">
-          <input type="text" id="edit-foto" oninput="atualizarPreviewUrlFoto()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 text-[11px]" placeholder="URL da foto de perfil (opcional)">
+          <input type="hidden" id="edit-foto">
         </div>
       </div>
 
-      <!-- SUB-SEÇÃO SEPARADA: EDITAR VEÍCULO (MOTORISTA) -->
+      <!-- SUB-SEÇÃO SEPARADA: EDITAR VEÍCULO / 2º CARRO (MOTORISTA) -->
       <div id="bloco-edicao-veiculo" class="space-y-3 hidden">
         <div id="aviso-suspensao-veiculo" class="bg-amber-950/40 border border-amber-500/40 p-3 rounded-2xl space-y-1.5">
           <p class="text-amber-300 font-extrabold text-[11px] flex items-center gap-1.5">
-            <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> Atenção sobre Alteração de Veículo
+            <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> Atenção sobre Alteração ou Cadastro de Veículo
           </p>
           <p class="text-[10px] text-amber-100/90 leading-relaxed">
-            Ao alterar os dados do veículo, <strong>o aplicativo pode ficar suspenso ou em análise</strong> durante a verificação do novo documento. É obrigatório enviar novamente o documento atualizado do veículo para concluir a alteração.
+            Ao alterar ou cadastrar veículo, <strong>o aplicativo pode ficar suspenso ou em análise</strong> durante a verificação do novo documento. O 2º veículo vai para aprovação do admin e é obrigatório enviar o documento do veículo.
           </p>
           <label class="flex items-center gap-2 pt-1 text-[10px] text-amber-200 font-bold cursor-pointer">
             <input type="checkbox" id="chk-confirmar-aviso-veiculo" onchange="verificarAlteracaoVeiculo()" class="rounded border-amber-500 bg-slate-900 text-amber-500">
             <span>Estou ciente de que o app pode ficar suspenso durante a análise.</span>
           </label>
+        </div>
+
+        <!-- MODO: EDITAR CARRO ATUAL OU ADICIONAR 2º CARRO (PENDENTE PARA ADMIN) -->
+        <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
+          <span class="text-[10px] text-slate-400 font-bold uppercase block">O que você deseja fazer?</span>
+          <div class="space-y-1.5">
+            <label class="flex items-center gap-2 text-[11px] text-slate-200 cursor-pointer">
+              <input type="radio" name="modo-edicao-veiculo" id="modo-veiculo-atual" value="atual" checked onchange="alternarModoEdicaoVeiculo()">
+              <span>Editar veículo atual</span>
+            </label>
+            <label class="flex items-center gap-2 text-[11px] text-slate-200 cursor-pointer">
+              <input type="radio" name="modo-edicao-veiculo" id="modo-veiculo-novo" value="novo" onchange="alternarModoEdicaoVeiculo()">
+              <span>Cadastrar 2º veículo <span id="badge-modo-segundo-carro" class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold ml-1">pendente</span></span>
+            </label>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-2">
@@ -205,10 +216,14 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-3 gap-2">
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Cor</label>
+            <input type="text" id="edit-veiculo-cor" oninput="verificarAlteracaoVeiculo()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100" placeholder="Ex.: Branco">
+          </div>
           <div class="space-y-1">
             <label class="text-slate-300 font-medium">Ano</label>
-            <input type="text" id="edit-veiculo-ano" oninput="verificarAlteracaoVeiculo()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100" placeholder="Ex.: 2014">
+            <input type="text" id="edit-veiculo-ano" oninput="verificarAlteracaoVeiculo()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100" placeholder="2014">
           </div>
           <div class="space-y-1">
             <label class="text-slate-300 font-medium">Placa</label>
@@ -216,11 +231,11 @@
           </div>
         </div>
 
-        <!-- REENVIO OBRIGATÓRIO DO DOCUMENTO QUANDO ALTERAR O VEÍCULO -->
+        <!-- REENVIO / ENVIO DO DOCUMENTO DO VEÍCULO -->
         <div id="bloco-reenvio-documento-veiculo" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
           <div class="flex justify-between items-center">
             <label class="text-slate-200 font-bold text-[11px]">
-              <i class="fa-solid fa-file-shield text-emerald-400 mr-1"></i> Documento do Veículo (Reenvio)
+              <i class="fa-solid fa-file-shield text-emerald-400 mr-1"></i> Documento do Veículo
             </label>
             <span id="badge-doc-obrigatorio" class="text-[9px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-bold">Opcional sem troca</span>
           </div>
@@ -240,6 +255,25 @@
             Atual: <span id="doc-atual-texto">-</span>
           </p>
         </div>
+
+        <!-- REMOVER 2º CARRO (EXCLUSIVAMENTE DENTRO DE EDITAR PERFIL + CONFIRMAÇÃO DE SENHA) -->
+        <div id="bloco-remover-segundo-carro" class="bg-red-950/25 border border-red-500/30 p-3 rounded-2xl space-y-2 hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-extrabold text-red-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-trash-can"></i> Remover 2º Veículo
+            </span>
+            <span id="status-segundo-carro-edicao" class="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold">pendente</span>
+          </div>
+          <p class="text-[10px] text-slate-300 leading-relaxed">
+            Para remover o 2º veículo cadastrado, confirme sua senha de edição abaixo.
+          </p>
+          <div class="flex gap-2">
+            <input type="password" id="input-senha-remover-carro2" placeholder="Confirme sua senha" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 text-[11px] outline-none focus:border-red-500">
+            <button type="button" onclick="removerSegundoVeiculoComSenha()" class="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-xl font-bold text-[11px] transition shrink-0">
+              Remover 2º Carro
+            </button>
+          </div>
+        </div>
       </div>
 
       <button type="submit" id="btn-salvar-perfil" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-950/50">
@@ -248,6 +282,60 @@
     </form>
   </div>
 
+</div>
+
+<!-- MODAL DE SELEÇÃO DE VEÍCULO (1º CARRO E 2º CARRO EMPILHADOS COM BOTÃO REDONDO) -->
+<div id="modal-selecao-veiculo" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[75] hidden flex items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl">
+    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+      <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
+        <i class="fa-solid fa-car-side text-emerald-400"></i> Selecionar Veículo
+      </h3>
+      <button type="button" onclick="fecharModalSelecaoVeiculo()" class="text-slate-400 hover:text-white">
+        <i class="fa-solid fa-xmark text-base"></i>
+      </button>
+    </div>
+
+    <p class="text-[11px] text-slate-400 leading-relaxed">
+      Marque apenas um veículo. O 2º carro precisa estar <strong>aprovado</strong> pelo admin para ser ativado, e o aplicativo deve estar <strong>desligado</strong> ao trocar.
+    </p>
+
+    <!-- DUAS OPÇÕES EMPILHADAS (UMA EM CIMA DA OUTRA) COM SELEÇÃO REDONDA ÚNICA -->
+    <div class="space-y-2.5">
+      <label id="card-opcao-carro-1" class="flex items-start gap-3 bg-slate-950 p-3.5 rounded-2xl border border-slate-800 cursor-pointer transition">
+        <input type="radio" name="escolha-carro-conta" id="radio-carro-1" value="1" class="mt-0.5 w-4 h-4 accent-emerald-500">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-extrabold text-white text-xs">1º Carro Cadastrado</span>
+            <span id="badge-status-carro-1" class="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">aprovado</span>
+          </div>
+          <p id="texto-carro-1" class="text-slate-200 font-semibold text-xs mt-1 truncate">-</p>
+          <p id="subtexto-carro-1" class="text-[10px] text-slate-400 truncate">-</p>
+        </div>
+      </label>
+
+      <label id="card-opcao-carro-2" class="flex items-start gap-3 bg-slate-950 p-3.5 rounded-2xl border border-slate-800 cursor-pointer transition">
+        <input type="radio" name="escolha-carro-conta" id="radio-carro-2" value="2" class="mt-0.5 w-4 h-4 accent-emerald-500">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-extrabold text-white text-xs">2º Carro Cadastrado</span>
+            <span id="badge-status-carro-2" class="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold">pendente</span>
+          </div>
+          <p id="texto-carro-2" class="text-slate-400 text-xs mt-1 truncate">Nenhum 2º carro cadastrado</p>
+          <p id="subtexto-carro-2" class="text-[10px] text-slate-500 truncate">Cadastre na aba Editar Dados &gt; Veículo / 2º Carro</p>
+        </div>
+      </label>
+    </div>
+
+    <div class="flex gap-2 pt-1">
+      <button type="button" onclick="fecharModalSelecaoVeiculo()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 py-2.5 rounded-xl font-bold transition">
+        Voltar
+      </button>
+      <button type="button" onclick="confirmarSelecaoVeiculoModal()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold transition">
+        Salvar Carro
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL DE SOLICITAÇÃO AO SUPORTE / REVISÃO (SEM HISTÓRICO VISÍVEL AO MOTORISTA) -->
@@ -279,6 +367,8 @@
 <script>
   let usuarioLogadoPerfil = null;
   let novoDocumentoVeiculoDados = null; // { nome, url }
+  let slotSelecionadoInicial = 1;
+  let senhaConfirmadaEdicao = '';
 
   function mascararNomePerfil(nomeCompleto) {
     const partes = String(nomeCompleto || 'Usuário').trim().split(/\s+/).filter(Boolean);
@@ -304,6 +394,64 @@
     return `${inicio}*.***.***-${fim}`;
   }
 
+  function aplicativoEstaLigado() {
+    if (!usuarioLogadoPerfil) return false;
+    if (usuarioLogadoPerfil.online === true) return true;
+    const statusStr = String(usuarioLogadoPerfil.status || '').toLowerCase();
+    return statusStr === 'online' || statusStr === 'ativo' || statusStr === 'em_viagem';
+  }
+
+  function obterCarroPorSlot(slot) {
+    if (!usuarioLogadoPerfil) return null;
+    if (Number(slot) === 2) {
+      const temDados = usuarioLogadoPerfil.veiculo2_modelo || usuarioLogadoPerfil.veiculo2_placa || usuarioLogadoPerfil.veiculo2_marca;
+      if (!temDados) return null;
+      return {
+        marca: usuarioLogadoPerfil.veiculo2_marca || '',
+        modelo: usuarioLogadoPerfil.veiculo2_modelo || '',
+        cor: usuarioLogadoPerfil.veiculo2_cor || '',
+        ano: usuarioLogadoPerfil.veiculo2_ano || '',
+        placa: usuarioLogadoPerfil.veiculo2_placa || '',
+        status: usuarioLogadoPerfil.veiculo2_status || 'pendente',
+        docUrl: usuarioLogadoPerfil.veiculo2_documento_url || '',
+        docNome: usuarioLogadoPerfil.veiculo2_documento_nome || ''
+      };
+    }
+
+    return {
+      marca: usuarioLogadoPerfil.veiculo_marca || '',
+      modelo: usuarioLogadoPerfil.veiculo_modelo || '',
+      cor: usuarioLogadoPerfil.veiculo_cor || '',
+      ano: usuarioLogadoPerfil.veiculo_ano || '',
+      placa: usuarioLogadoPerfil.veiculo_placa || '',
+      status: usuarioLogadoPerfil.status_aprovacao || 'aprovado',
+      docUrl: usuarioLogadoPerfil.documento_identificacao_url || '',
+      docNome: usuarioLogadoPerfil.documento_identificacao_nome || ''
+    };
+  }
+
+  function formatarResumoCarro(carro) {
+    if (!carro || (!carro.modelo && !carro.placa && !carro.marca)) {
+      return 'Nenhum veículo cadastrado';
+    }
+    const partes = [carro.marca, carro.modelo, carro.cor].filter(Boolean).join(' • ');
+    const placa = carro.placa ? ` (${carro.placa.toUpperCase()})` : '';
+    return `${partes || 'Veículo'}${placa}`;
+  }
+
+  function aplicarEstiloBadgeStatusCarro(el, status) {
+    if (!el) return;
+    const st = String(status || 'pendente').toLowerCase();
+    el.innerText = st;
+    if (st === 'aprovado' || st === 'ativo') {
+      el.className = 'text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold';
+    } else if (st === 'recusado' || st === 'rejeitado') {
+      el.className = 'text-[9px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-bold';
+    } else {
+      el.className = 'text-[9px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold';
+    }
+  }
+
   function mostrarAlertaPerfil(mensagem, tipo = 'sucesso') {
     const toast = document.getElementById('perfil-alerta-toast');
     const texto = document.getElementById('perfil-alerta-texto');
@@ -326,9 +474,11 @@
 
   function rebloquearEdicaoPerfil() {
     document.getElementById('input-senha-autenticacao').value = '';
+    document.getElementById('input-senha-remover-carro2').value = '';
     document.getElementById('form-editar-perfil').classList.add('hidden');
     document.getElementById('bloco-verificacao-senha').classList.remove('hidden');
     document.getElementById('status-compactacao-foto').innerText = '';
+    senhaConfirmadaEdicao = '';
     novoDocumentoVeiculoDados = null;
     mudarSubAbaEdicao('pessoal');
   }
@@ -349,23 +499,60 @@
     }
   }
 
+  function atualizarBlocoRemocaoSegundoCarro() {
+    const carro2 = obterCarroPorSlot(2);
+    const box = document.getElementById('bloco-remover-segundo-carro');
+    if (!box) return;
+
+    if (carro2) {
+      box.classList.remove('hidden');
+      aplicarEstiloBadgeStatusCarro(document.getElementById('status-segundo-carro-edicao'), carro2.status);
+    } else {
+      box.classList.add('hidden');
+    }
+  }
+
+  function alternarModoEdicaoVeiculo() {
+    const modoNovo = document.getElementById('modo-veiculo-novo')?.checked;
+    if (modoNovo) {
+      document.getElementById('edit-veiculo-marca').value = usuarioLogadoPerfil?.veiculo2_marca || '';
+      document.getElementById('edit-veiculo-modelo').value = usuarioLogadoPerfil?.veiculo2_modelo || '';
+      document.getElementById('edit-veiculo-cor').value = usuarioLogadoPerfil?.veiculo2_cor || '';
+      document.getElementById('edit-veiculo-ano').value = usuarioLogadoPerfil?.veiculo2_ano || '';
+      document.getElementById('edit-veiculo-placa').value = usuarioLogadoPerfil?.veiculo2_placa || '';
+      document.getElementById('doc-atual-texto').innerText = usuarioLogadoPerfil?.veiculo2_documento_nome || 'Nenhum documento do 2º carro';
+    } else {
+      document.getElementById('edit-veiculo-marca').value = usuarioLogadoPerfil?.veiculo_marca || '';
+      document.getElementById('edit-veiculo-modelo').value = usuarioLogadoPerfil?.veiculo_modelo || '';
+      document.getElementById('edit-veiculo-cor').value = usuarioLogadoPerfil?.veiculo_cor || '';
+      document.getElementById('edit-veiculo-ano').value = usuarioLogadoPerfil?.veiculo_ano || '';
+      document.getElementById('edit-veiculo-placa').value = usuarioLogadoPerfil?.veiculo_placa || '';
+      document.getElementById('doc-atual-texto').innerText = usuarioLogadoPerfil?.documento_identificacao_nome || 'Nenhum documento registrado';
+    }
+    atualizarBlocoRemocaoSegundoCarro();
+    verificarAlteracaoVeiculo();
+  }
+
   function houveAlteracaoVeiculo() {
     if (!usuarioLogadoPerfil) return false;
-    const marcaAtual = (usuarioLogadoPerfil.veiculo_marca || '').trim();
-    const modeloAtual = (usuarioLogadoPerfil.veiculo_modelo || '').trim();
-    const anoAtual = (usuarioLogadoPerfil.veiculo_ano || '').trim();
-    const placaAtual = (usuarioLogadoPerfil.veiculo_placa || '').trim().toUpperCase();
+    const modoNovo = document.getElementById('modo-veiculo-novo')?.checked;
 
     const marcaNova = (document.getElementById('edit-veiculo-marca').value || '').trim();
     const modeloNova = (document.getElementById('edit-veiculo-modelo').value || '').trim();
+    const corNova = (document.getElementById('edit-veiculo-cor').value || '').trim();
     const anoNova = (document.getElementById('edit-veiculo-ano').value || '').trim();
     const placaNova = (document.getElementById('edit-veiculo-placa').value || '').trim().toUpperCase();
 
+    if (modoNovo) {
+      return Boolean(marcaNova || modeloNova || corNova || anoNova || placaNova);
+    }
+
     return (
-      marcaNova !== marcaAtual ||
-      modeloNova !== modeloAtual ||
-      anoNova !== anoAtual ||
-      placaNova !== placaAtual
+      marcaNova !== (usuarioLogadoPerfil.veiculo_marca || '').trim() ||
+      modeloNova !== (usuarioLogadoPerfil.veiculo_modelo || '').trim() ||
+      corNova !== (usuarioLogadoPerfil.veiculo_cor || '').trim() ||
+      anoNova !== (usuarioLogadoPerfil.veiculo_ano || '').trim() ||
+      placaNova !== (usuarioLogadoPerfil.veiculo_placa || '').trim().toUpperCase()
     );
   }
 
@@ -384,21 +571,6 @@
       badge.className = 'text-[9px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-bold';
       boxDoc.classList.remove('border-amber-500/50');
     }
-  }
-
-  function atualizarPreviewUrlFoto() {
-    const url = (document.getElementById('edit-foto').value || '').trim();
-    const nome = (usuarioLogadoPerfil?.nome || 'Usuario').split(' ')[0];
-    document.getElementById('edit-foto-preview').src = url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}`;
-  }
-
-  function lerArquivoComoDataUrl(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
   }
 
   function compactarImagemDataUrl(file, maxLado = 600, qualidade = 0.78) {
@@ -436,6 +608,15 @@
     });
   }
 
+  function lerArquivoComoDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
   function formatarTamanhoKB(dataUrl) {
     const bytes = Math.round((dataUrl.length * 3) / 4);
     return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -449,7 +630,7 @@
       document.getElementById('edit-foto').value = dataUrlCompactada;
       document.getElementById('edit-foto-preview').src = dataUrlCompactada;
       document.getElementById('status-compactacao-foto').innerText = `Otimizada (${formatarTamanhoKB(dataUrlCompactada)})`;
-      mostrarAlertaPerfil("Foto otimizada! Clique em Salvar Alterações para aplicar.", "sucesso");
+      mostrarAlertaPerfil("Foto selecionada e otimizada! Clique em Salvar Alterações.", "sucesso");
     } catch (e) {
       mostrarAlertaPerfil("Não foi possível processar a imagem selecionada.", "erro");
     }
@@ -475,6 +656,172 @@
       mostrarAlertaPerfil("Não foi possível ler o documento selecionado.", "erro");
     }
     event.target.value = '';
+  }
+
+  function abrirModalSelecaoVeiculo() {
+    const slotAtual = Number(usuarioLogadoPerfil?.veiculo_ativo_slot || 1);
+    slotSelecionadoInicial = slotAtual === 2 ? 2 : 1;
+
+    const carro1 = obterCarroPorSlot(1);
+    const carro2 = obterCarroPorSlot(2);
+
+    document.getElementById('texto-carro-1').innerText = formatarResumoCarro(carro1);
+    document.getElementById('subtexto-carro-1').innerText = carro1?.ano ? `Ano: ${carro1.ano}` : 'Veículo principal';
+    aplicarEstiloBadgeStatusCarro(document.getElementById('badge-status-carro-1'), carro1?.status || 'aprovado');
+
+    const statusCarro2 = String(carro2?.status || 'pendente').toLowerCase();
+    const carro2Aprovado = Boolean(carro2) && (statusCarro2 === 'aprovado' || statusCarro2 === 'ativo');
+
+    if (carro2) {
+      document.getElementById('texto-carro-2').innerText = formatarResumoCarro(carro2);
+      document.getElementById('texto-carro-2').className = 'text-slate-200 font-semibold text-xs mt-1 truncate';
+      document.getElementById('subtexto-carro-2').innerText = carro2Aprovado
+        ? (carro2.ano ? `Ano: ${carro2.ano} • Liberado para seleção` : 'Liberado para seleção')
+        : 'Aguardando aprovação do administrador';
+      aplicarEstiloBadgeStatusCarro(document.getElementById('badge-status-carro-2'), carro2.status || 'pendente');
+    } else {
+      document.getElementById('texto-carro-2').innerText = 'Nenhum 2º carro cadastrado';
+      document.getElementById('texto-carro-2').className = 'text-slate-400 text-xs mt-1 truncate';
+      document.getElementById('subtexto-carro-2').innerText = 'Cadastre na aba Editar Dados > Veículo / 2º Carro';
+      aplicarEstiloBadgeStatusCarro(document.getElementById('badge-status-carro-2'), 'pendente');
+    }
+
+    document.getElementById('radio-carro-1').checked = slotSelecionadoInicial === 1;
+    document.getElementById('radio-carro-2').checked = slotSelecionadoInicial === 2;
+    document.getElementById('radio-carro-2').disabled = !carro2Aprovado && slotSelecionadoInicial !== 2;
+
+    document.getElementById('modal-selecao-veiculo').classList.remove('hidden');
+  }
+
+  function fecharModalSelecaoVeiculo() {
+    document.getElementById('modal-selecao-veiculo').classList.add('hidden');
+  }
+
+  async function confirmarSelecaoVeiculoModal() {
+    const marcado2 = document.getElementById('radio-carro-2')?.checked;
+    const novoSlot = marcado2 ? 2 : 1;
+
+    // Se não alterou nada, deixa intacto e fecha livre
+    if (novoSlot === slotSelecionadoInicial) {
+      fecharModalSelecaoVeiculo();
+      return;
+    }
+
+    if (aplicativoEstaLigado()) {
+      mostrarAlertaPerfil("Para trocar de carro, o aplicativo precisa estar desligado.", "erro");
+      return;
+    }
+
+    const carroEscolhido = obterCarroPorSlot(novoSlot);
+    if (!carroEscolhido) {
+      mostrarAlertaPerfil("Este veículo ainda não foi cadastrado.", "erro");
+      return;
+    }
+
+    if (novoSlot === 2) {
+      const st2 = String(carroEscolhido.status || 'pendente').toLowerCase();
+      if (st2 !== 'aprovado' && st2 !== 'ativo') {
+        mostrarAlertaPerfil("O 2º carro ainda está pendente/em análise do administrador.", "erro");
+        return;
+      }
+    }
+
+    const atualizacao = {
+      veiculo_ativo_slot: novoSlot,
+      veiculo_marca: carroEscolhido.marca || null,
+      veiculo_modelo: carroEscolhido.modelo || null,
+      veiculo_cor: carroEscolhido.cor || null,
+      veiculo_ano: carroEscolhido.ano || null,
+      veiculo_placa: carroEscolhido.placa ? carroEscolhido.placa.toUpperCase() : null
+    };
+
+    try {
+      const { error } = await supabaseClient
+        .from('usuarios')
+        .update(atualizacao)
+        .eq('id', usuarioLogadoPerfil.id);
+
+      if (error) {
+        mostrarAlertaPerfil("Erro ao trocar veículo no banco: " + error.message, "erro");
+        return;
+      }
+
+      usuarioLogadoPerfil = { ...usuarioLogadoPerfil, ...atualizacao };
+      localStorage.setItem('motorista_logado', JSON.stringify(usuarioLogadoPerfil));
+      fecharModalSelecaoVeiculo();
+      await carregarPerfilModular();
+      mostrarAlertaPerfil(`Veículo alterado para o ${novoSlot}º carro! Ao ligar o app, ele já estará ativo.`, "sucesso");
+    } catch (e) {
+      mostrarAlertaPerfil("Erro de conexão ao salvar o veículo.", "erro");
+    }
+  }
+
+  async function removerSegundoVeiculoComSenha() {
+    const senhaInformada = (document.getElementById('input-senha-remover-carro2')?.value || '').trim();
+    const senhaCorreta = usuarioLogadoPerfil?.senha || '123456';
+
+    if (!senhaInformada) {
+      mostrarAlertaPerfil("Digite sua senha para confirmar a remoção do 2º carro.", "erro");
+      return;
+    }
+
+    if (senhaInformada !== senhaCorreta && senhaInformada !== senhaConfirmadaEdicao) {
+      mostrarAlertaPerfil("Senha incorreta para remover o 2º carro!", "erro");
+      return;
+    }
+
+    const voltavaParaSlot1 = Number(usuarioLogadoPerfil?.veiculo_ativo_slot || 1) === 2;
+    const carro1 = obterCarroPorSlot(1);
+
+    const atualizacao = {
+      veiculo2_marca: null,
+      veiculo2_modelo: null,
+      veiculo2_cor: null,
+      veiculo2_ano: null,
+      veiculo2_placa: null,
+      veiculo2_status: null,
+      veiculo2_documento_url: null,
+      veiculo2_documento_nome: null
+    };
+
+    if (voltavaParaSlot1) {
+      atualizacao.veiculo_ativo_slot = 1;
+      atualizacao.veiculo_marca = carro1?.marca || null;
+      atualizacao.veiculo_modelo = carro1?.modelo || null;
+      atualizacao.veiculo_cor = carro1?.cor || null;
+      atualizacao.veiculo_ano = carro1?.ano || null;
+      atualizacao.veiculo_placa = carro1?.placa ? carro1.placa.toUpperCase() : null;
+    }
+
+    try {
+      const { error } = await supabaseClient
+        .from('usuarios')
+        .update(atualizacao)
+        .eq('id', usuarioLogadoPerfil.id);
+
+      if (error) {
+        mostrarAlertaPerfil("Erro ao remover 2º carro: " + error.message, "erro");
+        return;
+      }
+
+      try {
+        await supabaseClient
+          .from('solicitacoes_segundo_veiculo')
+          .update({ status: 'cancelado', alerta_admin: false, updated_at: new Date().toISOString() })
+          .eq('usuario_id', usuarioLogadoPerfil.id)
+          .eq('status', 'pendente');
+      } catch (e) {}
+
+      usuarioLogadoPerfil = { ...usuarioLogadoPerfil, ...atualizacao };
+      localStorage.setItem('motorista_logado', JSON.stringify(usuarioLogadoPerfil));
+
+      rebloquearEdicaoPerfil();
+      mudarAbaPerfil('visualizar');
+      await carregarPerfilModular();
+      mostrarAlertaPerfil("2º veículo removido com sucesso!", "sucesso");
+    } catch (e) {
+      mostrarAlertaPerfil("Erro de conexão ao remover o 2º carro.", "erro");
+    }
   }
 
   async function carregarPerfilModular() {
@@ -529,7 +876,6 @@
       statusAprovEl.innerText = '';
     }
 
-    // Aba Dados Completos: Nome com sobrenome mascarado e CPF com 2 primeiros e 2 últimos dígitos
     document.getElementById('view-nome').innerText = mascararNomePerfil(nomeCompleto);
     document.getElementById('view-cpf').innerText = mascararCpfPerfil(usuarioLogadoPerfil.cpf);
     document.getElementById('view-telefone').innerText = usuarioLogadoPerfil.telefone || '-';
@@ -542,10 +888,27 @@
       blocoVeiculoView.classList.remove('hidden');
       subabasVeiculo.classList.remove('hidden');
 
-      document.getElementById('view-veiculo-marca').innerText = usuarioLogadoPerfil.veiculo_marca || 'Não informada';
-      document.getElementById('view-veiculo-modelo').innerText = usuarioLogadoPerfil.veiculo_modelo || 'Não informado';
-      document.getElementById('view-veiculo-ano').innerText = usuarioLogadoPerfil.veiculo_ano || 'Não informado';
-      document.getElementById('view-veiculo-placa').innerText = usuarioLogadoPerfil.veiculo_placa || 'SEM-0000';
+      const slotAtivo = Number(usuarioLogadoPerfil.veiculo_ativo_slot || 1) === 2 ? 2 : 1;
+      const carroAtivo = obterCarroPorSlot(slotAtivo) || obterCarroPorSlot(1);
+      const carro2 = obterCarroPorSlot(2);
+
+      document.getElementById('view-app-status-label').innerText = aplicativoEstaLigado() ? 'App Ligado' : 'App Desligado';
+      document.getElementById('view-veiculo-resumo-ativo').innerText = `${slotAtivo}º Carro: ${formatarResumoCarro(carroAtivo)}`;
+      const extras = [
+        carroAtivo?.cor ? `Cor: ${carroAtivo.cor}` : null,
+        carroAtivo?.ano ? `Ano: ${carroAtivo.ano}` : null,
+        carro2 ? `2º carro (${carro2.status || 'pendente'})` : null
+      ].filter(Boolean);
+      document.getElementById('view-veiculo-detalhe-ativo').innerText = extras.join(' • ') || 'Toque para visualizar ou trocar';
+
+      const alertaAdminBox = document.getElementById('view-alerta-segundo-carro-admin');
+      if (carro2 && String(carro2.status || 'pendente').toLowerCase() === 'pendente') {
+        alertaAdminBox.classList.remove('hidden');
+        document.getElementById('view-texto-alerta-segundo-carro').innerText =
+          'Alerta enviado ao Admin: 2º veículo pendente de aprovação.';
+      } else {
+        alertaAdminBox.classList.add('hidden');
+      }
 
       const docBox = document.getElementById('view-doc-box');
       if (usuarioLogadoPerfil.documento_identificacao_nome || usuarioLogadoPerfil.documento_identificacao_url) {
@@ -555,11 +918,8 @@
         docBox.classList.add('hidden');
       }
 
-      document.getElementById('edit-veiculo-marca').value = usuarioLogadoPerfil.veiculo_marca || '';
-      document.getElementById('edit-veiculo-modelo').value = usuarioLogadoPerfil.veiculo_modelo || '';
-      document.getElementById('edit-veiculo-ano').value = usuarioLogadoPerfil.veiculo_ano || '';
-      document.getElementById('edit-veiculo-placa').value = usuarioLogadoPerfil.veiculo_placa || '';
-      document.getElementById('doc-atual-texto').innerText = usuarioLogadoPerfil.documento_identificacao_nome || 'Nenhum documento registrado';
+      document.getElementById('modo-veiculo-atual').checked = true;
+      alternarModoEdicaoVeiculo();
     } else {
       blocoVeiculoView.classList.add('hidden');
       subabasVeiculo.classList.add('hidden');
@@ -571,7 +931,6 @@
     document.getElementById('edit-endereco').value = usuarioLogadoPerfil.endereco || '';
     document.getElementById('edit-foto').value = usuarioLogadoPerfil.foto_url || '';
     document.getElementById('edit-foto-preview').src = usuarioLogadoPerfil.foto_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(primeiroNome);
-    document.getElementById('status-compactacao-foto').innerText = '';
     document.getElementById('chk-confirmar-aviso-veiculo').checked = false;
     novoDocumentoVeiculoDados = null;
     verificarAlteracaoVeiculo();
@@ -593,9 +952,11 @@
     }
 
     if (senhaInformada === (usuarioLogadoPerfil.senha || '123456')) {
+      senhaConfirmadaEdicao = senhaInformada;
       document.getElementById('bloco-verificacao-senha').classList.add('hidden');
       document.getElementById('form-editar-perfil').classList.remove('hidden');
       mudarSubAbaEdicao('pessoal');
+      atualizarBlocoRemocaoSegundoCarro();
       mostrarAlertaPerfil("Senha confirmada! Edição liberada.", "sucesso");
     } else {
       mostrarAlertaPerfil("Senha incorreta!", "erro");
@@ -643,17 +1004,18 @@
 
     const isMotorista = localStorage.getItem('motorista_logado') !== null || usuarioLogadoPerfil?.tipo === 'motorista';
     const alterouVeiculo = isMotorista && houveAlteracaoVeiculo();
+    const modoNovoCarro = isMotorista && document.getElementById('modo-veiculo-novo')?.checked;
 
     if (alterouVeiculo) {
       const confirmouAviso = document.getElementById('chk-confirmar-aviso-veiculo')?.checked;
       if (!confirmouAviso) {
         mudarSubAbaEdicao('veiculo');
-        mostrarAlertaPerfil("Confirme o aviso de suspensão/análise antes de alterar o veículo.", "erro");
+        mostrarAlertaPerfil("Confirme o aviso de suspensão/análise antes de alterar ou cadastrar veículo.", "erro");
         return;
       }
       if (!novoDocumentoVeiculoDados || !novoDocumentoVeiculoDados.url) {
         mudarSubAbaEdicao('veiculo');
-        mostrarAlertaPerfil("Envie novamente o documento do veículo para alterar os dados do carro.", "erro");
+        mostrarAlertaPerfil("Envie o documento do veículo para concluir.", "erro");
         return;
       }
     }
@@ -664,19 +1026,35 @@
       foto_url: (document.getElementById('edit-foto').value || '').trim() || null
     };
 
-    if (isMotorista) {
-      atualizacao.veiculo_marca = (document.getElementById('edit-veiculo-marca').value || '').trim() || null;
-      atualizacao.veiculo_modelo = (document.getElementById('edit-veiculo-modelo').value || '').trim() || null;
-      atualizacao.veiculo_ano = (document.getElementById('edit-veiculo-ano').value || '').trim() || null;
-      atualizacao.veiculo_placa = ((document.getElementById('edit-veiculo-placa').value || '').trim()).toUpperCase() || null;
+    const marcaVal = (document.getElementById('edit-veiculo-marca').value || '').trim() || null;
+    const modeloVal = (document.getElementById('edit-veiculo-modelo').value || '').trim() || null;
+    const corVal = (document.getElementById('edit-veiculo-cor').value || '').trim() || null;
+    const anoVal = (document.getElementById('edit-veiculo-ano').value || '').trim() || null;
+    const placaVal = ((document.getElementById('edit-veiculo-placa').value || '').trim()).toUpperCase() || null;
 
-      if (novoDocumentoVeiculoDados?.url) {
-        atualizacao.documento_identificacao_url = novoDocumentoVeiculoDados.url;
-        atualizacao.documento_identificacao_nome = novoDocumentoVeiculoDados.nome;
-      }
-
-      if (alterouVeiculo) {
+    if (isMotorista && alterouVeiculo) {
+      if (modoNovoCarro) {
+        atualizacao.veiculo2_marca = marcaVal;
+        atualizacao.veiculo2_modelo = modeloVal;
+        atualizacao.veiculo2_cor = corVal;
+        atualizacao.veiculo2_ano = anoVal;
+        atualizacao.veiculo2_placa = placaVal;
+        atualizacao.veiculo2_status = 'pendente';
+        if (novoDocumentoVeiculoDados?.url) {
+          atualizacao.veiculo2_documento_url = novoDocumentoVeiculoDados.url;
+          atualizacao.veiculo2_documento_nome = novoDocumentoVeiculoDados.nome;
+        }
+      } else {
+        atualizacao.veiculo_marca = marcaVal;
+        atualizacao.veiculo_modelo = modeloVal;
+        atualizacao.veiculo_cor = corVal;
+        atualizacao.veiculo_ano = anoVal;
+        atualizacao.veiculo_placa = placaVal;
         atualizacao.status_aprovacao = 'pendente';
+        if (novoDocumentoVeiculoDados?.url) {
+          atualizacao.documento_identificacao_url = novoDocumentoVeiculoDados.url;
+          atualizacao.documento_identificacao_nome = novoDocumentoVeiculoDados.nome;
+        }
       }
     }
 
@@ -693,34 +1071,52 @@
         .eq('id', usuarioLogadoPerfil.id);
 
       if (error) {
-        console.error('Erro Supabase update usuarios:', error);
-        const dicaRls = /row-level security|policy|permission/i.test(error.message)
-          ? ' (Verifique as políticas RLS de UPDATE da tabela usuarios no Supabase)'
-          : '';
-        mostrarAlertaPerfil("Erro ao salvar: " + error.message + dicaRls, "erro");
+        mostrarAlertaPerfil("Erro ao salvar: " + error.message, "erro");
         return;
+      }
+
+      // Envia comando / alerta para o Admin analisar o 2º veículo sem atrasar o fluxo
+      if (isMotorista && alterouVeiculo && modoNovoCarro) {
+        try {
+          await supabaseClient
+            .from('solicitacoes_segundo_veiculo')
+            .insert([{
+              usuario_id: usuarioLogadoPerfil.id,
+              usuario_nome: usuarioLogadoPerfil.nome || null,
+              veiculo2_marca: marcaVal,
+              veiculo2_modelo: modeloVal,
+              veiculo2_cor: corVal,
+              veiculo2_ano: anoVal,
+              veiculo2_placa: placaVal,
+              veiculo2_documento_url: novoDocumentoVeiculoDados?.url || null,
+              veiculo2_documento_nome: novoDocumentoVeiculoDados?.nome || null,
+              status: 'pendente',
+              alerta_admin: true
+            }]);
+        } catch (solErr) {
+          console.warn('Aviso ao registrar alerta de 2º veículo para o admin:', solErr);
+        }
       }
 
       const chaveStorage = isMotorista ? 'motorista_logado' : 'passageiro_logado';
       usuarioLogadoPerfil = { ...usuarioLogadoPerfil, ...atualizacao };
       try {
         localStorage.setItem(chaveStorage, JSON.stringify(usuarioLogadoPerfil));
-      } catch (storageErr) {
-        console.warn('Aviso ao gravar cache localStorage:', storageErr);
-      }
+      } catch (storageErr) {}
 
       rebloquearEdicaoPerfil();
       mudarAbaPerfil('visualizar');
       await carregarPerfilModular();
       mostrarAlertaPerfil(
-        alterouVeiculo
-          ? "Dados salvos! Documento enviado para análise."
-          : "Perfil atualizado com sucesso!",
+        modoNovoCarro
+          ? "2º veículo enviado para análise do Admin com status pendente!"
+          : alterouVeiculo
+            ? "Dados salvos! Documento enviado para análise."
+            : "Perfil atualizado com sucesso!",
         "sucesso"
       );
     } catch (err) {
-      console.error('Erro inesperado ao salvar perfil:', err);
-      mostrarAlertaPerfil("Erro de conexão ao salvar: " + (err?.message || 'falha desconhecida'), "erro");
+      mostrarAlertaPerfil("Erro de conexão ao salvar.", "erro");
     } finally {
       if (btnSalvar) {
         btnSalvar.disabled = false;
