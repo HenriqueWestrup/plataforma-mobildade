@@ -157,6 +157,7 @@
       <div id="bloco-detalhes-corrida-ativa" class="hidden bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
         <div class="space-y-1 text-xs text-slate-300">
           <p><strong>Embarque:</strong> <span id="ativa-origem" class="text-white">-</span></p>
+          <p id="bloco-ativa-parada" class="hidden"><strong>Parada:</strong> <span id="ativa-parada" class="text-amber-200">-</span></p>
           <p><strong>Destino:</strong> <span id="ativa-destino" class="text-white">-</span></p>
         </div>
 
@@ -301,6 +302,7 @@
     let corridaPendenteAtual = null;
     let filaPedidosPendentes = [];
     let corridaAtiva = null;
+    let paradaFinalizada = false;
     let timer15sId = null;
     let timerEspera3mId = null;
     let timerOcultarNotificacaoMensagemId = null;
@@ -612,7 +614,6 @@
       mostrarToastAdmin("Notificação descartada.", "aviso");
     }
 
-    // ATUALIZAÇÃO DOS CONTADORES DO MENU HAMBÚRGUER E BOTÃO DE SUPORTE
     async function atualizarContadoresSuporteMenu() {
       const blocoMsg = document.getElementById('bloco-notificacao-mensagem');
       const textoEl = document.getElementById('texto-ultima-mensagem-suporte');
@@ -633,7 +634,6 @@
           return;
         }
 
-        // Filtra mensagens não lidas enviadas pelo admin
         const naoLidas = msgs.filter(m => !m.lido && m.remetente === 'admin');
         const totalNaoLidas = naoLidas.length;
 
@@ -679,7 +679,6 @@
       document.getElementById('sup-motorista-assunto-label').innerText = assuntoAtualSuporteMotorista;
       document.getElementById('modal-suporte-motorista').classList.remove('hidden');
       
-      // Fecha o menu lateral se estiver aberto
       const menu = document.getElementById('menu-lateral');
       if (!menu.classList.contains('-translate-x-full')) {
         menu.classList.add('-translate-x-full');
@@ -736,7 +735,6 @@
 
         container.scrollTop = container.scrollHeight;
 
-        // Limpeza automática ao ler as mensagens do suporte
         await supabaseClient
           .from('mensagens_suporte_app')
           .update({ lido: true })
@@ -808,6 +806,7 @@
 
         if (data && data.length > 0) {
           corridaAtiva = data[0];
+          paradaFinalizada = false;
           exibirPainelCorridaAtiva();
         } else {
           limparCorridaAtivaLocal();
@@ -1104,6 +1103,7 @@
           recusarCorridaRadar();
         } else {
           corridaAtiva = data;
+          paradaFinalizada = false;
           filaPedidosPendentes = [];
           document.getElementById('modal-nova-corrida').classList.add('hidden');
           corridaPendenteAtual = null;
@@ -1114,6 +1114,44 @@
           mostrarToastAdmin("Corrida aceita com sucesso!", "sucesso");
         }
       } catch (err) {}
+    }
+
+    function atualizarBotaoEStatusEtapaViagem() {
+      if (!corridaAtiva) return;
+
+      const nomeCompletoPassageiro = corridaAtiva.passageiro?.nome || 'Passageiro';
+      const primeiroNomePassageiro = primeiroNome(nomeCompletoPassageiro);
+      const textoPrincipal = document.getElementById('status-texto-principal');
+      const subtexto = document.getElementById('status-subtexto');
+      const btnIniciar = document.getElementById('btn-iniciar-viagem');
+      const btnCancelar = document.getElementById('btn-cancelar-corrida');
+      const blocoEspera = document.getElementById('bloco-espera-local');
+      const temParada = Boolean(corridaAtiva.parada && String(corridaAtiva.parada).trim() !== '');
+
+      textoPrincipal.innerText = primeiroNomePassageiro;
+
+      if (corridaAtiva.status === 'em_andamento') {
+        btnCancelar.classList.add('hidden');
+        blocoEspera.classList.add('hidden');
+        if (timerEspera3mId) clearInterval(timerEspera3mId);
+
+        if (temParada && !paradaFinalizada) {
+          subtexto.innerText = `Em rumo à parada: ${corridaAtiva.parada}`;
+          btnIniciar.innerText = "Finalizar Parada";
+          btnIniciar.className = "flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-xl transition text-xs shadow";
+        } else {
+          subtexto.innerText = `Em rumo ao destino: ${corridaAtiva.destino}`;
+          btnIniciar.innerText = "Finalizar Viagem";
+          btnIniciar.className = "flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl transition text-xs shadow";
+        }
+      } else {
+        subtexto.innerText = `Indo buscar no embarque (Toque para detalhes)`;
+        btnIniciar.innerText = "Iniciar Viagem";
+        btnIniciar.className = "flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition text-xs shadow";
+        btnCancelar.classList.remove('hidden');
+        blocoEspera.classList.remove('hidden');
+        iniciarTimerEsperaLocal();
+      }
     }
 
     function exibirPainelCorridaAtiva() {
@@ -1133,6 +1171,14 @@
 
       document.getElementById('ativa-origem').innerText = corridaAtiva.origem;
       document.getElementById('ativa-destino').innerText = corridaAtiva.destino;
+
+      const blocoAtivaParada = document.getElementById('bloco-ativa-parada');
+      if (corridaAtiva.parada) {
+        document.getElementById('ativa-parada').innerText = corridaAtiva.parada;
+        blocoAtivaParada.classList.remove('hidden');
+      } else {
+        blocoAtivaParada.classList.add('hidden');
+      }
       
       const imgEl = document.getElementById('status-foto-passageiro');
       imgEl.src = fotoPassageiro;
@@ -1141,29 +1187,7 @@
       document.getElementById('status-nota-passageiro').innerText = notaPassageiro;
       document.getElementById('status-badge-nota').classList.remove('hidden');
 
-      const textoPrincipal = document.getElementById('status-texto-principal');
-      const subtexto = document.getElementById('status-subtexto');
-      const btnIniciar = document.getElementById('btn-iniciar-viagem');
-      const btnCancelar = document.getElementById('btn-cancelar-corrida');
-      const blocoEspera = document.getElementById('bloco-espera-local');
-
-      if (corridaAtiva.status === 'em_andamento') {
-        textoPrincipal.innerText = primeiroNomePassageiro;
-        subtexto.innerText = `Em rumo ao destino: ${corridaAtiva.destino}`;
-        btnIniciar.innerText = "Finalizar Viagem";
-        btnIniciar.className = "flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl transition text-xs shadow";
-        btnCancelar.classList.add('hidden');
-        blocoEspera.classList.add('hidden');
-        if (timerEspera3mId) clearInterval(timerEspera3mId);
-      } else {
-        textoPrincipal.innerText = primeiroNomePassageiro;
-        subtexto.innerText = `Indo buscar no embarque (Toque para detalhes)`;
-        btnIniciar.innerText = "Iniciar Viagem";
-        btnIniciar.className = "flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition text-xs shadow";
-        btnCancelar.classList.remove('hidden');
-        blocoEspera.classList.remove('hidden');
-        iniciarTimerEsperaLocal();
-      }
+      atualizarBotaoEStatusEtapaViagem();
 
       setGavetaAberta(true);
       iniciarEscutaCorridaAtivaRealtime();
@@ -1187,7 +1211,16 @@
     async function iniciarViagem() {
       if (!corridaAtiva) return;
 
+      const temParada = Boolean(corridaAtiva.parada && String(corridaAtiva.parada).trim() !== '');
+
       if (corridaAtiva.status === 'em_andamento') {
+        if (temParada && !paradaFinalizada) {
+          paradaFinalizada = true;
+          atualizarBotaoEStatusEtapaViagem();
+          mostrarToastAdmin("Parada finalizada! Seguindo para o destino final.", "sucesso");
+          return;
+        }
+
         try {
           await supabaseClient
             .from('corridas')
@@ -1207,20 +1240,14 @@
 
           if (!error && data) {
             corridaAtiva = data;
-            const primeiroNomePassageiro = primeiroNome(corridaAtiva.passageiro?.nome);
-            
-            document.getElementById('status-texto-principal').innerText = primeiroNomePassageiro;
-            document.getElementById('status-subtexto').innerText = `Em rumo ao destino: ${corridaAtiva.destino}`;
-            
-            const btn = document.getElementById('btn-iniciar-viagem');
-            btn.innerText = "Finalizar Viagem";
-            btn.className = "flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl transition text-xs shadow";
-            
-            document.getElementById('btn-cancelar-corrida').classList.add('hidden');
-            document.getElementById('bloco-espera-local').classList.add('hidden');
-            if (timerEspera3mId) clearInterval(timerEspera3mId);
+            paradaFinalizada = false;
+            atualizarBotaoEStatusEtapaViagem();
 
-            mostrarToastAdmin("Viagem iniciada com sucesso!", "sucesso");
+            if (temParada) {
+              mostrarToastAdmin("Viagem iniciada! Finalize a parada quando concluir.", "sucesso");
+            } else {
+              mostrarToastAdmin("Viagem iniciada com sucesso!", "sucesso");
+            }
           }
         } catch (e) {}
       }
@@ -1330,7 +1357,9 @@
       if (timerEspera3mId) clearInterval(timerEspera3mId);
       if (canalCorridaAtiva) supabaseClient.removeChannel(canalCorridaAtiva);
       corridaAtiva = null;
+      paradaFinalizada = false;
 
+      document.getElementById('bloco-ativa-parada').classList.add('hidden');
       document.getElementById('bloco-detalhes-corrida-ativa').classList.add('hidden');
       document.getElementById('bloco-cobranca-valor').classList.add('hidden');
       document.getElementById('bloco-cobranca-avaliacao').classList.add('hidden');
