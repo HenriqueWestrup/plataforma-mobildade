@@ -11,6 +11,25 @@
 <body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs">
 
   <main class="flex-1 overflow-y-auto p-4 space-y-3 pb-16">
+    <!-- SUB-ABAS DE FILTRO / SETOR DE MOTORISTAS -->
+    <div class="grid grid-cols-5 gap-1.5 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 text-[10px]">
+      <button type="button" onclick="mudarSubAbaMotoristaAdmin('todos')" id="sub-mot-todos" class="py-2 px-1.5 rounded-xl font-bold bg-emerald-600 text-white transition truncate">
+        Todos (<span id="cnt-mot-todos">0</span>)
+      </button>
+      <button type="button" onclick="mudarSubAbaMotoristaAdmin('online')" id="sub-mot-online" class="py-2 px-1.5 rounded-xl font-bold bg-slate-800 text-slate-400 hover:text-white transition truncate">
+        Online (<span id="cnt-mot-online">0</span>)
+      </button>
+      <button type="button" onclick="mudarSubAbaMotoristaAdmin('analise')" id="sub-mot-analise" class="py-2 px-1.5 rounded-xl font-bold bg-slate-800 text-slate-400 hover:text-white transition truncate">
+        Em Análise (<span id="cnt-mot-analise">0</span>)
+      </button>
+      <button type="button" onclick="mudarSubAbaMotoristaAdmin('bloqueados')" id="sub-mot-bloqueados" class="py-2 px-1.5 rounded-xl font-bold bg-slate-800 text-slate-400 hover:text-white transition truncate">
+        Bloqueados (<span id="cnt-mot-bloqueados">0</span>)
+      </button>
+      <button type="button" onclick="mudarSubAbaMotoristaAdmin('segundo_carro')" id="sub-mot-segundo_carro" class="py-2 px-1.5 rounded-xl font-bold bg-slate-800 text-slate-400 hover:text-white transition truncate">
+        2º Carro (<span id="cnt-mot-segundo_carro">0</span>)
+      </button>
+    </div>
+
     <div id="lista-admin-motoristas" class="space-y-3">
       <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Carregando motoristas...</div>
     </div>
@@ -18,18 +37,56 @@
 
   <script src="admin_shared.js"></script>
   <script>
+    let motoristasCacheAdmin = [];
+    let subAbaMotoristaAtual = 'todos';
+
+    function mudarSubAbaMotoristaAdmin(setor) {
+      subAbaMotoristaAtual = setor;
+      ['todos', 'online', 'analise', 'bloqueados', 'segundo_carro'].forEach(chave => {
+        const btn = document.getElementById(`sub-mot-${chave}`);
+        if (!btn) return;
+        btn.className = chave === setor
+          ? 'py-2 px-1.5 rounded-xl font-bold bg-emerald-600 text-white transition truncate'
+          : 'py-2 px-1.5 rounded-xl font-bold bg-slate-800 text-slate-400 hover:text-white transition truncate';
+      });
+      renderizarListaMotoristasAdmin();
+    }
+
+    function atualizarContadoresSubAbasMotoristas() {
+      const lista = motoristasCacheAdmin;
+      document.getElementById('cnt-mot-todos').innerText = lista.length;
+      document.getElementById('cnt-mot-online').innerText = filtrarUsuariosPorSetorAdmin(lista, 'online').length;
+      document.getElementById('cnt-mot-analise').innerText = filtrarUsuariosPorSetorAdmin(lista, 'analise').length;
+      document.getElementById('cnt-mot-bloqueados').innerText = filtrarUsuariosPorSetorAdmin(lista, 'bloqueados').length;
+      document.getElementById('cnt-mot-segundo_carro').innerText = filtrarUsuariosPorSetorAdmin(lista, 'segundo_carro').length;
+    }
+
+    function renderizarListaMotoristasAdmin() {
+      atualizarContadoresSubAbasMotoristas();
+      const filtrados = filtrarUsuariosPorSetorAdmin(motoristasCacheAdmin, subAbaMotoristaAtual);
+      const container = document.getElementById('lista-admin-motoristas');
+
+      if (!filtrados || filtrados.length === 0) {
+        container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista encontrado neste setor.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtrados.map(m => gerarCardAdmin(m)).join('');
+    }
+
     async function carregarPaginaAtual() {
       const { data } = await supabaseClient.from('usuarios').select('*');
       const todos = data || [];
       listaUsuariosCache = todos;
 
-      let motoristas = todos.filter(u => u.tipo === 'motorista' || u.veiculo_modelo);
-      motoristas.sort((a, b) => (b.online === true ? 1 : 0) - (a.online === true ? 1 : 0) || (a.nome || '').localeCompare(b.nome || ''));
+      let motoristas = todos.filter(u => ehPerfilMotoristaAdmin(u));
+      motoristas.sort((a, b) =>
+        (b.online === true ? 1 : 0) - (a.online === true ? 1 : 0) ||
+        (a.nome || '').localeCompare(b.nome || '')
+      );
 
-      const container = document.getElementById('lista-admin-motoristas');
-      container.innerHTML = motoristas.length === 0
-        ? '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista cadastrado.</div>'
-        : motoristas.map(m => gerarCardAdmin(m)).join('');
+      motoristasCacheAdmin = motoristas;
+      renderizarListaMotoristasAdmin();
     }
 
     window.onload = () => verificarSessaoAdmin('motorista', carregarPaginaAtual);

@@ -16,6 +16,19 @@
       <input type="text" id="input-busca-passageiro" oninput="renderizarPassageiros()" placeholder="Buscar passageiro por nome, CPF ou celular..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-slate-100 outline-none focus:border-emerald-500">
     </div>
 
+    <!-- SUB-ABAS DE FILTRO / SETOR DE PASSAGEIROS -->
+    <div class="grid grid-cols-3 gap-1.5 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 text-[10px]">
+      <button type="button" onclick="mudarSubAbaPassageiroAdmin('todos')" id="sub-pass-todos" class="py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition truncate">
+        Todos (<span id="cnt-pass-todos">0</span>)
+      </button>
+      <button type="button" onclick="mudarSubAbaPassageiroAdmin('analise')" id="sub-pass-analise" class="py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 hover:text-white transition truncate">
+        Em Análise (<span id="cnt-pass-analise">0</span>)
+      </button>
+      <button type="button" onclick="mudarSubAbaPassageiroAdmin('bloqueados')" id="sub-pass-bloqueados" class="py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 hover:text-white transition truncate">
+        Bloqueados (<span id="cnt-pass-bloqueados">0</span>)
+      </button>
+    </div>
+
     <div id="lista-admin-passageiros" class="space-y-3">
       <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Carregando passageiros...</div>
     </div>
@@ -24,20 +37,40 @@
   <script src="admin_shared.js"></script>
   <script>
     let passageirosGlobais = [];
+    let subAbaPassageiroAtual = 'todos';
+
+    function mudarSubAbaPassageiroAdmin(setor) {
+      subAbaPassageiroAtual = setor;
+      ['todos', 'analise', 'bloqueados'].forEach(chave => {
+        const btn = document.getElementById(`sub-pass-${chave}`);
+        if (!btn) return;
+        btn.className = chave === setor
+          ? 'py-2 px-2 rounded-xl font-bold bg-emerald-600 text-white transition truncate'
+          : 'py-2 px-2 rounded-xl font-bold bg-slate-800 text-slate-400 hover:text-white transition truncate';
+      });
+      renderizarPassageiros();
+    }
+
+    function atualizarContadoresSubAbasPassageiros() {
+      document.getElementById('cnt-pass-todos').innerText = passageirosGlobais.length;
+      document.getElementById('cnt-pass-analise').innerText = filtrarUsuariosPorSetorAdmin(passageirosGlobais, 'analise').length;
+      document.getElementById('cnt-pass-bloqueados').innerText = filtrarUsuariosPorSetorAdmin(passageirosGlobais, 'bloqueados').length;
+    }
 
     async function carregarPaginaAtual() {
       const { data } = await supabaseClient.from('usuarios').select('*');
       const todos = data || [];
       listaUsuariosCache = todos;
-      passageirosGlobais = todos.filter(u => u.tipo !== 'motorista' && !u.veiculo_modelo);
+      passageirosGlobais = todos.filter(u => !ehPerfilMotoristaAdmin(u));
       renderizarPassageiros();
     }
 
     function renderizarPassageiros() {
+      atualizarContadoresSubAbasPassageiros();
       const container = document.getElementById('lista-admin-passageiros');
       const termo = (document.getElementById('input-busca-passageiro').value || '').toLowerCase().trim();
 
-      let filtrados = passageirosGlobais.filter(u =>
+      let filtrados = filtrarUsuariosPorSetorAdmin(passageirosGlobais, subAbaPassageiroAtual).filter(u =>
         (u.nome || '').toLowerCase().includes(termo) ||
         (u.cpf || '').toLowerCase().includes(termo) ||
         (u.telefone || '').toLowerCase().includes(termo)
@@ -46,7 +79,7 @@
       filtrados.sort((a, b) => (b.online === true ? 1 : 0) - (a.online === true ? 1 : 0) || (a.nome || '').localeCompare(b.nome || ''));
 
       container.innerHTML = filtrados.length === 0
-        ? '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro encontrado.</div>'
+        ? '<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum passageiro encontrado neste setor.</div>'
         : filtrados.map(u => gerarCardAdmin(u)).join('');
     }
 
