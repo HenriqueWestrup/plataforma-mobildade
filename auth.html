@@ -30,7 +30,7 @@
     <form id="form-login" class="space-y-4 text-xs" onsubmit="realizarLogin(event)">
       <div class="space-y-1">
         <label class="text-slate-300 font-medium">Celular</label>
-        <input type="tel" id="login-celular" required placeholder="(48) 9 9999-9999" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
+        <input type="tel" id="login-celular" required placeholder="(48) 9 9999-9999" oninput="formatarTelefoneInput(this)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
       </div>
       <div class="space-y-1">
         <label class="text-slate-300 font-medium">Senha</label>
@@ -50,8 +50,8 @@
     </div>
   </div>
 
-  <!-- MODAL DE CADASTRO DE NOVO PASSAGEIRO -->
-  <div id="modal-cadastro-passageiro" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <!-- MODAL 1: CADASTRO DE NOVO PASSAGEIRO -->
+  <div id="modal-cadastro-passageiro" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
         <div>
@@ -68,39 +68,51 @@
         <span id="texto-erro-modal">Erro ao cadastrar.</span>
       </div>
 
-      <form id="form-cadastro-modal" class="space-y-3 text-xs" onsubmit="realizarCadastro(event)">
+      <form id="form-cadastro-modal" class="space-y-3 text-xs" oninput="validarFormularioCadastro()" onsubmit="realizarCadastro(event)">
         <div class="space-y-1">
-          <label class="text-slate-300 font-medium">Nome completo</label>
+          <label class="text-slate-300 font-medium">Nome completo <span class="text-emerald-400">*</span></label>
           <input type="text" id="cad-nome" required placeholder="Seu nome completo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
         </div>
 
         <div class="space-y-1">
+          <label class="text-slate-300 font-medium">CPF <span class="text-emerald-400">*</span></label>
+          <input type="text" id="cad-cpf" inputmode="numeric" maxlength="14" required placeholder="000.000.000-00" oninput="formatarCpfInput(this); validarFormularioCadastro();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Celular <span class="text-emerald-400">*</span></label>
+          <input type="tel" id="cad-celular" required placeholder="(48) 9 9999-9999" oninput="formatarTelefoneInput(this); validarFormularioCadastro();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Endereço <span class="text-emerald-400">*</span></label>
+          <input type="text" id="cad-endereco" required placeholder="Rua, bairro, Laguna - SC" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <!-- CONTATO DE EMERGÊNCIA 1 (OBRIGATÓRIO) + BOTÃO PARA MODAL DE MAIS 2 CONTATOS -->
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2.5">
           <div class="flex items-center justify-between gap-2">
-            <label class="text-slate-300 font-medium">CPF</label>
-            <span id="aviso-cpf" class="text-[10px] text-slate-400">11 dígitos (000.000.000-00)</span>
+            <span class="text-[11px] font-bold text-slate-200">
+              Contato de emergência 1 <span class="text-emerald-400">*</span>
+            </span>
+            <button type="button" onclick="abrirModalEmergenciaExtra()" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-amber-300 px-2.5 py-1 rounded-lg font-bold transition">
+              + Outros 2 (opcional)
+            </button>
           </div>
-          <input type="text" id="cad-cpf" inputmode="numeric" maxlength="14" required placeholder="000.000.000-00" oninput="formatarCpfInput(this)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-emerald-500">
-        </div>
-
-        <div class="space-y-1">
-          <label class="text-slate-300 font-medium">Celular</label>
-          <input type="tel" id="cad-celular" required placeholder="(48) 9 9999-9999" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
-        </div>
-
-        <div class="space-y-1">
-          <label class="text-slate-300 font-medium">Endereço (opcional)</label>
-          <input type="text" id="cad-endereco" placeholder="Rua, bairro, Laguna - SC" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          <input type="text" id="emerg-1-nome" required placeholder="Nome do contato de emergência" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          <input type="tel" id="emerg-1-fone" required placeholder="(48) 9 9999-9999" oninput="formatarTelefoneInput(this); validarFormularioCadastro();" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          <p id="resumo-emerg-extra" class="hidden text-[10px] text-emerald-400"></p>
         </div>
 
         <!-- SENHA (MÍN. 8 CARACTERES + LETRA E NÚMERO + SÍMBOLOS LIVRES + BARRA DE FORÇA) -->
         <div class="space-y-1.5">
           <div class="flex items-center justify-between gap-2">
-            <label class="text-slate-300 font-medium">Senha</label>
+            <label class="text-slate-300 font-medium">Senha <span class="text-emerald-400">*</span></label>
             <span id="aviso-senha-regra" class="text-[10px] text-amber-400 font-medium text-right">
               Mín. 8 • Letra e número
             </span>
           </div>
-          <input type="password" id="cad-senha" minlength="8" required placeholder="Mín. 8 caracteres (letra e número)" oninput="atualizarStatusSenha()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          <input type="password" id="cad-senha" minlength="8" required placeholder="Mín. 8 caracteres (letra e número)" oninput="atualizarStatusSenha(); validarFormularioCadastro();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
           <p class="text-[10px] text-slate-500">Você pode digitar quantos caracteres quiser e usar símbolos livremente.</p>
 
           <!-- BARRA DE FORÇA DA SENHA -->
@@ -118,42 +130,84 @@
         <!-- CONFIRMAR SENHA (DIGITAR DUAS VEZES) -->
         <div class="space-y-1">
           <div class="flex items-center justify-between gap-2">
-            <label class="text-slate-300 font-medium">Confirmar senha</label>
+            <label class="text-slate-300 font-medium">Confirmar senha <span class="text-emerald-400">*</span></label>
             <span id="aviso-confirma-senha" class="text-[10px] text-slate-400">Digite novamente</span>
           </div>
-          <input type="password" id="cad-senha-confirmar" minlength="8" required placeholder="Repita a senha para confirmar" oninput="atualizarStatusSenha()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          <input type="password" id="cad-senha-confirmar" minlength="8" required placeholder="Repita a senha para confirmar" oninput="atualizarStatusSenha(); validarFormularioCadastro();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
         </div>
 
-        <!-- CAPTURA FACIAL (FOTO DE PERFIL) -->
+        <!-- CAPTURA FACIAL (FOTO DE PERFIL OBRIGATÓRIA) -->
         <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
           <div class="flex items-center justify-between">
             <span class="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
-              <i class="fa-solid fa-camera"></i> Reconhecimento Facial
+              <i class="fa-solid fa-camera"></i> Reconhecimento Facial <span class="text-emerald-400">*</span>
             </span>
             <button type="button" onclick="abrirCamera('cad')" class="bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition">
               Abrir Câmera
             </button>
           </div>
 
-          <div class="relative w-full h-36 bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+          <div class="relative w-full h-44 bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
             <video id="cad-video" autoplay playsinline class="hidden w-full h-full object-cover scale-x-[-1]"></video>
             <img id="cad-preview" class="hidden w-full h-full object-cover" alt="Foto do rosto">
             <div id="cad-placeholder" class="text-center text-slate-500 text-[11px] px-3">
               <i class="fa-solid fa-face-smile text-xl mb-1 block"></i>
               Capture seu rosto para definir sua foto de perfil
             </div>
-            <div class="pointer-events-none absolute inset-3 border-2 border-dashed border-emerald-500/40 rounded-full"></div>
+
+            <!-- SILHUETA CENTRALIZADA DE CABEÇA E OMBROS -->
+            <svg viewBox="0 0 200 160" class="pointer-events-none absolute inset-0 w-full h-full" aria-hidden="true">
+              <ellipse cx="100" cy="64" rx="28" ry="36" fill="none" stroke="#10b981" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.8" />
+              <path d="M 42 152 C 46 118, 70 108, 100 108 C 130 108, 154 118, 158 152" fill="none" stroke="#10b981" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.8" />
+            </svg>
           </div>
+
+          <p id="status-rosto-cad" class="text-[10px] text-slate-400 text-center">
+            Rosto obrigatório para liberar o cadastro
+          </p>
 
           <button type="button" id="btn-capturar-cad" onclick="capturarRosto('cad')" class="hidden w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 rounded-xl transition text-[11px]">
             Capturar Rosto
           </button>
         </div>
 
-        <button type="submit" id="btn-cadastrar" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
+        <button type="submit" id="btn-cadastrar" disabled class="w-full bg-emerald-600 disabled:bg-slate-700 disabled:text-slate-400 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
           Concluir Cadastro
         </button>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: CONTATOS DE EMERGÊNCIA EXTRAS (OPCIONAIS: 2 E 3) -->
+  <div id="modal-emergencia-extra" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-sm font-extrabold text-white">Contatos de Emergência (Opcional)</h3>
+          <p class="text-[10px] text-slate-400">Adicione até mais 2 contatos se desejar</p>
+        </div>
+        <button type="button" onclick="fecharModalEmergenciaExtra()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
+          <span class="text-[11px] font-bold text-slate-300">Contato de emergência 2 (opcional)</span>
+          <input type="text" id="emerg-2-nome" placeholder="Nome do contato 2" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          <input type="tel" id="emerg-2-fone" placeholder="(48) 9 9999-9999" oninput="formatarTelefoneInput(this)" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
+          <span class="text-[11px] font-bold text-slate-300">Contato de emergência 3 (opcional)</span>
+          <input type="text" id="emerg-3-nome" placeholder="Nome do contato 3" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          <input type="tel" id="emerg-3-fone" placeholder="(48) 9 9999-9999" oninput="formatarTelefoneInput(this)" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <button type="button" onclick="salvarContatosEmergenciaExtra()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition">
+          Salvar Contatos
+        </button>
+      </div>
     </div>
   </div>
 
@@ -177,13 +231,17 @@
         <span id="texto-erro-verif">Erro na verificação.</span>
       </div>
 
-      <div class="relative w-full h-40 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center">
+      <div class="relative w-full h-44 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center">
         <video id="verif-video" autoplay playsinline class="hidden w-full h-full object-cover scale-x-[-1]"></video>
         <img id="verif-preview" class="hidden w-full h-full object-cover" alt="Verificação facial">
         <div id="verif-placeholder" class="text-center text-slate-500 text-[11px] px-3">
           <i class="fa-solid fa-camera text-xl mb-1 block"></i>
-          Posicione o rosto na câmera
+          Posicione o rosto na silhueta
         </div>
+        <svg viewBox="0 0 200 160" class="pointer-events-none absolute inset-0 w-full h-full" aria-hidden="true">
+          <ellipse cx="100" cy="64" rx="28" ry="36" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.8" />
+          <path d="M 42 152 C 46 118, 70 108, 100 108 C 130 108, 154 118, 158 152" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.8" />
+        </svg>
       </div>
 
       <div class="flex gap-2 text-xs">
@@ -214,6 +272,7 @@
     let fotoVerificacaoDataUrl = null;
     let usuarioPendenteFacial = null;
     let tokenPendenteFacial = null;
+    let contatosEmergenciaExtras = [];
 
     function mostrarErro(mensagem) {
       const box = document.getElementById('box-erro');
@@ -249,19 +308,26 @@
       }
 
       input.value = formatado;
+    }
 
-      const avisoCpf = document.getElementById('aviso-cpf');
-      if (!avisoCpf) return;
-
+    function formatarTelefoneInput(input) {
+      const digitos = input.value.replace(/\D/g, '').slice(0, 11);
       if (digitos.length === 0) {
-        avisoCpf.innerText = '11 dígitos (000.000.000-00)';
-        avisoCpf.className = 'text-[10px] text-slate-400';
-      } else if (digitos.length < 11) {
-        avisoCpf.innerText = `${digitos.length}/11 dígitos`;
-        avisoCpf.className = 'text-[10px] text-amber-400 font-medium';
+        input.value = '';
+        return;
+      }
+      if (digitos.length <= 2) {
+        input.value = `(${digitos}`;
+        return;
+      }
+      const ddd = digitos.slice(0, 2);
+      const resto = digitos.slice(2);
+      if (resto.length <= 4) {
+        input.value = `(${ddd}) ${resto}`;
+      } else if (resto.length <= 8) {
+        input.value = `(${ddd}) ${resto.slice(0, resto.length - 4)}-${resto.slice(resto.length - 4)}`;
       } else {
-        avisoCpf.innerText = '11 dígitos OK';
-        avisoCpf.className = 'text-[10px] text-emerald-400 font-bold';
+        input.value = `(${ddd}) ${resto.slice(0, 1)} ${resto.slice(1, 5)}-${resto.slice(5, 9)}`;
       }
     }
 
@@ -319,14 +385,10 @@
         regraEl.innerText = 'Mín. 8 • Letra e número';
         regraEl.className = 'text-[10px] text-amber-400 font-medium text-right';
       } else if (analise.valida) {
-        regraEl.innerText = `Mín. 8 OK (${senha.length} car.) • Letra e número`;
+        regraEl.innerText = 'Mín. 8 • Letra e número OK';
         regraEl.className = 'text-[10px] text-emerald-400 font-bold text-right';
       } else {
-        const faltas = [];
-        if (!analise.temTamanhoMinimo) faltas.push(`mín. 8 (${senha.length}/8)`);
-        if (!analise.temLetra) faltas.push('letra');
-        if (!analise.temNumero) faltas.push('número');
-        regraEl.innerText = `Falta: ${faltas.join(' + ')}`;
+        regraEl.innerText = 'Mín. 8 • Letra e número';
         regraEl.className = 'text-[10px] text-red-400 font-medium text-right';
       }
 
@@ -342,6 +404,32 @@
       }
     }
 
+    function validarFormularioCadastro() {
+      const nome = document.getElementById('cad-nome').value.trim();
+      const cpfDigitos = document.getElementById('cad-cpf').value.replace(/\D/g, '');
+      const celDigitos = document.getElementById('cad-celular').value.replace(/\D/g, '');
+      const endereco = document.getElementById('cad-endereco').value.trim();
+      const emerg1Nome = document.getElementById('emerg-1-nome').value.trim();
+      const emerg1FoneDigitos = document.getElementById('emerg-1-fone').value.replace(/\D/g, '');
+      const senha = document.getElementById('cad-senha').value;
+      const confSenha = document.getElementById('cad-senha-confirmar').value;
+      const senhaOk = validarSenhaRegras(senha).valida && senha === confSenha;
+
+      const tudoOk = Boolean(
+        nome &&
+        cpfDigitos.length === 11 &&
+        celDigitos.length >= 10 &&
+        endereco &&
+        emerg1Nome &&
+        emerg1FoneDigitos.length >= 10 &&
+        senhaOk &&
+        fotoCadastroDataUrl
+      );
+
+      document.getElementById('btn-cadastrar').disabled = !tudoOk;
+      return tudoOk;
+    }
+
     function pararCamera() {
       if (streamAtivo) {
         streamAtivo.getTracks().forEach(track => track.stop());
@@ -353,19 +441,53 @@
       document.getElementById('box-erro').classList.add('hidden');
       document.getElementById('box-erro-modal').classList.add('hidden');
       document.getElementById('form-cadastro-modal').reset();
+      contatosEmergenciaExtras = [];
+      document.getElementById('resumo-emerg-extra').classList.add('hidden');
       fotoCadastroDataUrl = null;
       document.getElementById('cad-preview').classList.add('hidden');
       document.getElementById('cad-video').classList.add('hidden');
       document.getElementById('btn-capturar-cad').classList.add('hidden');
       document.getElementById('cad-placeholder').classList.remove('hidden');
-      formatarCpfInput(document.getElementById('cad-cpf'));
+      document.getElementById('status-rosto-cad').innerText = 'Rosto obrigatório para liberar o cadastro';
+      document.getElementById('status-rosto-cad').className = 'text-[10px] text-slate-400 text-center';
       atualizarStatusSenha();
+      validarFormularioCadastro();
       document.getElementById('modal-cadastro-passageiro').classList.remove('hidden');
     }
 
     function fecharModalCadastro() {
       pararCamera();
+      document.getElementById('modal-emergencia-extra').classList.add('hidden');
       document.getElementById('modal-cadastro-passageiro').classList.add('hidden');
+    }
+
+    function abrirModalEmergenciaExtra() {
+      document.getElementById('modal-emergencia-extra').classList.remove('hidden');
+    }
+
+    function fecharModalEmergenciaExtra() {
+      document.getElementById('modal-emergencia-extra').classList.add('hidden');
+    }
+
+    function salvarContatosEmergenciaExtra() {
+      const extras = [];
+      const n2 = document.getElementById('emerg-2-nome').value.trim();
+      const f2 = document.getElementById('emerg-2-fone').value.trim();
+      const n3 = document.getElementById('emerg-3-nome').value.trim();
+      const f3 = document.getElementById('emerg-3-fone').value.trim();
+
+      if (n2 || f2) extras.push({ nome: n2, telefone: f2 });
+      if (n3 || f3) extras.push({ nome: n3, telefone: f3 });
+
+      contatosEmergenciaExtras = extras;
+      const resumoEl = document.getElementById('resumo-emerg-extra');
+      if (extras.length > 0) {
+        resumoEl.innerText = `${extras.length} contato(s) extra(s) adicionado(s)`;
+        resumoEl.classList.remove('hidden');
+      } else {
+        resumoEl.classList.add('hidden');
+      }
+      fecharModalEmergenciaExtra();
     }
 
     function fecharModalVerificacao() {
@@ -395,6 +517,9 @@
         placeholder.classList.add('hidden');
         video.classList.remove('hidden');
         btnCapturar.classList.remove('hidden');
+        if (contexto === 'cad') {
+          document.getElementById('status-rosto-cad').innerText = 'Alinhe seu rosto dentro da silhueta e clique em Capturar Rosto';
+        }
       } catch (err) {
         const msg = 'Não foi possível acessar a câmera: ' + err.message;
         if (contexto === 'cad') mostrarErroModal(msg);
@@ -402,7 +527,20 @@
       }
     }
 
-    function capturarRosto(contexto) {
+    async function detectarRostoNoCanvas(canvas) {
+      if ('FaceDetector' in window) {
+        try {
+          const detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 3 });
+          const faces = await detector.detect(canvas);
+          return faces && faces.length > 0;
+        } catch (_) {
+          return true;
+        }
+      }
+      return true;
+    }
+
+    async function capturarRosto(contexto) {
       const video = document.getElementById(`${contexto}-video`);
       const canvas = document.getElementById('canvas-rosto');
       const preview = document.getElementById(`${contexto}-preview`);
@@ -419,15 +557,36 @@
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       ctx.restore();
 
+      const temRosto = await detectarRostoNoCanvas(canvas);
+      if (!temRosto) {
+        const msg = 'Nenhum rosto detectado na silhueta. Ajuste sua posição e tente novamente.';
+        if (contexto === 'cad') {
+          mostrarErroModal(msg);
+          document.getElementById('status-rosto-cad').innerText = 'Rosto não detectado';
+          document.getElementById('status-rosto-cad').className = 'text-[10px] text-red-400 font-bold text-center';
+        } else {
+          mostrarErroVerif(msg);
+        }
+        return;
+      }
+
       const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-      if (contexto === 'cad') fotoCadastroDataUrl = dataUrl;
-      else fotoVerificacaoDataUrl = dataUrl;
+      if (contexto === 'cad') {
+        document.getElementById('box-erro-modal').classList.add('hidden');
+        fotoCadastroDataUrl = dataUrl;
+        document.getElementById('status-rosto-cad').innerText = 'Rosto capturado com sucesso';
+        document.getElementById('status-rosto-cad').className = 'text-[10px] text-emerald-400 font-bold text-center';
+      } else {
+        document.getElementById('box-erro-verif').classList.add('hidden');
+        fotoVerificacaoDataUrl = dataUrl;
+      }
 
       preview.src = dataUrl;
       preview.classList.remove('hidden');
       video.classList.add('hidden');
       btnCapturar.classList.add('hidden');
       pararCamera();
+      if (contexto === 'cad') validarFormularioCadastro();
     }
 
     function chaveFacialUsuario(userId) {
@@ -476,35 +635,19 @@
       e.preventDefault();
       document.getElementById('box-erro-modal').classList.add('hidden');
 
+      if (!validarFormularioCadastro()) {
+        mostrarErroModal('Preencha todos os campos obrigatórios e capture seu rosto.');
+        return;
+      }
+
       const nome = document.getElementById('cad-nome').value.trim();
       const cpfFormatado = document.getElementById('cad-cpf').value.trim();
-      const cpfDigitos = cpfFormatado.replace(/\D/g, '');
       const cel = document.getElementById('cad-celular').value.trim();
       const endereco = document.getElementById('cad-endereco').value.trim();
+      const emerg1Nome = document.getElementById('emerg-1-nome').value.trim();
+      const emerg1Fone = document.getElementById('emerg-1-fone').value.trim();
       const senha = document.getElementById('cad-senha').value;
-      const confirmarSenha = document.getElementById('cad-senha-confirmar').value;
       const btn = document.getElementById('btn-cadastrar');
-
-      if (cpfDigitos.length !== 11) {
-        mostrarErroModal('Informe um CPF válido com exatamente 11 dígitos.');
-        return;
-      }
-
-      const analiseSenha = validarSenhaRegras(senha);
-      if (!analiseSenha.valida) {
-        mostrarErroModal('A senha deve ter no mínimo 8 caracteres, com letras e números.');
-        return;
-      }
-
-      if (senha !== confirmarSenha) {
-        mostrarErroModal('A confirmação de senha não coincide. Corrija para continuar.');
-        return;
-      }
-
-      if (!fotoCadastroDataUrl) {
-        mostrarErroModal('Capture seu rosto para definir sua foto de perfil.');
-        return;
-      }
 
       btn.innerText = 'Cadastrando...';
       btn.disabled = true;
@@ -527,7 +670,7 @@
             nome,
             cpf: cpfFormatado,
             telefone: cel,
-            endereco: endereco || null,
+            endereco,
             senha,
             foto_url: fotoCadastroDataUrl,
             status: 'ativo',
@@ -541,13 +684,22 @@
           throw new Error(error?.message || 'Erro ao criar conta.');
         }
 
+        const todosContatosEmergencia = [
+          { nome: emerg1Nome, telefone: emerg1Fone, obrigatorio: true },
+          ...contatosEmergenciaExtras
+        ];
+        localStorage.setItem(
+          `mobiurb_emergencia_${novoUsuario.id}`,
+          JSON.stringify(todosContatosEmergencia)
+        );
+
         pararCamera();
         const sessionToken = 'sessao_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
         await finalizarSessaoPassageiro(novoUsuario, sessionToken);
       } catch (err) {
         mostrarErroModal(err.message || 'Erro ao realizar cadastro.');
         btn.innerText = 'Concluir Cadastro';
-        btn.disabled = false;
+        validarFormularioCadastro();
       }
     }
 
