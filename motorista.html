@@ -1263,14 +1263,9 @@
           return;
         }
 
-        if (notaSelecionada < 5) {
-          await supabaseClient.from('mensagens_suporte_app').insert([{
-            usuario_id: String(corridaAtiva.passageiro_id),
-            mensagem: `[Relato de Nota Baixa - Corrida #${corridaAtiva.id}] Nota atribuída ao passageiro: ${notaSelecionada} estrelas. Motivo: ${motivo}`,
-            remetente: 'motorista',
-            lido: false
-          }]);
-        }
+        // REMOVIDO: O envio automático para a tabela de chat do passageiro (mensagens_suporte_app) 
+        // foi totalmente suprimido. A avaliação e o motivo ficam salvos apenas na tabela "corridas", 
+        // aparecendo exclusivamente na seção de Chamados e Avaliações do painel administrativo.
 
         await recalcularNotaMediaPassageiro(corridaAtiva.passageiro_id);
 
