@@ -1,4 +1,4 @@
-// admin_shared.js (v9)
+// admin_shared.js (v11)
 const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -10,6 +10,7 @@ function obterSenhaMestre() {
 
 let listaUsuariosCache = [];
 let usuarioModalAtual = null;
+const blobUrlCacheAdmin = {};
 
 function normalizarStatusConta(status) {
   const s = String(status || '').toLowerCase().trim();
@@ -28,6 +29,143 @@ function ehPerfilMotoristaAdmin(user) {
     user.veiculo2_modelo ||
     user.veiculo2_placa
   );
+}
+
+function temSegundoVeiculoCadastrado(user) {
+  if (!user) return false;
+  return Boolean(
+    user.veiculo2_marca ||
+    user.veiculo2_modelo ||
+    user.veiculo2_cor ||
+    user.veiculo2_ano ||
+    user.veiculo2_placa ||
+    user.veiculo2_documento_url
+  );
+}
+
+function filtrarUsuariosPorSetorAdmin(lista, setor) {
+  const arr = Array.isArray(lista) ? lista : [];
+  if (!setor || setor === 'todos') return arr;
+
+  if (setor === 'online') {
+    return arr.filter(u => u.online === true && normalizarStatusConta(u.status) === 'aprovado');
+  }
+  if (setor === 'analise' || setor === 'pendente') {
+    return arr.filter(u => normalizarStatusConta(u.status) === 'pendente');
+  }
+  if (setor === 'bloqueados' || setor === 'bloqueado') {
+    return arr.filter(u => normalizarStatusConta(u.status) === 'bloqueado');
+  }
+  if (setor === 'segundo_carro') {
+    return arr.filter(u =>
+      ehPerfilMotoristaAdmin(u) &&
+      temSegundoVeiculoCadastrado(u) &&
+      String(u.veiculo2_status || 'pendente').toLowerCase() === 'pendente'
+    );
+  }
+  return arr.filter(u => normalizarStatusConta(u.status) === normalizarStatusConta(setor));
+}
+
+// Converte data URL / base64 em Blob URL segura para evitar página em branco ao abrir externamente
+function obterUrlSeguraDocumentoAdmin(url, chaveCache) {
+  if (!url) return '';
+  const str = String(url).trim();
+  if (!str.startsWith('data:')) return str;
+
+  if (chaveCache && blobUrlCacheAdmin[chaveCache]) {
+    return blobUrlCacheAdmin[chaveCache];
+  }
+
+  try {
+    const partes = str.split(',');
+    const meta = partes[0] || '';
+    const base64 = partes[1] || '';
+    const mimeMatch = meta.match(/data:([^;]+);base64/i);
+    const mimeType = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+    const binStr = atob(base64);
+    const len = binStr.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binStr.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: mimeType });
+    const blobUrl = URL.createObjectURL(blob);
+    if (chaveCache) blobUrlCacheAdmin[chaveCache] = blobUrl;
+    return blobUrl;
+  } catch (e) {
+    return str;
+  }
+}
+
+function abrirDocumentoExternamenteAdmin(qualVeiculo) {
+  if (!usuarioModalAtual) return;
+  const isV2 = qualVeiculo === 'v2';
+  const rawUrl = isV2 ? usuarioModalAtual.veiculo2_documento_url : usuarioModalAtual.documento_identificacao_url;
+  const nomeArq = isV2
+    ? (usuarioModalAtual.veiculo2_documento_nome || 'crlv_veiculo_2')
+    : (usuarioModalAtual.documento_identificacao_nome || 'crlv_veiculo_1');
+
+  if (!rawUrl) {
+    mostrarAlertaModal("Nenhum arquivo de CRLV encontrado para este veículo.", "erro");
+    return;
+  }
+
+  const safeUrl = obterUrlSeguraDocumentoAdmin(rawUrl, `${usuarioModalAtual.id}_${qualVeiculo}`);
+  const win = window.open(safeUrl, '_blank', 'noopener,noreferrer');
+  if (!win) {
+    const a = document.createElement('a');
+    a.href = safeUrl;
+    a.download = nomeArq;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+}
+
+function ampliarPreviaDocumentoAdmin(qualVeiculo) {
+  if (!usuarioModalAtual) return;
+  const isV2 = qualVeiculo === 'v2';
+  const rawUrl = isV2 ? usuarioModalAtual.veiculo2_documento_url : usuarioModalAtual.documento_identificacao_url;
+  const nomeArq = isV2
+    ? (usuarioModalAtual.veiculo2_documento_nome || 'CRLV do 2º Veículo')
+    : (usuarioModalAtual.documento_identificacao_nome || 'CRLV do 1º Veículo');
+
+  if (!rawUrl) return;
+
+  const safeUrl = obterUrlSeguraDocumentoAdmin(rawUrl, `${usuarioModalAtual.id}_${qualVeiculo}`);
+  const box = document.getElementById('modal-previa-ampliada');
+  const titulo = document.getElementById('previa-ampliada-titulo');
+  const img = document.getElementById('previa-ampliada-img');
+  const frame = document.getElementById('previa-ampliada-frame');
+  const btnExt = document.getElementById('previa-ampliada-btn-externo');
+
+  titulo.innerText = nomeArq;
+  btnExt.onclick = () => abrirDocumentoExternamenteAdmin(qualVeiculo);
+
+  const isImagem = String(rawUrl).startsWith('data:image/') || /\.(png|jpe?g|webp|gif)(\?|$)/i.test(String(rawUrl));
+  if (isImagem) {
+    img.src = safeUrl;
+    img.classList.remove('hidden');
+    frame.classList.add('hidden');
+    frame.src = '';
+  } else {
+    frame.src = safeUrl;
+    frame.classList.remove('hidden');
+    img.classList.add('hidden');
+    img.src = '';
+  }
+
+  box.classList.remove('hidden');
+}
+
+function fecharPreviaDocumentoAdmin() {
+  const box = document.getElementById('modal-previa-ampliada');
+  const img = document.getElementById('previa-ampliada-img');
+  const frame = document.getElementById('previa-ampliada-frame');
+  if (img) { img.src = ''; img.classList.add('hidden'); }
+  if (frame) { frame.src = ''; frame.classList.add('hidden'); }
+  if (box) box.classList.add('hidden');
 }
 
 // Injeta Layout Base (Login, Header, Navegação e Modais)
@@ -70,7 +208,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <i class="fa-solid fa-shield-halved text-base"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v9</span></h1>
+          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v11</span></h1>
           <p class="text-[10px] text-slate-400">Gestão Avançada e Suporte</p>
         </div>
       </a>
@@ -190,15 +328,22 @@ function inicializarLayoutAdmin(paginaAtiva) {
             </div>
           </div>
 
-          <!-- ABA VEÍCULOS (EXCLUSIVA PARA MOTORISTA) -->
+          <!-- ABA VEÍCULOS (EXCLUSIVA PARA MOTORISTA, COM SUB-ABAS VEÍCULO 1 E VEÍCULO 2) -->
           <div id="modal-conteudo-veiculos" class="space-y-3 hidden">
-            <!-- 1º VEÍCULO + CRLV -->
-            <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+            <div class="grid grid-cols-2 gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px]">
+              <button type="button" onclick="mudarSubAbaVeiculoModal('v1')" id="subtab-v1" class="py-2 px-2 rounded-lg font-bold bg-emerald-600 text-white transition">
+                <i class="fa-solid fa-car mr-1"></i> Veículo 1
+              </button>
+              <button type="button" onclick="mudarSubAbaVeiculoModal('v2')" id="subtab-v2" class="py-2 px-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition hidden">
+                <i class="fa-solid fa-car-side mr-1"></i> Veículo 2
+              </button>
+            </div>
+
+            <!-- SUB-ABA VEÍCULO 1 -->
+            <div id="conteudo-subtab-v1" class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2.5">
               <div class="flex items-center justify-between">
-                <span class="text-[11px] font-extrabold text-emerald-400 uppercase">
-                  <i class="fa-solid fa-car mr-1"></i> 1º Veículo Cadastrado
-                </span>
-                <span class="text-[10px] text-slate-400">Base da Conta</span>
+                <span class="text-[11px] font-extrabold text-emerald-400 uppercase">Dados do 1º Veículo (CRLV)</span>
+                <span class="text-[10px] text-slate-400">Conta Principal</span>
               </div>
               <div class="grid grid-cols-2 gap-2 text-[11px]">
                 <div><span class="text-slate-400">Marca:</span> <strong id="v1-marca" class="text-white">-</strong></div>
@@ -207,81 +352,77 @@ function inicializarLayoutAdmin(paginaAtiva) {
                 <div><span class="text-slate-400">Ano / Placa:</span> <strong id="v1-ano-placa" class="text-white font-mono">-</strong></div>
               </div>
               <div class="pt-2 border-t border-slate-800/80 space-y-2">
-                <div class="flex items-center justify-between text-[10px]">
-                  <span class="text-slate-400">CRLV (1º Carro): <strong id="v1-doc-nome" class="text-slate-200 font-mono">-</strong></span>
-                  <a id="v1-doc-link" href="#" target="_blank" rel="noopener" class="hidden text-emerald-400 hover:underline font-bold">Abrir CRLV</a>
+                <div class="flex items-center justify-between gap-2 text-[10px]">
+                  <span class="text-slate-400 truncate">CRLV (1º Carro): <strong id="v1-doc-nome" class="text-slate-200 font-mono">-</strong></span>
+                  <button type="button" id="v1-doc-btn-ext" onclick="abrirDocumentoExternamenteAdmin('v1')" class="hidden shrink-0 bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2.5 py-1 rounded-lg font-bold border border-slate-700">
+                    <i class="fa-solid fa-up-right-from-square mr-1"></i> Abrir Original Externo
+                  </button>
                 </div>
-                <img id="v1-doc-img" src="" alt="CRLV 1º carro" class="hidden w-full max-h-40 object-contain rounded-xl border border-slate-800 bg-slate-900">
+                <img id="v1-doc-img" src="" alt="CRLV 1º carro" onclick="ampliarPreviaDocumentoAdmin('v1')" title="Clique para ampliar prévia no modal" class="hidden w-full max-h-44 object-contain rounded-xl border border-slate-800 bg-slate-900 cursor-zoom-in">
               </div>
             </div>
 
-            <!-- 2º VEÍCULO + CRLV + MODIFICAÇÃO + APROVAÇÃO/RECUSA -->
-            <div class="bg-slate-950 p-3.5 rounded-2xl border border-amber-500/30 space-y-3">
+            <!-- SUB-ABA VEÍCULO 2 (EXIBIDA QUANDO HÁ 2º VEÍCULO CADASTRADO) -->
+            <div id="conteudo-subtab-v2" class="bg-slate-950 p-3.5 rounded-2xl border border-amber-500/30 space-y-3 hidden">
               <div class="flex items-center justify-between gap-2">
-                <span class="text-[11px] font-extrabold text-amber-400 uppercase">
-                  <i class="fa-solid fa-car-side mr-1"></i> 2º Veículo (Análise / CRLV)
-                </span>
+                <span class="text-[11px] font-extrabold text-amber-400 uppercase">2º Veículo • Análise CRLV</span>
                 <span id="v2-status-badge" class="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300">pendente</span>
               </div>
 
-              <p id="v2-sem-cadastro-aviso" class="text-[11px] text-slate-400 hidden">
-                Nenhum 2º veículo cadastrado para este motorista no momento.
-              </p>
-
-              <div id="v2-campos-edicao" class="space-y-2.5">
-                <div class="grid grid-cols-2 gap-2">
-                  <div class="space-y-1">
-                    <label class="text-slate-300 text-[10px] font-medium">Marca (2º Carro)</label>
-                    <input type="text" id="edit-v2-marca" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
-                  </div>
-                  <div class="space-y-1">
-                    <label class="text-slate-300 text-[10px] font-medium">Modelo (2º Carro)</label>
-                    <input type="text" id="edit-v2-modelo" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2">
-                  <div class="space-y-1">
-                    <label class="text-slate-300 text-[10px] font-medium">Cor</label>
-                    <input type="text" id="edit-v2-cor" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
-                  </div>
-                  <div class="space-y-1">
-                    <label class="text-slate-300 text-[10px] font-medium">Ano</label>
-                    <input type="text" id="edit-v2-ano" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
-                  </div>
-                  <div class="space-y-1">
-                    <label class="text-slate-300 text-[10px] font-medium">Placa</label>
-                    <input type="text" id="edit-v2-placa" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 uppercase text-slate-100 text-[11px]">
-                  </div>
-                </div>
-
+              <div class="grid grid-cols-2 gap-2">
                 <div class="space-y-1">
-                  <label class="text-slate-300 text-[10px] font-medium">Status do 2º Veículo</label>
-                  <select id="edit-v2-status" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
-                    <option value="pendente">pendente (em análise)</option>
-                    <option value="aprovado">aprovado</option>
-                    <option value="recusado">recusado</option>
-                  </select>
+                  <label class="text-slate-300 text-[10px] font-medium">Marca (2º Carro)</label>
+                  <input type="text" id="edit-v2-marca" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
                 </div>
+                <div class="space-y-1">
+                  <label class="text-slate-300 text-[10px] font-medium">Modelo (2º Carro)</label>
+                  <input type="text" id="edit-v2-modelo" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
+                </div>
+              </div>
 
-                <!-- CONFERÊNCIA DO CRLV DO 2º VEÍCULO -->
-                <div class="pt-2 border-t border-slate-800 space-y-2">
-                  <div class="flex items-center justify-between text-[10px]">
-                    <span class="text-slate-300 font-bold">CRLV Enviado (2º Carro): <span id="v2-doc-nome" class="text-amber-300 font-mono">-</span></span>
-                    <a id="v2-doc-link" href="#" target="_blank" rel="noopener" class="hidden text-emerald-400 hover:underline font-bold">Abrir CRLV</a>
-                  </div>
-                  <img id="v2-doc-img" src="" alt="CRLV 2º carro" class="hidden w-full max-h-48 object-contain rounded-xl border border-slate-700 bg-slate-900">
+              <div class="grid grid-cols-3 gap-2">
+                <div class="space-y-1">
+                  <label class="text-slate-300 text-[10px] font-medium">Cor</label>
+                  <input type="text" id="edit-v2-cor" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
                 </div>
+                <div class="space-y-1">
+                  <label class="text-slate-300 text-[10px] font-medium">Ano</label>
+                  <input type="text" id="edit-v2-ano" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
+                </div>
+                <div class="space-y-1">
+                  <label class="text-slate-300 text-[10px] font-medium">Placa</label>
+                  <input type="text" id="edit-v2-placa" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 uppercase text-slate-100 text-[11px]">
+                </div>
+              </div>
 
-                <!-- AÇÕES RÁPIDAS PARA ACEITAR OU RECUSAR O 2º CARRO -->
-                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-                  <button type="button" onclick="decidirSegundoVeiculoAdmin('aprovado')" class="bg-emerald-600 hover:bg-emerald-500 text-white py-2 px-3 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-check"></i> Aprovar 2º Carro
-                  </button>
-                  <button type="button" onclick="decidirSegundoVeiculoAdmin('recusado')" class="bg-red-600/20 hover:bg-red-600/35 text-red-300 border border-red-500/40 py-2 px-3 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-xmark"></i> Recusar 2º Carro
+              <div class="space-y-1">
+                <label class="text-slate-300 text-[10px] font-medium">Status do CRLV / 2º Veículo</label>
+                <select id="edit-v2-status" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
+                  <option value="pendente">pendente (em análise)</option>
+                  <option value="aprovado">aprovado</option>
+                  <option value="recusado">recusado</option>
+                </select>
+              </div>
+
+              <!-- PRÉVIA E ABERTURA EXTERNA DO CRLV DO 2º VEÍCULO -->
+              <div class="pt-2 border-t border-slate-800 space-y-2">
+                <div class="flex items-center justify-between gap-2 text-[10px]">
+                  <span class="text-slate-300 font-bold truncate">CRLV (2º Carro): <span id="v2-doc-nome" class="text-amber-300 font-mono">-</span></span>
+                  <button type="button" id="v2-doc-btn-ext" onclick="abrirDocumentoExternamenteAdmin('v2')" class="hidden shrink-0 bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2.5 py-1 rounded-lg font-bold border border-slate-700">
+                    <i class="fa-solid fa-up-right-from-square mr-1"></i> Abrir Original Externo
                   </button>
                 </div>
+                <img id="v2-doc-img" src="" alt="CRLV 2º carro" onclick="ampliarPreviaDocumentoAdmin('v2')" title="Clique para ampliar prévia no modal" class="hidden w-full max-h-48 object-contain rounded-xl border border-slate-700 bg-slate-900 cursor-zoom-in">
+              </div>
+
+              <!-- APROVAR / RECUSAR DOCUMENTO E 2º CARRO (SEM ALTERAR STATUS DA CONTA) -->
+              <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
+                <button type="button" onclick="decidirSegundoVeiculoAdmin('aprovado')" class="bg-emerald-600 hover:bg-emerald-500 text-white py-2 px-3 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-check"></i> Aprovar CRLV / 2º Carro
+                </button>
+                <button type="button" onclick="decidirSegundoVeiculoAdmin('recusado')" class="bg-red-600/20 hover:bg-red-600/35 text-red-300 border border-red-500/40 py-2 px-3 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-xmark"></i> Recusar CRLV / 2º Carro
+                </button>
               </div>
             </div>
           </div>
@@ -319,8 +460,11 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <!-- ABA STATUS -->
           <div id="modal-conteudo-status" class="space-y-3 hidden">
             <div class="space-y-2 bg-slate-950 p-3 rounded-2xl border border-slate-800">
-              <label class="text-slate-300 font-bold block mb-1">Status da Conta</label>
-              <div class="grid grid-cols-3 gap-2">
+              <label class="text-slate-300 font-bold block">Status da Conta & Setor</label>
+              <p class="text-[10px] text-slate-400 leading-relaxed">
+                <strong>Ativo:</strong> uso liberado. <strong>Em Análise:</strong> bloqueio temporário no app e envio ao setor <em>Em Análise</em>. <strong>Bloqueado:</strong> bloqueio severo e envio ao setor <em>Bloqueados</em>.
+              </p>
+              <div class="grid grid-cols-3 gap-2 pt-1">
                 <button type="button" onclick="definirStatusModal('aprovado')" id="btn-status-ativo" class="py-2 rounded-xl font-bold bg-emerald-600/20 text-emerald-400 border border-emerald-500/30">Ativo</button>
                 <button type="button" onclick="definirStatusModal('pendente')" id="btn-status-analise" class="py-2 rounded-xl font-bold bg-slate-900 text-slate-400 border border-slate-800">Em Análise</button>
                 <button type="button" onclick="definirStatusModal('bloqueado')" id="btn-status-bloqueado" class="py-2 rounded-xl font-bold bg-slate-900 text-slate-400 border border-slate-800">Bloqueado</button>
@@ -345,6 +489,27 @@ function inicializarLayoutAdmin(paginaAtiva) {
             <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl">Salvar Alterações</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- PRÉVIA AMPLIADA DO DOCUMENTO / CRLV NO MODAL -->
+    <div id="modal-previa-ampliada" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-3xl p-4 space-y-3 shadow-2xl max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
+          <h4 id="previa-ampliada-titulo" class="font-extrabold text-white text-xs truncate">Prévia do Documento</h4>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" id="previa-ampliada-btn-externo" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl font-bold text-[11px]">
+              <i class="fa-solid fa-up-right-from-square mr-1"></i> Abrir Original Externo
+            </button>
+            <button type="button" onclick="fecharPreviaDocumentoAdmin()" class="text-slate-400 hover:text-white px-2">
+              <i class="fa-solid fa-xmark text-base"></i>
+            </button>
+          </div>
+        </div>
+        <div class="flex-1 overflow-auto flex items-center justify-center bg-slate-950 rounded-2xl p-2 border border-slate-800">
+          <img id="previa-ampliada-img" src="" alt="Prévia ampliada" class="hidden max-h-[68vh] w-auto object-contain rounded-xl">
+          <iframe id="previa-ampliada-frame" src="" class="hidden w-full h-[68vh] rounded-xl bg-white"></iframe>
+        </div>
       </div>
     </div>
 
@@ -497,7 +662,7 @@ function gerarCardAdmin(user) {
   else if (isPendente) badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-400">Em Análise</span>';
   else if (isOnline) badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Online</span>';
 
-  const temV2Pendente = isMotorista && (user.veiculo2_modelo || user.veiculo2_placa) && String(user.veiculo2_status || 'pendente').toLowerCase() === 'pendente';
+  const temV2Pendente = isMotorista && temSegundoVeiculoCadastrado(user) && String(user.veiculo2_status || 'pendente').toLowerCase() === 'pendente';
 
   return `
     <div class="bg-slate-900 p-4 rounded-2xl border ${isBloqueado ? 'border-red-500/40' : (temV2Pendente ? 'border-amber-500/50' : (isOnline ? 'border-emerald-500/40' : 'border-slate-800'))} space-y-3 shadow">
@@ -556,27 +721,43 @@ function mudarAbaModal(aba) {
   });
 }
 
-function preencherDocumentoCrlvAdmin(url, nome, linkElId, imgElId, nomeElId) {
-  const linkEl = document.getElementById(linkElId);
+function mudarSubAbaVeiculoModal(sub) {
+  const temV2 = temSegundoVeiculoCadastrado(usuarioModalAtual);
+  if (sub === 'v2' && !temV2) sub = 'v1';
+
+  document.getElementById('conteudo-subtab-v1').classList.toggle('hidden', sub !== 'v1');
+  document.getElementById('conteudo-subtab-v2').classList.toggle('hidden', sub !== 'v2' || !temV2);
+
+  document.getElementById('subtab-v1').className = sub === 'v1'
+    ? 'py-2 px-2 rounded-lg font-bold bg-emerald-600 text-white transition'
+    : 'py-2 px-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition';
+
+  const btnV2 = document.getElementById('subtab-v2');
+  btnV2.classList.toggle('hidden', !temV2);
+  btnV2.className = (sub === 'v2' && temV2)
+    ? 'py-2 px-2 rounded-lg font-bold bg-amber-600 text-white transition'
+    : 'py-2 px-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition' + (temV2 ? '' : ' hidden');
+}
+
+function preencherDocumentoCrlvAdmin(url, nome, btnExtId, imgElId, nomeElId, chaveCache) {
+  const btnExt = document.getElementById(btnExtId);
   const imgEl = document.getElementById(imgElId);
   const nomeEl = document.getElementById(nomeElId);
   if (nomeEl) nomeEl.innerText = nome || (url ? 'CRLV anexado' : 'Nenhum arquivo');
 
   if (url) {
-    if (linkEl) {
-      linkEl.href = url;
-      linkEl.classList.remove('hidden');
-    }
+    const safeUrl = obterUrlSeguraDocumentoAdmin(url, chaveCache);
+    if (btnExt) btnExt.classList.remove('hidden');
     if (imgEl) {
       if (String(url).startsWith('data:image/') || /\.(png|jpe?g|webp|gif)(\?|$)/i.test(String(url))) {
-        imgEl.src = url;
+        imgEl.src = safeUrl;
         imgEl.classList.remove('hidden');
       } else {
         imgEl.classList.add('hidden');
       }
     }
   } else {
-    if (linkEl) linkEl.classList.add('hidden');
+    if (btnExt) btnExt.classList.add('hidden');
     if (imgEl) imgEl.classList.add('hidden');
   }
 }
@@ -589,7 +770,7 @@ function preencherAbaVeiculosMotorista(user) {
   }
   if (!isMotorista) return;
 
-  // 1º Veículo + CRLV
+  // Veículo 1
   document.getElementById('v1-marca').innerText = user.veiculo_marca || '-';
   document.getElementById('v1-modelo').innerText = user.veiculo_modelo || '-';
   document.getElementById('v1-cor').innerText = user.veiculo_cor || '-';
@@ -597,16 +778,14 @@ function preencherAbaVeiculosMotorista(user) {
   preencherDocumentoCrlvAdmin(
     user.documento_identificacao_url,
     user.documento_identificacao_nome,
-    'v1-doc-link',
+    'v1-doc-btn-ext',
     'v1-doc-img',
-    'v1-doc-nome'
+    'v1-doc-nome',
+    `${user.id}_v1`
   );
 
-  // 2º Veículo + CRLV
-  const temV2 = Boolean(
-    user.veiculo2_marca || user.veiculo2_modelo || user.veiculo2_cor ||
-    user.veiculo2_ano || user.veiculo2_placa || user.veiculo2_documento_url
-  );
+  // Veículo 2
+  const temV2 = temSegundoVeiculoCadastrado(user);
   const statusV2 = String(user.veiculo2_status || 'pendente').toLowerCase();
   const badgeV2 = document.getElementById('v2-status-badge');
   badgeV2.innerText = statusV2;
@@ -618,9 +797,6 @@ function preencherAbaVeiculosMotorista(user) {
     badgeV2.className = 'text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300';
   }
 
-  document.getElementById('v2-sem-cadastro-aviso').classList.toggle('hidden', temV2);
-  document.getElementById('v2-campos-edicao').classList.toggle('hidden', !temV2);
-
   document.getElementById('edit-v2-marca').value = user.veiculo2_marca || '';
   document.getElementById('edit-v2-modelo').value = user.veiculo2_modelo || '';
   document.getElementById('edit-v2-cor').value = user.veiculo2_cor || '';
@@ -631,10 +807,13 @@ function preencherAbaVeiculosMotorista(user) {
   preencherDocumentoCrlvAdmin(
     user.veiculo2_documento_url,
     user.veiculo2_documento_nome,
-    'v2-doc-link',
+    'v2-doc-btn-ext',
     'v2-doc-img',
-    'v2-doc-nome'
+    'v2-doc-nome',
+    `${user.id}_v2`
   );
+
+  mudarSubAbaVeiculoModal(temV2 && statusV2 === 'pendente' ? 'v2' : 'v1');
 }
 
 async function decidirSegundoVeiculoAdmin(novoStatusV2) {
@@ -687,8 +866,8 @@ async function decidirSegundoVeiculoAdmin(novoStatusV2) {
   preencherAbaVeiculosMotorista(usuarioModalAtual);
   mostrarAlertaModal(
     novoStatusV2 === 'aprovado'
-      ? "2º veículo aprovado! O motorista já pode selecioná-lo com o app desligado."
-      : "2º veículo recusado.",
+      ? "CRLV / 2º veículo aprovado! Status da conta mantido sem bloqueio."
+      : "CRLV / 2º veículo recusado! Status da conta mantido sem bloqueio.",
     "sucesso"
   );
   atualizarDadosGlobais();
@@ -751,6 +930,7 @@ async function abrirModalEdicao(id) {
 }
 
 function fecharModalEdicao() {
+  fecharPreviaDocumentoAdmin();
   usuarioModalAtual = null;
   document.getElementById('modal-edicao').classList.add('hidden');
 }
@@ -908,6 +1088,7 @@ async function salvarEdicaoUsuario(e) {
   const id = document.getElementById('edit-id').value;
   const senhaTemp = document.getElementById('edit-senha-temp').value.trim();
   const statusEscolhido = normalizarStatusConta(document.getElementById('edit-status-valor').value);
+  const statusAnterior = usuarioModalAtual ? normalizarStatusConta(usuarioModalAtual.status) : statusEscolhido;
   const isMotorista = ehPerfilMotoristaAdmin(usuarioModalAtual);
 
   const atualizacao = {
@@ -923,8 +1104,7 @@ async function salvarEdicaoUsuario(e) {
     atualizacao.veiculo_modelo = document.getElementById('edit-veiculo-modelo').value;
     atualizacao.veiculo_placa = document.getElementById('edit-veiculo-placa').value.toUpperCase();
 
-    const temV2Visivel = !document.getElementById('v2-campos-edicao').classList.contains('hidden');
-    if (temV2Visivel) {
+    if (temSegundoVeiculoCadastrado(usuarioModalAtual)) {
       atualizacao.veiculo2_marca = (document.getElementById('edit-v2-marca').value || '').trim() || null;
       atualizacao.veiculo2_modelo = (document.getElementById('edit-v2-modelo').value || '').trim() || null;
       atualizacao.veiculo2_cor = (document.getElementById('edit-v2-cor').value || '').trim() || null;
@@ -936,7 +1116,7 @@ async function salvarEdicaoUsuario(e) {
 
   let { error } = await supabaseClient.from('usuarios').update(atualizacao).eq('id', id);
 
-  if (!error) {
+  if (!error && statusEscolhido !== statusAnterior) {
     const statusAprovacaoAlvo = statusEscolhido === 'aprovado' ? 'aprovado' : (statusEscolhido === 'bloqueado' ? 'bloqueado' : 'pendente');
     await supabaseClient.from('usuarios').update({ status_aprovacao: statusAprovacaoAlvo }).eq('id', id);
   }
