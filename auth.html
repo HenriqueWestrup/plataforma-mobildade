@@ -92,15 +92,16 @@
           <input type="text" id="cad-endereco" placeholder="Rua, bairro, Laguna - SC" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
         </div>
 
-        <!-- SENHA (LIMITE 8 DÍGITOS + LETRA E NÚMERO + BARRA DE FORÇA) -->
+        <!-- SENHA (MÍN. 8 CARACTERES + LETRA E NÚMERO + SÍMBOLOS LIVRES + BARRA DE FORÇA) -->
         <div class="space-y-1.5">
           <div class="flex items-center justify-between gap-2">
             <label class="text-slate-300 font-medium">Senha</label>
             <span id="aviso-senha-regra" class="text-[10px] text-amber-400 font-medium text-right">
-              8 dígitos • Letra e número
+              Mín. 8 • Letra e número
             </span>
           </div>
-          <input type="password" id="cad-senha" maxlength="8" required placeholder="Ex: Pass1234 (8 dígitos)" oninput="atualizarStatusSenha()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          <input type="password" id="cad-senha" minlength="8" required placeholder="Mín. 8 caracteres (letra e número)" oninput="atualizarStatusSenha()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          <p class="text-[10px] text-slate-500">Você pode digitar quantos caracteres quiser e usar símbolos livremente.</p>
 
           <!-- BARRA DE FORÇA DA SENHA -->
           <div class="space-y-1 pt-0.5">
@@ -120,7 +121,7 @@
             <label class="text-slate-300 font-medium">Confirmar senha</label>
             <span id="aviso-confirma-senha" class="text-[10px] text-slate-400">Digite novamente</span>
           </div>
-          <input type="password" id="cad-senha-confirmar" maxlength="8" required placeholder="Repita a senha de 8 dígitos" oninput="atualizarStatusSenha()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+          <input type="password" id="cad-senha-confirmar" minlength="8" required placeholder="Repita a senha para confirmar" oninput="atualizarStatusSenha()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
         </div>
 
         <!-- CAPTURA FACIAL (FOTO DE PERFIL) -->
@@ -265,23 +266,23 @@
     }
 
     function validarSenhaRegras(senha) {
-      const temTamanhoExato = senha.length === 8;
+      const temTamanhoMinimo = senha.length >= 8;
       const temLetra = /[A-Za-zÀ-ÿ]/.test(senha);
       const temNumero = /[0-9]/.test(senha);
       const temMaiuscula = /[A-ZÀ-Ý]/.test(senha);
-      const temEspecial = /[^A-Za-z0-9À-ÿ]/.test(senha);
+      const temSimbolo = /[^A-Za-z0-9À-ÿ]/.test(senha);
 
       let pontos = 0;
       if (senha.length >= 6) pontos += 1;
-      if (temTamanhoExato) pontos += 1;
+      if (temTamanhoMinimo) pontos += 1;
       if (temLetra && temNumero) pontos += 1;
-      if (temMaiuscula || temEspecial) pontos += 1;
+      if (senha.length >= 10 || temMaiuscula || temSimbolo) pontos += 1;
 
       let forca = { label: '—', width: '0%', corBarra: 'bg-slate-600', corTexto: 'text-slate-400' };
       if (senha.length > 0) {
-        if (pontos <= 1 || !(temLetra && temNumero)) {
+        if (!temTamanhoMinimo || !(temLetra && temNumero)) {
           forca = { label: 'Fraca', width: '33%', corBarra: 'bg-red-500', corTexto: 'text-red-400' };
-        } else if (pontos === 2 || !temTamanhoExato) {
+        } else if (pontos <= 3) {
           forca = { label: 'Média', width: '66%', corBarra: 'bg-amber-400', corTexto: 'text-amber-400' };
         } else {
           forca = { label: 'Forte', width: '100%', corBarra: 'bg-emerald-500', corTexto: 'text-emerald-400' };
@@ -289,8 +290,8 @@
       }
 
       return {
-        valida: temTamanhoExato && temLetra && temNumero,
-        temTamanhoExato,
+        valida: temTamanhoMinimo && temLetra && temNumero,
+        temTamanhoMinimo,
         temLetra,
         temNumero,
         forca
@@ -315,14 +316,14 @@
       textoForcaEl.className = `font-bold ${analise.forca.corTexto}`;
 
       if (!senha) {
-        regraEl.innerText = '8 dígitos • Letra e número';
+        regraEl.innerText = 'Mín. 8 • Letra e número';
         regraEl.className = 'text-[10px] text-amber-400 font-medium text-right';
       } else if (analise.valida) {
-        regraEl.innerText = '8 dígitos com letra e número OK';
+        regraEl.innerText = `Mín. 8 OK (${senha.length} car.) • Letra e número`;
         regraEl.className = 'text-[10px] text-emerald-400 font-bold text-right';
       } else {
         const faltas = [];
-        faltas.push(`${senha.length}/8 dígitos`);
+        if (!analise.temTamanhoMinimo) faltas.push(`mín. 8 (${senha.length}/8)`);
         if (!analise.temLetra) faltas.push('letra');
         if (!analise.temNumero) faltas.push('número');
         regraEl.innerText = `Falta: ${faltas.join(' + ')}`;
@@ -491,7 +492,7 @@
 
       const analiseSenha = validarSenhaRegras(senha);
       if (!analiseSenha.valida) {
-        mostrarErroModal('A senha deve ter exatamente 8 dígitos, misturando letras e números.');
+        mostrarErroModal('A senha deve ter no mínimo 8 caracteres, com letras e números.');
         return;
       }
 
