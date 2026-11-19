@@ -50,8 +50,10 @@
   <!-- TOPO DO APP -->
   <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0 z-40">
     <div class="flex items-center gap-3">
-      <button onclick="toggleMenuLateral()" class="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800 border border-slate-700">
+      <!-- BOTÃO MENU HAMBÚRGUER COM BADGE DE NOTIFICAÇÃO DE SUPORTE -->
+      <button onclick="toggleMenuLateral()" class="relative text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center">
         <i class="fa-solid fa-bars text-sm"></i>
+        <span id="badge-menu-hamburguer" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center shadow animate-pulse">0</span>
       </button>
       <div class="flex items-center gap-2">
         <div class="bg-amber-600/20 border border-amber-500/30 text-amber-400 p-2 rounded-xl">
@@ -62,7 +64,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v45</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v46</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -88,8 +90,12 @@
       <button onclick="carregarModulo('perfil')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <i class="fa-solid fa-user text-sky-400 w-5"></i> Meu Perfil
       </button>
-      <button onclick="abrirSuporteAssuntoMotorista('Suporte Geral')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
-        <i class="fa-solid fa-headset text-emerald-400 w-5"></i> Mensagens do Suporte
+      <!-- BOTÃO DE MENSAGENS DE SUPORTE NO MENU COM BADGE CONTADOR -->
+      <button onclick="abrirSuporteAssuntoMotorista('Suporte Geral')" class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-headset text-emerald-400 w-5"></i> Mensagens do Suporte
+        </div>
+        <span id="badge-menu-suporte" class="hidden bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold shadow">0</span>
       </button>
     </div>
 
@@ -349,7 +355,6 @@
       let diffY = touchStartY - touchEndY;
       let diffX = touchStartX - touchEndX;
 
-      // Gestos laterais (esquerda ou direita) para ocultar a notificação/gaveta
       if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY)) {
         ocultarNotificacaoMensagemLateral();
         return;
@@ -492,7 +497,7 @@
       
       await carregarModulo('radar');
       await verificarCorridaAtivaExistente();
-      await atualizarUltimaMensagemSuporteBarra();
+      await atualizarContadoresSuporteMenu();
 
       const estadoOnlineSalvo = localStorage.getItem('motorista_online');
       if (estadoOnlineSalvo === 'true') {
@@ -543,7 +548,7 @@
             } else {
               document.getElementById('banner-bloqueio').classList.add('hidden');
             }
-            atualizarUltimaMensagemSuporteBarra();
+            atualizarContadoresSuporteMenu();
             if (motoristaLogado.notificacao_suporte) {
               mostrarToastAdmin(motoristaLogado.notificacao_suporte, "aviso");
             }
@@ -557,7 +562,7 @@
       if (canalRealtimeSuporteMotorista) supabaseClient.removeChannel(canalRealtimeSuporteMotorista);
 
       canalRealtimeSuporteMotorista = supabaseClient
-        .channel('suporte_motorista_' + motoristaLogado.id)
+        .channel('suporte_motorista_v46_' + motoristaLogado.id)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
@@ -566,9 +571,7 @@
         }, payload => {
           if (payload.new && payload.new.remetente === 'admin') {
             tocarSomAlerta('mensagem_suporte');
-            atualizarUltimaMensagemSuporteBarra();
-            
-            // Exibir notificação automaticamente por 3 segundos caso esteja oculta
+            atualizarContadoresSuporteMenu();
             notificarNovaMensagemRecebida(payload.new.mensagem);
           }
         })
@@ -587,13 +590,11 @@
       blocoMsg.classList.remove('hidden');
       blocoMsg.classList.add('alerta-mensagem-animado');
 
-      // Se a gaveta estiver fechada, abre por 3 segundos
       if (!gavetaAberta) {
         setGavetaAberta(true);
         if (timerOcultarNotificacaoMensagemId) clearTimeout(timerOcultarNotificacaoMensagemId);
         
         timerOcultarNotificacaoMensagemId = setTimeout(() => {
-          // Se o usuário não abriu a gaveta manualmente para ler, oculta após 3s
           if (gavetaAberta) {
             setGavetaAberta(false);
           }
@@ -611,21 +612,40 @@
       mostrarToastAdmin("Notificação descartada.", "aviso");
     }
 
-    async function atualizarUltimaMensagemSuporteBarra() {
+    // ATUALIZAÇÃO DOS CONTADORES DO MENU HAMBÚRGUER E BOTÃO DE SUPORTE
+    async function atualizarContadoresSuporteMenu() {
       const blocoMsg = document.getElementById('bloco-notificacao-mensagem');
       const textoEl = document.getElementById('texto-ultima-mensagem-suporte');
+      const badgeMenuHamburguer = document.getElementById('badge-menu-hamburguer');
+      const badgeMenuSuporte = document.getElementById('badge-menu-suporte');
 
       try {
         const { data: msgs, error } = await supabaseClient
           .from('mensagens_suporte_app')
           .select('*')
           .eq('usuario_id', motoristaLogado.id)
-          .order('id', { ascending: false })
-          .limit(1);
+          .order('id', { ascending: false });
 
         if (error || !msgs || msgs.length === 0) {
           blocoMsg.classList.add('hidden');
+          badgeMenuHamburguer.classList.add('hidden');
+          badgeMenuSuporte.classList.add('hidden');
           return;
+        }
+
+        // Filtra mensagens não lidas enviadas pelo admin
+        const naoLidas = msgs.filter(m => !m.lido && m.remetente === 'admin');
+        const totalNaoLidas = naoLidas.length;
+
+        if (totalNaoLidas > 0) {
+          badgeMenuHamburguer.innerText = totalNaoLidas;
+          badgeMenuHamburguer.classList.remove('hidden');
+
+          badgeMenuSuporte.innerText = totalNaoLidas;
+          badgeMenuSuporte.classList.remove('hidden');
+        } else {
+          badgeMenuHamburguer.classList.add('hidden');
+          badgeMenuSuporte.classList.add('hidden');
         }
 
         const ultima = msgs[0];
@@ -645,6 +665,8 @@
         }
       } catch (e) {
         blocoMsg.classList.add('hidden');
+        badgeMenuHamburguer.classList.add('hidden');
+        badgeMenuSuporte.classList.add('hidden');
       }
     }
 
@@ -656,12 +678,19 @@
       }
       document.getElementById('sup-motorista-assunto-label').innerText = assuntoAtualSuporteMotorista;
       document.getElementById('modal-suporte-motorista').classList.remove('hidden');
+      
+      // Fecha o menu lateral se estiver aberto
+      const menu = document.getElementById('menu-lateral');
+      if (!menu.classList.contains('-translate-x-full')) {
+        menu.classList.add('-translate-x-full');
+      }
+
       carregarHistoricoModalMotorista();
     }
 
     function fecharModalSuporteMotorista() {
       document.getElementById('modal-suporte-motorista').classList.add('hidden');
-      atualizarUltimaMensagemSuporteBarra();
+      atualizarContadoresSuporteMenu();
     }
 
     async function carregarHistoricoModalMotorista(manterFoco = false) {
@@ -707,12 +736,15 @@
 
         container.scrollTop = container.scrollHeight;
 
+        // Limpeza automática ao ler as mensagens do suporte
         await supabaseClient
           .from('mensagens_suporte_app')
           .update({ lido: true })
           .eq('usuario_id', motoristaLogado.id)
           .eq('remetente', 'admin')
           .eq('lido', false);
+
+        atualizarContadoresSuporteMenu();
 
       } catch (e) {
         if (!manterFoco) {
@@ -744,7 +776,7 @@
         }
 
         carregarHistoricoModalMotorista(true);
-        atualizarUltimaMensagemSuporteBarra();
+        atualizarContadoresSuporteMenu();
       } catch (e) {
         alert("Erro ao enviar mensagem.");
       }
@@ -1262,10 +1294,6 @@
           mostrarToastAdmin("Erro ao salvar avaliação. Tente novamente.", "erro");
           return;
         }
-
-        // REMOVIDO: O envio automático para a tabela de chat do passageiro (mensagens_suporte_app) 
-        // foi totalmente suprimido. A avaliação e o motivo ficam salvos apenas na tabela "corridas", 
-        // aparecendo exclusivamente na seção de Chamados e Avaliações do painel administrativo.
 
         await recalcularNotaMediaPassageiro(corridaAtiva.passageiro_id);
 
