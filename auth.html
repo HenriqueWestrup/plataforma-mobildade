@@ -20,16 +20,6 @@
       <p id="subtitulo-tela" class="text-xs text-slate-400">Entre com seu celular e senha para viajar</p>
     </div>
 
-    <!-- ALTERNÂNCIA ENTRE LOGIN E CADASTRO -->
-    <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs font-bold">
-      <button type="button" id="aba-login" onclick="alternarAba('login')" class="py-2 rounded-xl bg-emerald-600 text-white transition">
-        Entrar
-      </button>
-      <button type="button" id="aba-cadastro" onclick="alternarAba('cadastro')" class="py-2 rounded-xl text-slate-400 hover:text-white transition">
-        Cadastrar
-      </button>
-    </div>
-
     <!-- CAIXA DE ALERTA DE ERRO VISUAL -->
     <div id="box-erro" class="hidden bg-red-950/80 border border-red-600 text-red-200 text-xs p-3 rounded-xl flex items-center gap-2">
       <i class="fa-solid fa-triangle-exclamation text-red-400 text-base shrink-0"></i>
@@ -46,72 +36,138 @@
         <label class="text-slate-300 font-medium">Senha</label>
         <input type="password" id="login-senha" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
       </div>
-      <button type="submit" id="btn-entrar" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Entrar na Conta</button>
-    </form>
-
-    <!-- CADASTRO DO PASSAGEIRO + RECONHECIMENTO FACIAL -->
-    <form id="form-cadastro" class="hidden space-y-3 text-xs" onsubmit="realizarCadastro(event)">
-      <div class="space-y-1">
-        <label class="text-slate-300 font-medium">Nome completo</label>
-        <input type="text" id="cad-nome" required placeholder="Seu nome completo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
-      </div>
-
-      <div class="space-y-1">
-        <label class="text-slate-300 font-medium">CPF</label>
-        <input type="text" id="cad-cpf" required placeholder="000.000.000-00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
-      </div>
-
-      <div class="space-y-1">
-        <label class="text-slate-300 font-medium">Celular</label>
-        <input type="tel" id="cad-celular" required placeholder="(48) 9 9999-9999" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
-      </div>
-
-      <div class="space-y-1">
-        <label class="text-slate-300 font-medium">Endereço (opcional)</label>
-        <input type="text" id="cad-endereco" placeholder="Rua, bairro, Laguna - SC" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
-      </div>
-
-      <div class="space-y-1">
-        <label class="text-slate-300 font-medium">Senha</label>
-        <input type="password" id="cad-senha" required minlength="4" placeholder="Crie uma senha" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
-      </div>
-
-      <!-- CAPTURA FACIAL (DEFINE A FOTO DE PERFIL) -->
-      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
-            <i class="fa-solid fa-camera"></i> Reconhecimento Facial (Foto de Perfil)
-          </span>
-          <button type="button" onclick="abrirCameraCadastro()" class="bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition">
-            Abrir Câmera
-          </button>
-        </div>
-
-        <div class="relative w-full h-36 bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
-          <video id="video-rosto" autoplay playsinline class="hidden w-full h-full object-cover scale-x-[-1]"></video>
-          <img id="preview-rosto" class="hidden w-full h-full object-cover" alt="Foto do rosto capturada">
-          <div id="placeholder-rosto" class="text-center text-slate-500 text-[11px] px-3">
-            <i class="fa-solid fa-user-check text-xl mb-1 block"></i>
-            Capture seu rosto para usar como foto do perfil
-          </div>
-          <div class="pointer-events-none absolute inset-3 border-2 border-dashed border-emerald-500/40 rounded-full"></div>
-        </div>
-
-        <button type="button" id="btn-capturar-rosto" onclick="capturarRostoCadastro()" class="hidden w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 rounded-xl transition text-[11px]">
-          Capturar Rosto para Perfil
-        </button>
-      </div>
-
-      <button type="submit" id="btn-cadastrar" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
-        Criar Conta de Passageiro
+      <button type="submit" id="btn-entrar" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
+        Entrar na Conta
       </button>
     </form>
 
-    <div class="text-center text-[11px] text-slate-500 space-y-2 pt-2 border-t border-slate-800">
-      <div class="flex justify-center gap-4">
-        <a href="auth-motorista.html" onclick="pararCameraCadastro()" class="text-amber-400 hover:underline">Sou Motorista</a>
-        <a href="admin.html" onclick="pararCameraCadastro()" class="text-slate-400 hover:underline">Admin</a>
+    <!-- BOTÃO CADASTRAR (ABRE O MODAL) -->
+    <div class="text-center text-[11px] text-slate-400 pt-2 border-t border-slate-800 space-y-2">
+      <p>Ainda não tem conta de passageiro?</p>
+      <button type="button" onclick="abrirModalCadastro()" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold py-2.5 rounded-xl border border-slate-700 transition flex items-center justify-center gap-2">
+        <i class="fa-solid fa-user-plus"></i> Cadastrar
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL DE CADASTRO DE NOVO PASSAGEIRO -->
+  <div id="modal-cadastro-passageiro" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div>
+          <h2 class="text-sm font-extrabold text-white">Cadastro de Passageiro</h2>
+          <p class="text-[10px] text-slate-400">Seu rosto capturado será sua foto de perfil</p>
+        </div>
+        <button type="button" onclick="fecharModalCadastro()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
       </div>
+
+      <div id="box-erro-modal" class="hidden bg-red-950/80 border border-red-600 text-red-200 text-[11px] p-2.5 rounded-xl flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation text-red-400 shrink-0"></i>
+        <span id="texto-erro-modal">Erro ao cadastrar.</span>
+      </div>
+
+      <form id="form-cadastro-modal" class="space-y-3 text-xs" onsubmit="realizarCadastro(event)">
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Nome completo</label>
+          <input type="text" id="cad-nome" required placeholder="Seu nome completo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">CPF</label>
+          <input type="text" id="cad-cpf" required placeholder="000.000.000-00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Celular</label>
+          <input type="tel" id="cad-celular" required placeholder="(48) 9 9999-9999" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Endereço (opcional)</label>
+          <input type="text" id="cad-endereco" placeholder="Rua, bairro, Laguna - SC" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-slate-300 font-medium">Senha</label>
+          <input type="password" id="cad-senha" required minlength="4" placeholder="Crie uma senha" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <!-- CAPTURA FACIAL (FOTO DE PERFIL) -->
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-camera"></i> Reconhecimento Facial
+            </span>
+            <button type="button" onclick="abrirCamera('cad')" class="bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition">
+              Abrir Câmera
+            </button>
+          </div>
+
+          <div class="relative w-full h-36 bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+            <video id="cad-video" autoplay playsinline class="hidden w-full h-full object-cover scale-x-[-1]"></video>
+            <img id="cad-preview" class="hidden w-full h-full object-cover" alt="Foto do rosto">
+            <div id="cad-placeholder" class="text-center text-slate-500 text-[11px] px-3">
+              <i class="fa-solid fa-face-smile text-xl mb-1 block"></i>
+              Capture seu rosto para definir sua foto de perfil
+            </div>
+            <div class="pointer-events-none absolute inset-3 border-2 border-dashed border-emerald-500/40 rounded-full"></div>
+          </div>
+
+          <button type="button" id="btn-capturar-cad" onclick="capturarRosto('cad')" class="hidden w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 rounded-xl transition text-[11px]">
+            Capturar Rosto
+          </button>
+        </div>
+
+        <button type="submit" id="btn-cadastrar" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
+          Concluir Cadastro
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE REVALIDAÇÃO FACIAL (A CADA 15 DIAS OU SOLICITADA) -->
+  <div id="modal-verificacao-facial" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/40 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-extrabold text-amber-400 flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved"></i> Confirmação Facial
+        </h3>
+        <button type="button" onclick="fecharModalVerificacao()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <p id="motivo-verificacao-facial" class="text-[11px] text-amber-200 bg-amber-950/40 border border-amber-500/30 p-2.5 rounded-xl">
+        Confirme seu rosto para continuar.
+      </p>
+
+      <div id="box-erro-verif" class="hidden bg-red-950/80 border border-red-600 text-red-200 text-[11px] p-2.5 rounded-xl">
+        <span id="texto-erro-verif">Erro na verificação.</span>
+      </div>
+
+      <div class="relative w-full h-40 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center">
+        <video id="verif-video" autoplay playsinline class="hidden w-full h-full object-cover scale-x-[-1]"></video>
+        <img id="verif-preview" class="hidden w-full h-full object-cover" alt="Verificação facial">
+        <div id="verif-placeholder" class="text-center text-slate-500 text-[11px] px-3">
+          <i class="fa-solid fa-camera text-xl mb-1 block"></i>
+          Posicione o rosto na câmera
+        </div>
+      </div>
+
+      <div class="flex gap-2 text-xs">
+        <button type="button" onclick="abrirCamera('verif')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl transition">
+          Abrir Câmera
+        </button>
+        <button type="button" id="btn-capturar-verif" onclick="capturarRosto('verif')" class="hidden flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-xl transition">
+          Capturar
+        </button>
+      </div>
+
+      <button type="button" id="btn-confirmar-verif" onclick="confirmarVerificacaoFacial()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition text-xs">
+        Confirmar Rosto e Entrar
+      </button>
     </div>
   </div>
 
@@ -122,8 +178,12 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    let streamRosto = null;
-    let fotoPerfilCapturada = null;
+    const DIAS_REVALIDACAO_FACIAL = 15;
+    let streamAtivo = null;
+    let fotoCadastroDataUrl = null;
+    let fotoVerificacaoDataUrl = null;
+    let usuarioPendenteFacial = null;
+    let tokenPendenteFacial = null;
 
     function mostrarErro(mensagem) {
       const box = document.getElementById('box-erro');
@@ -132,79 +192,82 @@
       box.classList.remove('hidden');
     }
 
-    function limparErro() {
+    function mostrarErroModal(mensagem) {
+      const box = document.getElementById('box-erro-modal');
+      const texto = document.getElementById('texto-erro-modal');
+      texto.innerText = mensagem;
+      box.classList.remove('hidden');
+    }
+
+    function mostrarErroVerif(mensagem) {
+      const box = document.getElementById('box-erro-verif');
+      const texto = document.getElementById('texto-erro-verif');
+      texto.innerText = mensagem;
+      box.classList.remove('hidden');
+    }
+
+    function pararCamera() {
+      if (streamAtivo) {
+        streamAtivo.getTracks().forEach(track => track.stop());
+        streamAtivo = null;
+      }
+    }
+
+    function abrirModalCadastro() {
       document.getElementById('box-erro').classList.add('hidden');
+      document.getElementById('box-erro-modal').classList.add('hidden');
+      fotoCadastroDataUrl = null;
+      document.getElementById('cad-preview').classList.add('hidden');
+      document.getElementById('cad-video').classList.add('hidden');
+      document.getElementById('btn-capturar-cad').classList.add('hidden');
+      document.getElementById('cad-placeholder').classList.remove('hidden');
+      document.getElementById('modal-cadastro-passageiro').classList.remove('hidden');
     }
 
-    function pararCameraCadastro() {
-      if (streamRosto) {
-        streamRosto.getTracks().forEach(track => track.stop());
-        streamRosto = null;
-      }
+    function fecharModalCadastro() {
+      pararCamera();
+      document.getElementById('modal-cadastro-passageiro').classList.add('hidden');
     }
 
-    function alternarAba(aba) {
-      limparErro();
-      pararCameraCadastro();
-
-      const formLogin = document.getElementById('form-login');
-      const formCadastro = document.getElementById('form-cadastro');
-      const abaLogin = document.getElementById('aba-login');
-      const abaCadastro = document.getElementById('aba-cadastro');
-      const titulo = document.getElementById('titulo-tela');
-      const subtitulo = document.getElementById('subtitulo-tela');
-
-      if (aba === 'cadastro') {
-        formLogin.classList.add('hidden');
-        formCadastro.classList.remove('hidden');
-        abaCadastro.className = 'py-2 rounded-xl bg-emerald-600 text-white transition';
-        abaLogin.className = 'py-2 rounded-xl text-slate-400 hover:text-white transition';
-        titulo.innerText = 'Cadastro de Passageiro';
-        subtitulo.innerText = 'Preencha seus dados e capture seu rosto';
-      } else {
-        formCadastro.classList.add('hidden');
-        formLogin.classList.remove('hidden');
-        abaLogin.className = 'py-2 rounded-xl bg-emerald-600 text-white transition';
-        abaCadastro.className = 'py-2 rounded-xl text-slate-400 hover:text-white transition';
-        titulo.innerText = 'Área do Passageiro';
-        subtitulo.innerText = 'Entre com seu celular e senha para viajar';
-      }
+    function fecharModalVerificacao() {
+      pararCamera();
+      usuarioPendenteFacial = null;
+      tokenPendenteFacial = null;
+      document.getElementById('modal-verificacao-facial').classList.add('hidden');
     }
 
-    async function abrirCameraCadastro() {
-      limparErro();
-      pararCameraCadastro();
-
-      const video = document.getElementById('video-rosto');
-      const preview = document.getElementById('preview-rosto');
-      const placeholder = document.getElementById('placeholder-rosto');
-      const btnCapturar = document.getElementById('btn-capturar-rosto');
+    async function abrirCamera(contexto) {
+      pararCamera();
+      const video = document.getElementById(`${contexto}-video`);
+      const preview = document.getElementById(`${contexto}-preview`);
+      const placeholder = document.getElementById(`${contexto}-placeholder`);
+      const btnCapturar = document.getElementById(`btn-capturar-${contexto}`);
 
       try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error('Este navegador não suporta acesso à câmera.');
+          throw new Error('Câmera não suportada neste navegador.');
         }
-
-        streamRosto = await navigator.mediaDevices.getUserMedia({
+        streamAtivo = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'user' },
           audio: false
         });
-
-        video.srcObject = streamRosto;
+        video.srcObject = streamAtivo;
         preview.classList.add('hidden');
         placeholder.classList.add('hidden');
         video.classList.remove('hidden');
         btnCapturar.classList.remove('hidden');
       } catch (err) {
-        mostrarErro('Não foi possível abrir a câmera: ' + err.message);
+        const msg = 'Não foi possível acessar a câmera: ' + err.message;
+        if (contexto === 'cad') mostrarErroModal(msg);
+        else mostrarErroVerif(msg);
       }
     }
 
-    function capturarRostoCadastro() {
-      const video = document.getElementById('video-rosto');
+    function capturarRosto(contexto) {
+      const video = document.getElementById(`${contexto}-video`);
       const canvas = document.getElementById('canvas-rosto');
-      const preview = document.getElementById('preview-rosto');
-      const btnCapturar = document.getElementById('btn-capturar-rosto');
+      const preview = document.getElementById(`${contexto}-preview`);
+      const btnCapturar = document.getElementById(`btn-capturar-${contexto}`);
 
       if (!video.videoWidth || !video.videoHeight) return;
 
@@ -217,17 +280,62 @@
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       ctx.restore();
 
-      fotoPerfilCapturada = canvas.toDataURL('image/jpeg', 0.82);
-      preview.src = fotoPerfilCapturada;
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      if (contexto === 'cad') fotoCadastroDataUrl = dataUrl;
+      else fotoVerificacaoDataUrl = dataUrl;
+
+      preview.src = dataUrl;
       preview.classList.remove('hidden');
       video.classList.add('hidden');
       btnCapturar.classList.add('hidden');
-      pararCameraCadastro();
+      pararCamera();
+    }
+
+    function chaveFacialUsuario(userId) {
+      return `mobiurb_facial_${userId}`;
+    }
+
+    function registrarReconhecimentoLocal(userId) {
+      localStorage.setItem(chaveFacialUsuario(userId), JSON.stringify({
+        atualizado_em: Date.now(),
+        solicitado_admin: false
+      }));
+    }
+
+    function verificarExigenciaFacial(usuario) {
+      const registro = JSON.parse(localStorage.getItem(chaveFacialUsuario(usuario.id)) || 'null');
+      if (registro && registro.solicitado_admin) {
+        return { exigir: true, motivo: 'A administração solicitou uma nova confirmação facial.' };
+      }
+      if (!registro || !registro.atualizado_em) {
+        return { exigir: false, motivo: '' };
+      }
+      const dias = (Date.now() - registro.atualizado_em) / (1000 * 60 * 60 * 24);
+      if (dias >= DIAS_REVALIDACAO_FACIAL) {
+        return {
+          exigir: true,
+          motivo: `Já se passaram ${Math.floor(dias)} dias desde seu último reconhecimento facial (a cada ${DIAS_REVALIDACAO_FACIAL} dias é necessário confirmar).`
+        };
+      }
+      return { exigir: false, motivo: '' };
+    }
+
+    async function finalizarSessaoPassageiro(usuario, sessionToken) {
+      await supabaseClient.from('usuarios').update({ session_token: sessionToken }).eq('id', usuario.id);
+      registrarReconhecimentoLocal(usuario.id);
+
+      localStorage.removeItem('motorista_logado');
+      usuario.tipo = 'passageiro';
+      usuario.session_token = sessionToken;
+      localStorage.setItem('passageiro_logado', JSON.stringify(usuario));
+      localStorage.setItem('session_token', sessionToken);
+
+      window.location.href = 'index.html';
     }
 
     async function realizarCadastro(e) {
       e.preventDefault();
-      limparErro();
+      document.getElementById('box-erro-modal').classList.add('hidden');
 
       const nome = document.getElementById('cad-nome').value.trim();
       const cpf = document.getElementById('cad-cpf').value.trim();
@@ -236,8 +344,8 @@
       const senha = document.getElementById('cad-senha').value;
       const btn = document.getElementById('btn-cadastrar');
 
-      if (!fotoPerfilCapturada) {
-        mostrarErro('Capture seu rosto para definir sua foto de perfil.');
+      if (!fotoCadastroDataUrl) {
+        mostrarErroModal('Capture seu rosto para definir sua foto de perfil.');
         return;
       }
 
@@ -252,7 +360,7 @@
           .maybeSingle();
 
         if (existente) {
-          throw new Error('Já existe uma conta cadastrada com este celular.');
+          throw new Error('Este celular já está cadastrado.');
         }
 
         const { data: novoUsuario, error } = await supabaseClient
@@ -264,7 +372,7 @@
             telefone: cel,
             endereco: endereco || null,
             senha,
-            foto_url: fotoPerfilCapturada,
+            foto_url: fotoCadastroDataUrl,
             status: 'ativo',
             status_aprovacao: 'aprovado',
             banido: false
@@ -273,22 +381,49 @@
           .single();
 
         if (error || !novoUsuario) {
-          throw new Error(error?.message || 'Erro ao salvar cadastro no banco.');
+          throw new Error(error?.message || 'Erro ao criar conta.');
         }
 
+        pararCamera();
         const sessionToken = 'sessao_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-        await supabaseClient.from('usuarios').update({ session_token: sessionToken }).eq('id', novoUsuario.id);
-
-        localStorage.removeItem('motorista_logado');
-        novoUsuario.tipo = 'passageiro';
-        novoUsuario.session_token = sessionToken;
-        localStorage.setItem('passageiro_logado', JSON.stringify(novoUsuario));
-        localStorage.setItem('session_token', sessionToken);
-
-        window.location.href = 'index.html';
+        await finalizarSessaoPassageiro(novoUsuario, sessionToken);
       } catch (err) {
-        mostrarErro(err.message || 'Erro ao realizar cadastro.');
-        btn.innerText = 'Criar Conta de Passageiro';
+        mostrarErroModal(err.message || 'Erro ao realizar cadastro.');
+        btn.innerText = 'Concluir Cadastro';
+        btn.disabled = false;
+      }
+    }
+
+    async function confirmarVerificacaoFacial() {
+      document.getElementById('box-erro-verif').classList.add('hidden');
+      if (!usuarioPendenteFacial) return;
+
+      if (!fotoVerificacaoDataUrl) {
+        mostrarErroVerif('Capture seu rosto antes de confirmar.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-confirmar-verif');
+      btn.innerText = 'Confirmando...';
+      btn.disabled = true;
+
+      try {
+        const { data: atualizado, error } = await supabaseClient
+          .from('usuarios')
+          .update({ foto_url: fotoVerificacaoDataUrl })
+          .eq('id', usuarioPendenteFacial.id)
+          .select('*')
+          .single();
+
+        if (error || !atualizado) {
+          throw new Error(error?.message || 'Erro ao salvar foto.');
+        }
+
+        pararCamera();
+        await finalizarSessaoPassageiro(atualizado, tokenPendenteFacial);
+      } catch (err) {
+        mostrarErroVerif(err.message || 'Erro na confirmação facial.');
+        btn.innerText = 'Confirmar Rosto e Entrar';
         btn.disabled = false;
       }
     }
@@ -310,24 +445,30 @@
           throw new Error("Celular ou senha inválidos.");
         }
 
-        if (data.status === 'bloqueado') {
+        if (data.status === 'bloqueado' || data.banido) {
           throw new Error("Conta temporariamente suspensa.");
         }
 
-        // Gera um token de sessão único para este aparelho
         const sessionToken = 'sessao_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+        const checagem = verificarExigenciaFacial(data);
 
-        // Atualiza o token no Supabase (isso invalida qualquer outro aparelho logado)
-        await supabaseClient.from('usuarios').update({ session_token: sessionToken }).eq('id', data.id);
+        if (checagem.exigir) {
+          usuarioPendenteFacial = data;
+          tokenPendenteFacial = sessionToken;
+          fotoVerificacaoDataUrl = null;
+          document.getElementById('verif-preview').classList.add('hidden');
+          document.getElementById('verif-video').classList.add('hidden');
+          document.getElementById('btn-capturar-verif').classList.add('hidden');
+          document.getElementById('verif-placeholder').classList.remove('hidden');
+          document.getElementById('box-erro-verif').classList.add('hidden');
+          document.getElementById('motivo-verificacao-facial').innerText = checagem.motivo;
+          document.getElementById('modal-verificacao-facial').classList.remove('hidden');
+          btn.innerText = "Entrar na Conta";
+          btn.disabled = false;
+          return;
+        }
 
-        // Salva localmente
-        localStorage.removeItem('motorista_logado');
-        data.tipo = 'passageiro';
-        data.session_token = sessionToken;
-        localStorage.setItem('passageiro_logado', JSON.stringify(data));
-        localStorage.setItem('session_token', sessionToken);
-
-        window.location.href = 'index.html';
+        await finalizarSessaoPassageiro(data, sessionToken);
       } catch (err) {
         mostrarErro(err.message || "Erro ao realizar login. Tente novamente.");
         btn.innerText = "Entrar na Conta";
