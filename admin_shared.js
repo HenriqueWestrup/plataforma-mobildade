@@ -1,4 +1,4 @@
-// admin_shared.js (v18)
+// admin_shared.js (v19)
 const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -12,6 +12,7 @@ let listaUsuariosCache = [];
 let usuarioModalAtual = null;
 const blobUrlCacheAdmin = {};
 let intervaloSyncAdmin = null;
+let termoBuscaMotoristaAdmin = '';
 
 function normalizarStatusConta(status) {
   const s = String(status || '').toLowerCase().trim();
@@ -54,72 +55,135 @@ function temSegundoVeiculoPendenteAdmin(user) {
 function flagOnlineAtivoNoRegistro(user) {
   if (!user) return false;
   if (user.online === true || user.radar_ativo === true || user.disponivel === true) return true;
+  if (user.online === false) return false;
   const onlineStr = String(user.online ?? user.status_online ?? user.radar ?? '').toLowerCase().trim();
-  return onlineStr === 'true' || onlineStr === 'online' || onlineStr === 'ativo' || onlineStr === '1';
+  return onlineStr === 'true' || onlineStr === 'online' || onlineStr === 'ativo' || onlineStr === '1' || onlineStr === 't';
 }
 
-function obterTimestampAtividadeUsuario(user) {
-  if (!user) return null;
-  const raw = user.ultimo_acesso || user.ultima_atividade || user.updated_at;
-  if (!raw) return null;
-  const ts = new Date(raw).getTime();
-  return Number.isNaN(ts) ? null : ts;
-}
-
-// Exige flag online ativo + atividade recente (até 90s) para evitar usuários presos após fechar o app
+// Lê diretamente a coluna boolean `online` da tabela public.usuarios (sem exigir colunas de data inexistentes)
 function usuarioEstaAtivoNoAppAdmin(user) {
-  if (!user || !flagOnlineAtivoNoRegistro(user)) return false;
-
-  const ts = obterTimestampAtividadeUsuario(user);
-  if (!ts) return false;
-
-  const diffMs = Date.now() - ts;
-  return diffMs >= -15000 && diffMs <= 90000;
+  if (!user) return false;
+  if (user.online === true) return true;
+  if (user.online === false) return false;
+  return flagOnlineAtivoNoRegistro(user);
 }
 
-// Função auxiliar para inspecionar no console por que um card ficou ou não online
-function diagnosticarUsuariosOnlineAdmin() {
-  const agora = Date.now();
-  const resumo = (listaUsuariosCache || []).map(u => {
-    const ts = obterTimestampAtividadeUsuario(u);
-    const idadeSeg = ts ? Math.round((agora - ts) / 1000) : null;
-    return {
-      id: u.id,
-      nome: u.nome,
-      flagOnline: flagOnlineAtivoNoRegistro(u),
-      onlineRaw: u.online,
-      radarRaw: u.radar_ativo,
-      ultimo_acesso: u.ultimo_acesso || null,
-      ultima_atividade: u.ultima_atividade || null,
-      updated_at: u.updated_at || null,
-      idadeSeg,
-      ativoCalculado: usuarioEstaAtivoNoAppAdmin(u)
-    };
-  });
-  console.table(resumo);
-  return resumo;
+function usuarioCorrespondeBuscaAdmin(user, termo) {
+  const q = String(termo || '').toLowerCase().trim();
+  if (!q) return true;
+  const qNumeros = q.replace(/\D/g, '');
+  const camposTexto = [
+    user.nome,
+    user.cpf,
+    user.telefone,
+    user.endereco,
+    user.veiculo_marca,
+    user.veiculo_modelo,
+    user.veiculo_placa,
+    user.veiculo2_marca,
+    user.veiculo2_modelo,
+    user.veiculo2_placa
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  if (camposTexto.includes(q)) return true;
+  if (qNumeros.length >= 3) {
+    const telCpfNum = `${user.cpf || ''}${user.telefone || ''}`.replace(/\D/g, '');
+    if (telCpfNum.includes(qNumeros)) return true;
+  }
+  return false;
 }
 
 function filtrarUsuariosPorSetorAdmin(lista, setor) {
   const arr = Array.isArray(lista) ? lista : [];
   const setorLimpo = String(setor || 'todos').toLowerCase().trim();
 
+  let filtrados = [];
   if (setorLimpo === 'todos') {
-    return arr.filter(u => normalizarStatusConta(u.status) === 'aprovado');
+    filtrados = arr.filter(u => normalizarStatusConta(u.status) === 'aprovado');
+  } else if (setorLimpo === 'online') {
+    filtrados = arr.filter(u => usuarioEstaAtivoNoAppAdmin(u) && normalizarStatusConta(u.status) === 'aprovado');
+  } else if (setorLimpo === 'analise' || setorLimpo === 'pendente') {
+    filtrados = arr.filter(u => normalizarStatusConta(u.status) === 'pendente');
+  } else if (setorLimpo === 'bloqueados' || setorLimpo === 'bloqueado') {
+    filtrados = arr.filter(u => normalizarStatusConta(u.status) === 'bloqueado');
+  } else if (setorLimpo === 'segundo_carro') {
+    filtrados = arr.filter(u => ehPerfilMotoristaAdmin(u) && temSegundoVeiculoPendenteAdmin(u));
+  } else {
+    filtrados = arr.filter(u => normalizarStatusConta(u.status) === normalizarStatusConta(setorLimpo));
   }
-  if (setorLimpo === 'online') {
-    return arr.filter(u => usuarioEstaAtivoNoAppAdmin(u) && normalizarStatusConta(u.status) === 'aprovado');
+
+  // Se estiver na página de motoristas e houver termo digitado no buscador, aplica o filtro também
+  const inputBuscaMot = document.getElementById('busca-motoristas') || document.getElementById('input-busca-motoristas-admin');
+  const termoAtivo = inputBuscaMot ? inputBuscaMot.value : termoBuscaMotoristaAdmin;
+  if (termoAtivo && termoAtivo.trim() !== '') {
+    filtrados = filtrados.filter(u => usuarioCorrespondeBuscaAdmin(u, termoAtivo));
   }
-  if (setorLimpo === 'analise' || setorLimpo === 'pendente') {
-    return arr.filter(u => normalizarStatusConta(u.status) === 'pendente');
+
+  return filtrados;
+}
+
+function garantirBuscadorNaPaginaMotorista(paginaAtiva) {
+  if (paginaAtiva !== 'motorista') return;
+  if (document.getElementById('busca-motoristas') || document.getElementById('input-busca-motoristas-admin')) return;
+
+  // Tenta localizar o container das sub-abas (Todos / Online / Em Análise) para inserir o buscador logo abaixo
+  const alvo = document.querySelector('[data-setor], #filtro-todos, #tab-todos, .grid-cols-5')?.parentElement
+    || document.querySelector('main')
+    || document.body;
+
+  if (!alvo) return;
+
+  const boxBusca = document.createElement('div');
+  boxBusca.id = 'wrapper-busca-motoristas-admin';
+  boxBusca.className = 'px-3 pt-2 pb-1';
+  boxBusca.innerHTML = `
+    <div class="relative">
+      <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+      <input
+        type="text"
+        id="input-busca-motoristas-admin"
+        placeholder="Buscar motorista por nome, CPF, celular, carro ou placa..."
+        class="w-full bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-2xl pl-9 pr-9 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none transition"
+      >
+      <button
+        type="button"
+        id="btn-limpar-busca-motoristas-admin"
+        title="Limpar busca"
+        class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+      >
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  `;
+
+  if (alvo === document.body) {
+    const navEl = document.querySelector('nav');
+    if (navEl && navEl.parentNode) {
+      navEl.parentNode.insertBefore(boxBusca, navEl.nextSibling);
+    }
+  } else {
+    alvo.parentNode.insertBefore(boxBusca, alvo.nextSibling);
   }
-  if (setorLimpo === 'bloqueados' || setorLimpo === 'bloqueado') {
-    return arr.filter(u => normalizarStatusConta(u.status) === 'bloqueado');
-  }
-  if (setorLimpo === 'segundo_carro') {
-    return arr.filter(u => ehPerfilMotoristaAdmin(u) && temSegundoVeiculoPendenteAdmin(u));
-  }
-  return arr.filter(u => normalizarStatusConta(u.status) === normalizarStatusConta(setorLimpo));
+
+  const input = document.getElementById('input-busca-motoristas-admin');
+  const btnLimpar = document.getElementById('btn-limpar-busca-motoristas-admin');
+
+  input.addEventListener('input', () => {
+    termoBuscaMotoristaAdmin = input.value;
+    btnLimpar.classList.toggle('hidden', !input.value);
+    if (typeof renderizarMotoristas === 'function') renderizarMotoristas();
+    else if (typeof filtrarListaMotoristas === 'function') filtrarListaMotoristas();
+    else if (typeof carregarPaginaAtual === 'function') carregarPaginaAtual();
+  });
+
+  btnLimpar.addEventListener('click', () => {
+    input.value = '';
+    termoBuscaMotoristaAdmin = '';
+    btnLimpar.classList.add('hidden');
+    if (typeof renderizarMotoristas === 'function') renderizarMotoristas();
+    else if (typeof filtrarListaMotoristas === 'function') filtrarListaMotoristas();
+    else if (typeof carregarPaginaAtual === 'function') carregarPaginaAtual();
+  });
 }
 
 function obterUrlSeguraDocumentoAdmin(url, chaveCache) {
@@ -262,7 +326,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <i class="fa-solid fa-shield-halved text-base"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v18</span></h1>
+          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v19</span></h1>
           <p class="text-[10px] text-slate-400">Gestão Avançada e Suporte</p>
         </div>
       </a>
@@ -602,6 +666,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
 
   document.body.insertAdjacentHTML('afterbegin', headerENav);
   document.body.insertAdjacentHTML('beforeend', modaisHtml);
+  garantirBuscadorNaPaginaMotorista(paginaAtiva);
 }
 
 function iniciarSincronizacaoAutomaticaAdmin() {
