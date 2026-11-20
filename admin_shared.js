@@ -1,4 +1,4 @@
-// admin_shared.js (v17)
+// admin_shared.js (v18)
 const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -58,19 +58,46 @@ function flagOnlineAtivoNoRegistro(user) {
   return onlineStr === 'true' || onlineStr === 'online' || onlineStr === 'ativo' || onlineStr === '1';
 }
 
+function obterTimestampAtividadeUsuario(user) {
+  if (!user) return null;
+  const raw = user.ultimo_acesso || user.ultima_atividade || user.updated_at;
+  if (!raw) return null;
+  const ts = new Date(raw).getTime();
+  return Number.isNaN(ts) ? null : ts;
+}
+
+// Exige flag online ativo + atividade recente (até 90s) para evitar usuários presos após fechar o app
 function usuarioEstaAtivoNoAppAdmin(user) {
-  if (!user) return false;
-  if (!flagOnlineAtivoNoRegistro(user)) return false;
+  if (!user || !flagOnlineAtivoNoRegistro(user)) return false;
 
-  const refTempo = user.ultimo_acesso || user.ultima_atividade || user.updated_at;
-  if (!refTempo) return true;
+  const ts = obterTimestampAtividadeUsuario(user);
+  if (!ts) return false;
 
-  const ts = new Date(refTempo).getTime();
-  if (Number.isNaN(ts)) return true;
+  const diffMs = Date.now() - ts;
+  return diffMs >= -15000 && diffMs <= 90000;
+}
 
-  // Tolerância de 5 minutos para evitar falsos offline por atraso de heartbeat ou diferença de relógio
-  const diffMs = Math.abs(Date.now() - ts);
-  return diffMs <= 300000;
+// Função auxiliar para inspecionar no console por que um card ficou ou não online
+function diagnosticarUsuariosOnlineAdmin() {
+  const agora = Date.now();
+  const resumo = (listaUsuariosCache || []).map(u => {
+    const ts = obterTimestampAtividadeUsuario(u);
+    const idadeSeg = ts ? Math.round((agora - ts) / 1000) : null;
+    return {
+      id: u.id,
+      nome: u.nome,
+      flagOnline: flagOnlineAtivoNoRegistro(u),
+      onlineRaw: u.online,
+      radarRaw: u.radar_ativo,
+      ultimo_acesso: u.ultimo_acesso || null,
+      ultima_atividade: u.ultima_atividade || null,
+      updated_at: u.updated_at || null,
+      idadeSeg,
+      ativoCalculado: usuarioEstaAtivoNoAppAdmin(u)
+    };
+  });
+  console.table(resumo);
+  return resumo;
 }
 
 function filtrarUsuariosPorSetorAdmin(lista, setor) {
@@ -235,7 +262,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <i class="fa-solid fa-shield-halved text-base"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v17</span></h1>
+          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v18</span></h1>
           <p class="text-[10px] text-slate-400">Gestão Avançada e Suporte</p>
         </div>
       </a>
@@ -721,10 +748,6 @@ function gerarCardAdmin(user) {
   else if (isPendente) badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-400">Em Análise</span>';
   else if (isOnline) badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Online</span>';
 
-  const bolinhaInferiorDireita = isOnline
-    ? `<span title="Usuário online no aplicativo" class="absolute bottom-3 right-3 w-3 h-3 rounded-full bg-emerald-400 animate-ping pointer-events-none"></span><span title="Usuário online no aplicativo" class="absolute bottom-3 right-3 w-3 h-3 rounded-full bg-emerald-500 border border-slate-900 pointer-events-none"></span>`
-    : '';
-
   const temV2Pendente = isMotorista && temSegundoVeiculoPendenteAdmin(user);
 
   const acaoRestricaoHtml = (isBloqueado || isPendente)
@@ -740,7 +763,6 @@ function gerarCardAdmin(user) {
 
   return `
     <div class="relative bg-slate-900 p-4 rounded-2xl border ${isBloqueado ? 'border-red-500/40' : (isPendente || temV2Pendente ? 'border-amber-500/50' : (isOnline ? 'border-emerald-500/40' : 'border-slate-800'))} space-y-3 shadow">
-      ${bolinhaInferiorDireita}
       <div class="flex items-center gap-3">
         <img src="${user.foto_url || 'https://ui-avatars.com/api/?name=Usuario'}" class="w-12 h-12 rounded-full object-cover border-2 border-slate-700">
         <div class="flex-1">
