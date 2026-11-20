@@ -1,4 +1,4 @@
-// admin_shared.js (v13)
+// admin_shared.js (v14)
 const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -50,7 +50,6 @@ function temSegundoVeiculoPendenteAdmin(user) {
   return stV2 === 'pendente' || stV2 === 'em_analise' || stV2 === '';
 }
 
-// Considera online no uso do app apenas se houver pulso recente (até 60s)
 function usuarioEstaAtivoNoAppAdmin(user) {
   if (!user || user.online !== true) return false;
   const refTempo = user.ultimo_acesso || user.ultima_atividade || user.updated_at;
@@ -78,7 +77,6 @@ function filtrarUsuariosPorSetorAdmin(lista, setor) {
   return arr.filter(u => normalizarStatusConta(u.status) === normalizarStatusConta(setor));
 }
 
-// Converte data URL / base64 em Blob URL segura para evitar página em branco ao abrir externamente
 function obterUrlSeguraDocumentoAdmin(url, chaveCache) {
   if (!url) return '';
   const str = String(url).trim();
@@ -180,7 +178,6 @@ function fecharPreviaDocumentoAdmin() {
   if (box) box.classList.add('hidden');
 }
 
-// Injeta Layout Base (Login, Header, Navegação e Modais)
 function inicializarLayoutAdmin(paginaAtiva) {
   const headerENav = `
     <!-- TELA DE LOGIN MESTRE ADMIN -->
@@ -220,7 +217,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <i class="fa-solid fa-shield-halved text-base"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v13</span></h1>
+          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v14</span></h1>
           <p class="text-[10px] text-slate-400">Gestão Avançada e Suporte</p>
         </div>
       </a>
@@ -296,7 +293,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
         <form id="form-editar-usuario" onsubmit="salvarEdicaoUsuario(event)" class="space-y-4 text-xs">
           <input type="hidden" id="edit-id">
 
-          <!-- ABA DADOS -->
+          <!-- ABA DADOS: SOMENTE NOME COMPLETO, CPF, CELULAR E ENDEREÇO -->
           <div id="modal-conteudo-dados" class="space-y-3">
             <div class="flex items-center gap-3 pb-2 border-b border-slate-800">
               <img id="edit-foto-preview" class="w-14 h-14 rounded-full object-cover border border-emerald-500">
@@ -327,115 +324,117 @@ function inicializarLayoutAdmin(paginaAtiva) {
                 <input type="text" id="edit-endereco" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
               </div>
             </div>
-
-            <div id="edit-bloco-veiculo" class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 hidden">
-              <div class="space-y-1">
-                <label class="text-slate-300 font-medium">Veículo (1º Carro)</label>
-                <input type="text" id="edit-veiculo-modelo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100">
-              </div>
-              <div class="space-y-1">
-                <label class="text-slate-300 font-medium">Placa (1º Carro)</label>
-                <input type="text" id="edit-veiculo-placa" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 uppercase text-slate-100">
-              </div>
-            </div>
           </div>
 
-          <!-- ABA VEÍCULOS (EXCLUSIVA PARA MOTORISTA, COM SUB-ABAS VEÍCULO 1 E VEÍCULO 2) -->
+          <!-- ABA VEÍCULOS (VEÍCULO 1 E VEÍCULO 2 COM EDIÇÃO MANUAL COMPLETA) -->
           <div id="modal-conteudo-veiculos" class="space-y-3 hidden">
             <div class="grid grid-cols-2 gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px]">
               <button type="button" onclick="mudarSubAbaVeiculoModal('v1')" id="subtab-v1" class="py-2 px-2 rounded-lg font-bold bg-emerald-600 text-white transition">
                 <i class="fa-solid fa-car mr-1"></i> Veículo 1
               </button>
               <button type="button" onclick="mudarSubAbaVeiculoModal('v2')" id="subtab-v2" class="py-2 px-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition hidden">
-                <i class="fa-solid fa-car-side mr-1"></i> Veículo 2
+                <i class="fa-solid fa-car-side mr-1"></i> Veículo 2 <span id="subtab-v2-badge" class="ml-1 text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300">Pendente</span>
               </button>
             </div>
 
-            <!-- SUB-ABA VEÍCULO 1 -->
-            <div id="conteudo-subtab-v1" class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2.5">
+            <!-- SUB-ABA VEÍCULO 1 (EDITÁVEL MANUALMENTE PELO ADMIN) -->
+            <div id="conteudo-subtab-v1" class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-3">
               <div class="flex items-center justify-between">
-                <span class="text-[11px] font-extrabold text-emerald-400 uppercase">Dados do 1º Veículo (CRLV)</span>
+                <span class="text-[11px] font-extrabold text-emerald-400 uppercase">Dados do Veículo 1 (CRLV)</span>
                 <span class="text-[10px] text-slate-400">Conta Principal</span>
-              </div>
-              <div class="grid grid-cols-2 gap-2 text-[11px]">
-                <div><span class="text-slate-400">Marca:</span> <strong id="v1-marca" class="text-white">-</strong></div>
-                <div><span class="text-slate-400">Modelo:</span> <strong id="v1-modelo" class="text-white">-</strong></div>
-                <div><span class="text-slate-400">Cor:</span> <strong id="v1-cor" class="text-white">-</strong></div>
-                <div><span class="text-slate-400">Ano / Placa:</span> <strong id="v1-ano-placa" class="text-white font-mono">-</strong></div>
-              </div>
-              <div class="pt-2 border-t border-slate-800/80 space-y-2">
-                <div class="flex items-center justify-between gap-2 text-[10px]">
-                  <span class="text-slate-400 truncate">CRLV (1º Carro): <strong id="v1-doc-nome" class="text-slate-200 font-mono">-</strong></span>
-                  <button type="button" id="v1-doc-btn-ext" onclick="abrirDocumentoExternamenteAdmin('v1')" class="hidden shrink-0 bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2.5 py-1 rounded-lg font-bold border border-slate-700">
-                    <i class="fa-solid fa-up-right-from-square mr-1"></i> Abrir Original Externo
-                  </button>
-                </div>
-                <img id="v1-doc-img" src="" alt="CRLV 1º carro" onclick="ampliarPreviaDocumentoAdmin('v1')" title="Clique para ampliar prévia no modal" class="hidden w-full max-h-44 object-contain rounded-xl border border-slate-800 bg-slate-900 cursor-zoom-in">
-              </div>
-            </div>
-
-            <!-- SUB-ABA VEÍCULO 2 (EXIBIDA QUANDO HÁ 2º VEÍCULO CADASTRADO) -->
-            <div id="conteudo-subtab-v2" class="bg-slate-950 p-3.5 rounded-2xl border border-amber-500/30 space-y-3 hidden">
-              <div class="flex items-center justify-between gap-2">
-                <span class="text-[11px] font-extrabold text-amber-400 uppercase">2º Veículo • Aprovação de Cadastro e CRLV</span>
-                <span id="v2-status-badge" class="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300">pendente</span>
               </div>
 
               <div class="grid grid-cols-2 gap-2">
                 <div class="space-y-1">
-                  <label class="text-slate-300 text-[10px] font-medium">Marca (2º Carro)</label>
-                  <input type="text" id="edit-v2-marca" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
+                  <label class="text-slate-300 text-[10px] font-medium">Marca</label>
+                  <input type="text" id="edit-v1-marca" placeholder="Ex: VW" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
                 </div>
                 <div class="space-y-1">
-                  <label class="text-slate-300 text-[10px] font-medium">Modelo (2º Carro)</label>
-                  <input type="text" id="edit-v2-modelo" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
+                  <label class="text-slate-300 text-[10px] font-medium">Modelo</label>
+                  <input type="text" id="edit-v1-modelo" placeholder="Ex: Gol" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
                 </div>
               </div>
 
               <div class="grid grid-cols-3 gap-2">
                 <div class="space-y-1">
                   <label class="text-slate-300 text-[10px] font-medium">Cor</label>
-                  <input type="text" id="edit-v2-cor" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
+                  <input type="text" id="edit-v1-cor" placeholder="Ex: Prata" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
                 </div>
                 <div class="space-y-1">
                   <label class="text-slate-300 text-[10px] font-medium">Ano</label>
-                  <input type="text" id="edit-v2-ano" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
+                  <input type="text" id="edit-v1-ano" placeholder="Ex: 2015" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
                 </div>
                 <div class="space-y-1">
                   <label class="text-slate-300 text-[10px] font-medium">Placa</label>
-                  <input type="text" id="edit-v2-placa" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 uppercase text-slate-100 text-[11px]">
+                  <input type="text" id="edit-v1-placa" placeholder="ABC-1234" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 uppercase text-slate-100 font-mono text-[11px]">
                 </div>
               </div>
 
-              <div class="space-y-1">
-                <label class="text-slate-300 text-[10px] font-medium">Status do CRLV / 2º Veículo</label>
-                <select id="edit-v2-status" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
-                  <option value="pendente">pendente (em análise)</option>
-                  <option value="aprovado">aprovado</option>
-                  <option value="recusado">recusado</option>
-                </select>
+              <div class="pt-2 border-t border-slate-800/80 space-y-2">
+                <div class="flex items-center justify-between gap-2 text-[10px]">
+                  <span class="text-slate-400 truncate">CRLV (Veículo 1): <strong id="v1-doc-nome" class="text-slate-200 font-mono">-</strong></span>
+                  <button type="button" id="v1-doc-btn-ext" onclick="abrirDocumentoExternamenteAdmin('v1')" class="hidden shrink-0 bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2.5 py-1 rounded-lg font-bold border border-slate-700">
+                    <i class="fa-solid fa-up-right-from-square mr-1"></i> Abrir Original Externo
+                  </button>
+                </div>
+                <img id="v1-doc-img" src="" alt="CRLV Veículo 1" onclick="ampliarPreviaDocumentoAdmin('v1')" title="Clique para ampliar prévia no modal" class="hidden w-full max-h-44 object-contain rounded-xl border border-slate-800 bg-slate-900 cursor-zoom-in">
+              </div>
+            </div>
+
+            <!-- SUB-ABA VEÍCULO 2 (EDITÁVEL + APROVAR / RECUSAR VEÍCULO) -->
+            <div id="conteudo-subtab-v2" class="bg-slate-950 p-3.5 rounded-2xl border border-amber-500/30 space-y-3 hidden">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-extrabold text-amber-400 uppercase">Dados do Veículo 2 (CRLV)</span>
+                <span id="v2-status-badge" class="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300">pendente</span>
               </div>
 
-              <!-- PRÉVIA E ABERTURA EXTERNA DO CRLV DO 2º VEÍCULO -->
+              <div class="grid grid-cols-2 gap-2">
+                <div class="space-y-1">
+                  <label class="text-slate-300 text-[10px] font-medium">Marca</label>
+                  <input type="text" id="edit-v2-marca" placeholder="Ex: Chevrolet" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
+                </div>
+                <div class="space-y-1">
+                  <label class="text-slate-300 text-[10px] font-medium">Modelo</label>
+                  <input type="text" id="edit-v2-modelo" placeholder="Ex: Onix" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2">
+                <div class="space-y-1">
+                  <label class="text-slate-300 text-[10px] font-medium">Cor</label>
+                  <input type="text" id="edit-v2-cor" placeholder="Ex: Branco" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
+                </div>
+                <div class="space-y-1">
+                  <label class="text-slate-300 text-[10px] font-medium">Ano</label>
+                  <input type="text" id="edit-v2-ano" placeholder="Ex: 2020" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-100 text-[11px]">
+                </div>
+                <div class="space-y-1">
+                  <label class="text-slate-300 text-[10px] font-medium">Placa</label>
+                  <input type="text" id="edit-v2-placa" placeholder="DEF-5678" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 uppercase text-slate-100 font-mono text-[11px]">
+                </div>
+              </div>
+
               <div class="pt-2 border-t border-slate-800 space-y-2">
                 <div class="flex items-center justify-between gap-2 text-[10px]">
-                  <span class="text-slate-300 font-bold truncate">Documento / CRLV (2º Carro): <span id="v2-doc-nome" class="text-amber-300 font-mono">-</span></span>
+                  <span class="text-slate-300 font-bold truncate">CRLV (Veículo 2): <span id="v2-doc-nome" class="text-amber-300 font-mono">-</span></span>
                   <button type="button" id="v2-doc-btn-ext" onclick="abrirDocumentoExternamenteAdmin('v2')" class="hidden shrink-0 bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2.5 py-1 rounded-lg font-bold border border-slate-700">
                     <i class="fa-solid fa-up-right-from-square mr-1"></i> Abrir Original Externo
                   </button>
                 </div>
-                <img id="v2-doc-img" src="" alt="Documento enviado do 2º carro" onclick="ampliarPreviaDocumentoAdmin('v2')" title="Clique para ampliar prévia no modal" class="hidden w-full max-h-52 object-contain rounded-xl border border-slate-700 bg-slate-900 cursor-zoom-in">
+                <img id="v2-doc-img" src="" alt="CRLV Veículo 2" onclick="ampliarPreviaDocumentoAdmin('v2')" title="Clique para ampliar prévia no modal" class="hidden w-full max-h-52 object-contain rounded-xl border border-slate-700 bg-slate-900 cursor-zoom-in">
               </div>
 
-              <!-- APROVAR / RECUSAR DOCUMENTO E 2º CARRO (SEM ALTERAR STATUS DA CONTA) -->
               <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
                 <button type="button" onclick="decidirSegundoVeiculoAdmin('aprovado')" class="bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-3 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1.5">
-                  <i class="fa-solid fa-check"></i> Aprovar 2º Carro
+                  <i class="fa-solid fa-check"></i> Aprovar Veículo
                 </button>
                 <button type="button" onclick="decidirSegundoVeiculoAdmin('recusado')" class="bg-red-600/20 hover:bg-red-600/35 text-red-300 border border-red-500/40 py-2.5 px-3 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1.5">
-                  <i class="fa-solid fa-xmark"></i> Recusar 2º Carro
+                  <i class="fa-solid fa-xmark"></i> Recusar Veículo
                 </button>
               </div>
+              <p class="text-[10px] text-slate-400">
+                Ao <strong>Recusar Veículo</strong>, o 2º veículo é removido/bloqueado para que o motorista possa enviar um novo cadastro corretamente, sem alterar o status da conta.
+              </p>
             </div>
           </div>
 
@@ -489,10 +488,13 @@ function inicializarLayoutAdmin(paginaAtiva) {
                 <span><i class="fa-solid fa-key mr-1"></i> Senha Temporária</span>
               </label>
               <div class="flex gap-1.5">
-                <input type="text" id="edit-senha-temp" placeholder="Gerar..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold tracking-wider text-center">
+                <input type="text" id="edit-senha-temp" placeholder="Digite ou gere uma senha..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold tracking-wider">
                 <button type="button" onclick="gerarSenhaTemporaria()" class="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white border border-amber-500/40 px-3 py-2 rounded-xl font-bold transition">Gerar</button>
                 <button type="button" onclick="copiarSenhaTemporaria()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl font-bold"><i class="fa-solid fa-copy"></i></button>
               </div>
+              <p class="text-[10px] text-slate-400">
+                Ao salvar uma senha aqui, o usuário entra com ela e o app exige que crie uma nova senha (mín. 8 caracteres, letras + números).
+              </p>
             </div>
           </div>
 
@@ -557,7 +559,6 @@ function inicializarLayoutAdmin(paginaAtiva) {
   document.body.insertAdjacentHTML('beforeend', modaisHtml);
 }
 
-// --- AUTENTICAÇÃO E CONTADORES GLOBAIS ---
 function verificarSessaoAdmin(paginaAtiva, callbackCarregarPagina) {
   inicializarLayoutAdmin(paginaAtiva);
   if (sessionStorage.getItem('admin_autenticado') === 'true') {
@@ -625,7 +626,6 @@ async function atualizarContadoresNavegacao() {
   } catch (e) {}
 }
 
-// --- SENHA MESTRE ---
 function abrirModalSenhaMestre() {
   document.getElementById('mestre-atual').value = '';
   document.getElementById('mestre-nova').value = '';
@@ -661,7 +661,6 @@ function salvarNovaSenhaMestre() {
   setTimeout(() => fecharModalSenhaMestre(), 1500);
 }
 
-// --- CARD PADRÃO DE USUÁRIO / MOTORISTA ---
 function alternarMenuRestricaoCardAdmin(idUsuario) {
   const menu = document.getElementById(`menu-restricao-${idUsuario}`);
   if (!menu) return;
@@ -708,7 +707,6 @@ function gerarCardAdmin(user) {
         }
       </div>
 
-      <!-- SUB-MENU COM AS DUAS OPÇÕES: ANALISAR E BLOQUEAR -->
       <div id="menu-restricao-${user.id}" class="hidden bg-slate-950 border border-slate-700 rounded-2xl p-2.5 space-y-2 shadow-xl">
         <p class="text-[10px] text-slate-400 font-bold px-1">Escolha como restringir este usuário:</p>
         <div class="grid grid-cols-2 gap-2 text-[11px]">
@@ -724,7 +722,6 @@ function gerarCardAdmin(user) {
   `;
 }
 
-// --- FUNÇÕES DO MODAL COMPARTILHADO ---
 function mostrarAlertaModal(mensagem, tipo = 'sucesso') {
   const toast = document.getElementById('modal-alerta-toast');
   const texto = document.getElementById('modal-alerta-texto');
@@ -806,11 +803,13 @@ function preencherAbaVeiculosMotorista(user) {
   }
   if (!isMotorista) return;
 
-  // Veículo 1
-  document.getElementById('v1-marca').innerText = user.veiculo_marca || '-';
-  document.getElementById('v1-modelo').innerText = user.veiculo_modelo || '-';
-  document.getElementById('v1-cor').innerText = user.veiculo_cor || '-';
-  document.getElementById('v1-ano-placa').innerText = `${user.veiculo_ano || '-'} • ${(user.veiculo_placa || '-').toUpperCase()}`;
+  // Veículo 1 (editável manualmente)
+  document.getElementById('edit-v1-marca').value = user.veiculo_marca || '';
+  document.getElementById('edit-v1-modelo').value = user.veiculo_modelo || '';
+  document.getElementById('edit-v1-cor').value = user.veiculo_cor || '';
+  document.getElementById('edit-v1-ano').value = user.veiculo_ano || '';
+  document.getElementById('edit-v1-placa').value = (user.veiculo_placa || '').toUpperCase();
+
   preencherDocumentoCrlvAdmin(
     user.documento_identificacao_url,
     user.documento_identificacao_nome,
@@ -824,7 +823,16 @@ function preencherAbaVeiculosMotorista(user) {
   const temV2 = temSegundoVeiculoCadastrado(user);
   const statusV2 = String(user.veiculo2_status || 'pendente').toLowerCase();
   const badgeV2 = document.getElementById('v2-status-badge');
+  const subBadgeV2 = document.getElementById('subtab-v2-badge');
+
   badgeV2.innerText = statusV2;
+  if (subBadgeV2) {
+    subBadgeV2.innerText = statusV2 === 'aprovado' ? 'Aprovado' : 'Pendente';
+    subBadgeV2.className = statusV2 === 'aprovado'
+      ? 'ml-1 text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200'
+      : 'ml-1 text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-200';
+  }
+
   if (statusV2 === 'aprovado') {
     badgeV2.className = 'text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300';
   } else if (statusV2 === 'recusado') {
@@ -838,7 +846,6 @@ function preencherAbaVeiculosMotorista(user) {
   document.getElementById('edit-v2-cor').value = user.veiculo2_cor || '';
   document.getElementById('edit-v2-ano').value = user.veiculo2_ano || '';
   document.getElementById('edit-v2-placa').value = (user.veiculo2_placa || '').toUpperCase();
-  document.getElementById('edit-v2-status').value = ['pendente', 'aprovado', 'recusado'].includes(statusV2) ? statusV2 : 'pendente';
 
   preencherDocumentoCrlvAdmin(
     user.veiculo2_documento_url,
@@ -856,20 +863,27 @@ async function decidirSegundoVeiculoAdmin(novoStatusV2) {
   const idUsuario = document.getElementById('edit-id').value;
   if (!idUsuario) return;
 
-  const marcaV2 = (document.getElementById('edit-v2-marca').value || '').trim() || null;
-  const modeloV2 = (document.getElementById('edit-v2-modelo').value || '').trim() || null;
-  const corV2 = (document.getElementById('edit-v2-cor').value || '').trim() || null;
-  const anoV2 = (document.getElementById('edit-v2-ano').value || '').trim() || null;
-  const placaV2 = ((document.getElementById('edit-v2-placa').value || '').trim()).toUpperCase() || null;
+  const isRecusado = novoStatusV2 === 'recusado';
 
-  const atualizacaoV2 = {
-    veiculo2_marca: marcaV2,
-    veiculo2_modelo: modeloV2,
-    veiculo2_cor: corV2,
-    veiculo2_ano: anoV2,
-    veiculo2_placa: placaV2,
-    veiculo2_status: novoStatusV2
-  };
+  const atualizacaoV2 = isRecusado
+    ? {
+        veiculo2_marca: null,
+        veiculo2_modelo: null,
+        veiculo2_cor: null,
+        veiculo2_ano: null,
+        veiculo2_placa: null,
+        veiculo2_documento_url: null,
+        veiculo2_documento_nome: null,
+        veiculo2_status: 'recusado'
+      }
+    : {
+        veiculo2_marca: (document.getElementById('edit-v2-marca').value || '').trim() || null,
+        veiculo2_modelo: (document.getElementById('edit-v2-modelo').value || '').trim() || null,
+        veiculo2_cor: (document.getElementById('edit-v2-cor').value || '').trim() || null,
+        veiculo2_ano: (document.getElementById('edit-v2-ano').value || '').trim() || null,
+        veiculo2_placa: ((document.getElementById('edit-v2-placa').value || '').trim()).toUpperCase() || null,
+        veiculo2_status: 'aprovado'
+      };
 
   const { error } = await supabaseClient
     .from('usuarios')
@@ -885,11 +899,6 @@ async function decidirSegundoVeiculoAdmin(novoStatusV2) {
     await supabaseClient
       .from('solicitacoes_segundo_veiculo')
       .update({
-        veiculo2_marca: marcaV2,
-        veiculo2_modelo: modeloV2,
-        veiculo2_cor: corV2,
-        veiculo2_ano: anoV2,
-        veiculo2_placa: placaV2,
         status: novoStatusV2,
         alerta_admin: false,
         updated_at: new Date().toISOString()
@@ -901,9 +910,9 @@ async function decidirSegundoVeiculoAdmin(novoStatusV2) {
   usuarioModalAtual = { ...(usuarioModalAtual || {}), ...atualizacaoV2 };
   preencherAbaVeiculosMotorista(usuarioModalAtual);
   mostrarAlertaModal(
-    novoStatusV2 === 'aprovado'
-      ? "2º carro e documento aprovados! Status da conta mantido sem bloqueio."
-      : "2º carro e documento recusados! Status da conta mantido sem bloqueio.",
+    isRecusado
+      ? "2º veículo recusado e removido da lista! O motorista poderá enviar um novo veículo."
+      : "2º veículo aprovado! Status da conta mantido sem bloqueio.",
     "sucesso"
   );
   atualizarDadosGlobais();
@@ -918,7 +927,14 @@ function definirStatusModal(status) {
 }
 
 function gerarSenhaTemporaria() {
-  document.getElementById('edit-senha-temp').value = Math.floor(100000 + Math.random() * 900000);
+  const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz';
+  const numeros = '0123456789';
+  const simbolos = '@#$*';
+  let senha = '';
+  for (let i = 0; i < 4; i++) senha += letras[Math.floor(Math.random() * letras.length)];
+  for (let i = 0; i < 4; i++) senha += numeros[Math.floor(Math.random() * numeros.length)];
+  senha += simbolos[Math.floor(Math.random() * simbolos.length)];
+  document.getElementById('edit-senha-temp').value = senha;
 }
 
 function copiarSenhaTemporaria() {
@@ -950,16 +966,10 @@ async function abrirModalEdicao(id) {
 
   const isMotorista = ehPerfilMotoristaAdmin(user);
   document.getElementById('edit-tipo-badge').innerText = isMotorista ? "Motorista Parceiro" : "Passageiro";
-  document.getElementById('edit-bloco-veiculo').classList.toggle('hidden', !isMotorista);
-  if (isMotorista) {
-    document.getElementById('edit-veiculo-modelo').value = user.veiculo_modelo || '';
-    document.getElementById('edit-veiculo-placa').value = user.veiculo_placa || '';
-  }
 
   preencherAbaVeiculosMotorista(user);
   definirStatusModal(user.status || 'aprovado');
 
-  // Se houver 2º veículo pendente, abre direto na aba Veículos para análise rápida
   const abrirEmV2 = isMotorista && temSegundoVeiculoPendenteAdmin(user);
   mudarAbaModal(abrirEmV2 ? 'veiculos' : 'dados');
   if (abrirEmV2) {
@@ -1129,7 +1139,7 @@ async function enviarMensagemSuporteUsuario() {
 async function salvarEdicaoUsuario(e) {
   e.preventDefault();
   const id = document.getElementById('edit-id').value;
-  const senhaTemp = document.getElementById('edit-senha-temp').value.trim();
+  const senhaTemp = document.getElementById('edit-senha-temp').value;
   const statusEscolhido = normalizarStatusConta(document.getElementById('edit-status-valor').value);
   const statusAnterior = usuarioModalAtual ? normalizarStatusConta(usuarioModalAtual.status) : statusEscolhido;
   const isMotorista = ehPerfilMotoristaAdmin(usuarioModalAtual);
@@ -1142,10 +1152,18 @@ async function salvarEdicaoUsuario(e) {
     status: statusEscolhido
   };
 
-  if (senhaTemp !== '') atualizacao.senha = senhaTemp;
+  if (senhaTemp !== '') {
+    atualizacao.senha = senhaTemp;
+    atualizacao.precisa_trocar_senha = true;
+    atualizacao.senha_temporaria_ativa = true;
+  }
+
   if (isMotorista) {
-    atualizacao.veiculo_modelo = document.getElementById('edit-veiculo-modelo').value;
-    atualizacao.veiculo_placa = document.getElementById('edit-veiculo-placa').value.toUpperCase();
+    atualizacao.veiculo_marca = (document.getElementById('edit-v1-marca').value || '').trim() || null;
+    atualizacao.veiculo_modelo = (document.getElementById('edit-v1-modelo').value || '').trim() || null;
+    atualizacao.veiculo_cor = (document.getElementById('edit-v1-cor').value || '').trim() || null;
+    atualizacao.veiculo_ano = (document.getElementById('edit-v1-ano').value || '').trim() || null;
+    atualizacao.veiculo_placa = ((document.getElementById('edit-v1-placa').value || '').trim()).toUpperCase() || null;
 
     if (temSegundoVeiculoCadastrado(usuarioModalAtual)) {
       atualizacao.veiculo2_marca = (document.getElementById('edit-v2-marca').value || '').trim() || null;
@@ -1153,7 +1171,6 @@ async function salvarEdicaoUsuario(e) {
       atualizacao.veiculo2_cor = (document.getElementById('edit-v2-cor').value || '').trim() || null;
       atualizacao.veiculo2_ano = (document.getElementById('edit-v2-ano').value || '').trim() || null;
       atualizacao.veiculo2_placa = ((document.getElementById('edit-v2-placa').value || '').trim()).toUpperCase() || null;
-      atualizacao.veiculo2_status = document.getElementById('edit-v2-status').value || 'pendente';
     }
   }
 

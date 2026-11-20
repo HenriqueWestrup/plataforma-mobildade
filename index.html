@@ -48,7 +48,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.7</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.8</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -122,6 +122,74 @@
     </div>
   </div>
 
+  <!-- MODAL OBRIGATÓRIO: CRIAR NOVA SENHA APÓS LOGIN COM SENHA DO ADMIN -->
+  <div id="modal-trocar-senha-obrigatoria" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-md rounded-3xl bg-slate-900 border border-emerald-500/40 p-5 space-y-4 text-slate-100 shadow-2xl">
+      <div class="space-y-1">
+        <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+          <i class="fa-solid fa-key text-emerald-400"></i> Defina sua nova senha
+        </h3>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          Você entrou com uma senha definida pelo administrador. Crie sua nova senha com <strong>mínimo de 8 caracteres</strong>, contendo <strong>letras e números</strong> (símbolos e outras teclas são permitidos, sem limite máximo).
+        </p>
+      </div>
+
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between text-[11px]">
+          <label for="nova-senha-input" class="font-bold text-slate-200">Nova senha</label>
+          <span id="forca-senha-label" class="font-extrabold text-red-400">Fraco • 0%</span>
+        </div>
+        <input
+          id="nova-senha-input"
+          type="password"
+          oninput="avaliarNovaSenhaModal()"
+          placeholder="Digite sua nova senha (mín. 8)"
+          class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3.5 py-2.5 text-xs text-white outline-none focus:border-emerald-500"
+        />
+        <div class="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
+          <div id="forca-senha-barra" class="h-full w-0 bg-red-500 transition-all duration-200"></div>
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <label for="confirmar-nova-senha-input" class="block text-[11px] font-bold text-slate-200">Repita a nova senha</label>
+        <input
+          id="confirmar-nova-senha-input"
+          type="password"
+          oninput="avaliarNovaSenhaModal()"
+          placeholder="Digite novamente para confirmar"
+          class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3.5 py-2.5 text-xs text-white outline-none focus:border-emerald-500"
+        />
+      </div>
+
+      <ul class="space-y-1 text-[11px] text-slate-400">
+        <li id="req-tamanho">• Mínimo de 8 caracteres</li>
+        <li id="req-letra-numero">• Pelo menos 1 letra e 1 número</li>
+        <li id="req-iguais">• As duas senhas devem ser iguais</li>
+      </ul>
+
+      <p id="erro-nova-senha-modal" class="hidden text-[11px] font-bold text-red-400"></p>
+
+      <div class="flex gap-2 pt-1">
+        <button
+          type="button"
+          onclick="sairConta()"
+          class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 px-3.5 rounded-xl text-xs transition"
+        >
+          Sair
+        </button>
+        <button
+          id="btn-salvar-nova-senha-modal"
+          type="button"
+          onclick="salvarNovaSenhaObrigatoria()"
+          class="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-bold text-white shadow transition"
+        >
+          Salvar nova senha
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
@@ -132,6 +200,7 @@
     let canalRealtimePassageiro = null;
     let canalRealtimeSuporte = null;
     let assuntoAtualSuporte = 'Suporte Geral';
+    let aguardandoTrocaSenhaObrigatoria = false;
 
     function tocarSomAlertaPassageiro() {
       try {
@@ -150,6 +219,127 @@
         osc.start(agora);
         osc.stop(agora + 0.6);
       } catch (e) {}
+    }
+
+    function validarRequisitosSenha(senha) {
+      const temMinimo = senha.length >= 8;
+      const temLetra = /[A-Za-zÀ-ÖØ-öø-ÿ]/.test(senha);
+      const temNumero = /\d/.test(senha);
+      const temSimbolo = /[^A-Za-zÀ-ÖØ-öø-ÿ0-9]/.test(senha);
+
+      let pontos = 0;
+      if (temMinimo) pontos += 35;
+      if (temLetra && temNumero) pontos += 40;
+      if (senha.length >= 10) pontos += 10;
+      if (temSimbolo) pontos += 15;
+      pontos = Math.min(100, pontos);
+
+      let rotulo = 'Fraco';
+      let corClasse = 'bg-red-500 text-red-400';
+      if (pontos >= 75) {
+        rotulo = 'Forte';
+        corClasse = 'bg-emerald-500 text-emerald-400';
+      } else if (pontos >= 45) {
+        rotulo = 'Médio';
+        corClasse = 'bg-amber-400 text-amber-300';
+      }
+
+      return {
+        valida: temMinimo && temLetra && temNumero,
+        temMinimo,
+        temLetraENumero: temLetra && temNumero,
+        pontos,
+        rotulo,
+        corClasse
+      };
+    }
+
+    function avaliarNovaSenhaModal() {
+      const s1 = document.getElementById('nova-senha-input')?.value || '';
+      const s2 = document.getElementById('confirmar-nova-senha-input')?.value || '';
+      const analise = validarRequisitosSenha(s1);
+      const iguais = s1.length > 0 && s1 === s2;
+
+      const label = document.getElementById('forca-senha-label');
+      const barra = document.getElementById('forca-senha-barra');
+      if (label && barra) {
+        label.innerText = `${analise.rotulo} • ${analise.pontos}%`;
+        label.className = `font-extrabold ${analise.corClasse.split(' ')[1]}`;
+        barra.style.width = `${analise.pontos}%`;
+        barra.className = `h-full transition-all duration-200 ${analise.corClasse.split(' ')[0]}`;
+      }
+
+      const reqTam = document.getElementById('req-tamanho');
+      const reqLN = document.getElementById('req-letra-numero');
+      const reqEq = document.getElementById('req-iguais');
+      if (reqTam) reqTam.className = analise.temMinimo ? 'text-emerald-400 font-semibold' : 'text-slate-400';
+      if (reqLN) reqLN.className = analise.temLetraENumero ? 'text-emerald-400 font-semibold' : 'text-slate-400';
+      if (reqEq) reqEq.className = iguais ? 'text-emerald-400 font-semibold' : 'text-slate-400';
+    }
+
+    function verificarExigenciaTrocaSenha(usuario) {
+      if (usuario && (usuario.precisa_trocar_senha === true || usuario.senha_temporaria_ativa === true)) {
+        aguardandoTrocaSenhaObrigatoria = true;
+        document.getElementById('nova-senha-input').value = '';
+        document.getElementById('confirmar-nova-senha-input').value = '';
+        document.getElementById('erro-nova-senha-modal').classList.add('hidden');
+        avaliarNovaSenhaModal();
+        document.getElementById('modal-trocar-senha-obrigatoria').classList.remove('hidden');
+        return true;
+      }
+      aguardandoTrocaSenhaObrigatoria = false;
+      return false;
+    }
+
+    async function salvarNovaSenhaObrigatoria() {
+      const erroEl = document.getElementById('erro-nova-senha-modal');
+      const s1 = document.getElementById('nova-senha-input').value;
+      const s2 = document.getElementById('confirmar-nova-senha-input').value;
+      const analise = validarRequisitosSenha(s1);
+
+      if (!analise.temMinimo) {
+        erroEl.innerText = 'A senha deve ter pelo menos 8 caracteres.';
+        erroEl.classList.remove('hidden');
+        return;
+      }
+      if (!analise.temLetraENumero) {
+        erroEl.innerText = 'A senha deve conter letras e números.';
+        erroEl.classList.remove('hidden');
+        return;
+      }
+      if (s1 !== s2) {
+        erroEl.innerText = 'As duas senhas digitadas não são iguais.';
+        erroEl.classList.remove('hidden');
+        return;
+      }
+
+      erroEl.classList.add('hidden');
+      if (!usuarioLogado?.id) return;
+
+      const { error } = await supabaseClient
+        .from('usuarios')
+        .update({
+          senha: s1,
+          precisa_trocar_senha: false,
+          senha_temporaria_ativa: false
+        })
+        .eq('id', usuarioLogado.id);
+
+      if (error) {
+        erroEl.innerText = 'Erro ao salvar nova senha: ' + error.message;
+        erroEl.classList.remove('hidden');
+        return;
+      }
+
+      usuarioLogado = {
+        ...usuarioLogado,
+        senha: s1,
+        precisa_trocar_senha: false,
+        senha_temporaria_ativa: false
+      };
+      localStorage.setItem('passageiro_logado', JSON.stringify(usuarioLogado));
+      aguardandoTrocaSenhaObrigatoria = false;
+      document.getElementById('modal-trocar-senha-obrigatoria').classList.add('hidden');
     }
 
     async function inicializarApp() {
@@ -176,6 +366,7 @@
       document.getElementById('menu-foto').src = usuarioLogado.foto_url || 'https://ui-avatars.com/api/?name=Passageiro';
 
       carregarModuloMapa();
+      verificarExigenciaTrocaSenha(usuarioLogado);
     }
 
     async function verificarDadosUsuarioAtualizados() {
@@ -183,6 +374,7 @@
         const { data } = await supabaseClient.from('usuarios').select('*').eq('id', usuarioLogado.id).single();
         if (data) {
           usuarioLogado = data;
+          localStorage.setItem('passageiro_logado', JSON.stringify(usuarioLogado));
           if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
             document.getElementById('banner-bloqueio').classList.remove('hidden');
           } else {
@@ -200,11 +392,13 @@
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'usuarios', filter: `id=eq.${usuarioLogado.id}` }, payload => {
           if (payload.new) {
             usuarioLogado = payload.new;
+            localStorage.setItem('passageiro_logado', JSON.stringify(usuarioLogado));
             if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
               document.getElementById('banner-bloqueio').classList.remove('hidden');
             } else {
               document.getElementById('banner-bloqueio').classList.add('hidden');
             }
+            verificarExigenciaTrocaSenha(usuarioLogado);
           }
         })
         .subscribe();
@@ -466,3 +660,4 @@
   </script>
 </body>
 </html>
+```[cite: 19]
