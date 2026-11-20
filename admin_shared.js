@@ -1,4 +1,4 @@
-// admin_shared.js (v14)
+// admin_shared.js (v15)
 const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -217,7 +217,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <i class="fa-solid fa-shield-halved text-base"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v14</span></h1>
+          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v15</span></h1>
           <p class="text-[10px] text-slate-400">Gestão Avançada e Suporte</p>
         </div>
       </a>
@@ -662,12 +662,22 @@ function salvarNovaSenhaMestre() {
 }
 
 function alternarMenuRestricaoCardAdmin(idUsuario) {
-  const menu = document.getElementById(`menu-restricao-${idUsuario}`);
-  if (!menu) return;
-  document.querySelectorAll('[id^="menu-restricao-"]').forEach(el => {
-    if (el.id !== `menu-restricao-${idUsuario}`) el.classList.add('hidden');
-  });
-  menu.classList.toggle('hidden');
+  const gatilho = document.getElementById(`btn-gatilho-restricao-${idUsuario}`);
+  const opcoes = document.getElementById(`opcoes-restricao-${idUsuario}`);
+  if (!gatilho || !opcoes) return;
+
+  const vaiAbrir = opcoes.classList.contains('hidden');
+
+  document.querySelectorAll('[id^="opcoes-restricao-"]').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('[id^="btn-gatilho-restricao-"]').forEach(el => el.classList.remove('hidden'));
+
+  if (vaiAbrir) {
+    gatilho.classList.add('hidden');
+    opcoes.classList.remove('hidden');
+  } else {
+    opcoes.classList.add('hidden');
+    gatilho.classList.remove('hidden');
+  }
 }
 
 function gerarCardAdmin(user) {
@@ -684,6 +694,17 @@ function gerarCardAdmin(user) {
 
   const temV2Pendente = isMotorista && temSegundoVeiculoPendenteAdmin(user);
 
+  const acaoRestricaoHtml = (isBloqueado || isPendente)
+    ? `<button type="button" onclick="mudarStatusConta('${user.id}', 'aprovado')" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-2.5 py-2 rounded-xl font-bold shrink-0">Desbloquear</button>`
+    : `
+      <button type="button" id="btn-gatilho-restricao-${user.id}" onclick="alternarMenuRestricaoCardAdmin('${user.id}')" class="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 px-2.5 py-2 rounded-xl font-bold shrink-0">Bloquear</button>
+      <div id="opcoes-restricao-${user.id}" class="hidden flex items-center gap-1 shrink-0">
+        <button type="button" onclick="mudarStatusConta('${user.id}', 'pendente')" class="bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 px-2 py-2 rounded-xl font-bold text-[10px] leading-none">Analisar</button>
+        <button type="button" onclick="mudarStatusConta('${user.id}', 'bloqueado')" class="bg-red-600/25 hover:bg-red-600/40 text-red-300 border border-red-500/40 px-2 py-2 rounded-xl font-bold text-[10px] leading-none">Bloquear</button>
+        <button type="button" onclick="alternarMenuRestricaoCardAdmin('${user.id}')" title="Fechar" class="text-slate-500 hover:text-slate-300 px-1 py-1.5 text-[10px] leading-none"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    `;
+
   return `
     <div class="relative bg-slate-900 p-4 rounded-2xl border ${isBloqueado ? 'border-red-500/40' : (isPendente || temV2Pendente ? 'border-amber-500/50' : (isOnline ? 'border-emerald-500/40' : 'border-slate-800'))} space-y-3 shadow">
       <div class="flex items-center gap-3">
@@ -699,24 +720,9 @@ function gerarCardAdmin(user) {
         </div>
       </div>
 
-      <div class="flex gap-2 pt-2 border-t border-slate-800 text-[11px] items-center">
-        <button onclick="abrirModalEdicao('${user.id}')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 rounded-xl">${temV2Pendente ? 'Analisar 2º Carro / Perfil' : 'Editar Perfil / Suporte'}</button>
-        ${(isBloqueado || isPendente)
-          ? `<button onclick="mudarStatusConta('${user.id}', 'aprovado')" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-3 py-2 rounded-xl font-bold">Desbloquear</button>`
-          : `<button type="button" onclick="alternarMenuRestricaoCardAdmin('${user.id}')" class="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl font-bold">Bloquear ▾</button>`
-        }
-      </div>
-
-      <div id="menu-restricao-${user.id}" class="hidden bg-slate-950 border border-slate-700 rounded-2xl p-2.5 space-y-2 shadow-xl">
-        <p class="text-[10px] text-slate-400 font-bold px-1">Escolha como restringir este usuário:</p>
-        <div class="grid grid-cols-2 gap-2 text-[11px]">
-          <button type="button" onclick="mudarStatusConta('${user.id}', 'pendente')" class="bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 py-2 px-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5">
-            <i class="fa-solid fa-magnifying-glass"></i> Analisar
-          </button>
-          <button type="button" onclick="mudarStatusConta('${user.id}', 'bloqueado')" class="bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/40 py-2 px-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5">
-            <i class="fa-solid fa-ban"></i> Bloquear
-          </button>
-        </div>
+      <div class="flex gap-1.5 pt-2 border-t border-slate-800 text-[11px] items-center">
+        <button type="button" onclick="abrirModalEdicao('${user.id}')" class="flex-1 min-w-0 truncate bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 px-2.5 rounded-xl">${temV2Pendente ? 'Analisar 2º Carro / Perfil' : 'Editar Perfil / Suporte'}</button>
+        ${acaoRestricaoHtml}
       </div>
     </div>
   `;
