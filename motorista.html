@@ -296,6 +296,7 @@
     let intervaloValidacaoSessao = null;
     let intervaloVerificacaoPedidos = null;
     let intervaloOscilacaoTexto = null;
+    let intervaloPresencaApp = null;
     let canalCorridaAtiva = null;
     let canalRealtimeMotorista = null;
     let canalRealtimeSuporteMotorista = null;
@@ -480,6 +481,49 @@
       }
     }
 
+    async function atualizarPresencaNoApp(estaOnlineNoApp) {
+      if (!motoristaLogado || !motoristaLogado.id) return;
+      try {
+        const agoraIso = new Date().toISOString();
+        await supabaseClient
+          .from('usuarios')
+          .update({
+            online: estaOnlineNoApp,
+            ultimo_acesso: agoraIso
+          })
+          .eq('id', motoristaLogado.id);
+      } catch (e) {}
+    }
+
+    function iniciarHeartbeatPresencaApp() {
+      if (!motoristaLogado || !motoristaLogado.id) return;
+      if (intervaloPresencaApp) clearInterval(intervaloPresencaApp);
+
+      atualizarPresencaNoApp(true);
+
+      intervaloPresencaApp = setInterval(() => {
+        if (!document.hidden) {
+          atualizarPresencaNoApp(true);
+        }
+      }, 15000);
+
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          atualizarPresencaNoApp(true);
+        } else {
+          atualizarPresencaNoApp(false);
+        }
+      });
+
+      window.addEventListener('pagehide', () => {
+        atualizarPresencaNoApp(false);
+      });
+
+      window.addEventListener('beforeunload', () => {
+        atualizarPresencaNoApp(false);
+      });
+    }
+
     async function inicializarMotoristaApp() {
       const storage = localStorage.getItem('motorista_logado');
       if (!storage) {
@@ -491,6 +535,7 @@
       document.getElementById('menu-nome').innerText = motoristaLogado.nome || 'Motorista';
       document.getElementById('menu-foto').src = motoristaLogado.foto_url || 'https://ui-avatars.com/api/?name=Motorista';
 
+      iniciarHeartbeatPresencaApp();
       await verificarDadosMotoristaAtualizados();
       iniciarEscutaRealtimeMotorista();
       iniciarEscutaSuporteRealtimeMotorista();
@@ -898,6 +943,7 @@
           if (motoristaLogado) {
             await supabaseClient.from('usuarios').update({
               online: true,
+              ultimo_acesso: new Date().toISOString(),
               lat: lat,
               lng: lng
             }).eq('id', motoristaLogado.id);
@@ -1429,9 +1475,6 @@
         intervaloVerificacaoPedidos = null;
       }
       if (typeof removerMarcadorCarroRadar === 'function') removerMarcadorCarroRadar();
-      if (motoristaLogado && !corridaAtiva) {
-        await supabaseClient.from('usuarios').update({ online: false }).eq('id', motoristaLogado.id);
-      }
     }
 
     function toggleMenuLateral() {
@@ -1440,7 +1483,9 @@
 
     async function sairConta() {
       await pararRastreamentoGPS();
+      clearInterval(intervaloPresencaApp);
       clearInterval(intervaloValidacaoSessao);
+      await atualizarPresencaNoApp(false);
       localStorage.clear();
       window.location.href = 'auth-motorista.html';
     }

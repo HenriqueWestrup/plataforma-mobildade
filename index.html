@@ -629,15 +629,37 @@
 
     function iniciarHeartbeatOnline() {
       if (!usuarioLogado || !usuarioLogado.id) return;
+      if (intervaloHeartbeat) clearInterval(intervaloHeartbeat);
+
       const atualizarPresenca = async (statusOnline) => {
         try {
-          await supabaseClient.from('usuarios').update({ online: statusOnline }).eq('id', usuarioLogado.id);
+          const agoraIso = new Date().toISOString();
+          await supabaseClient
+            .from('usuarios')
+            .update({
+              online: statusOnline,
+              ultimo_acesso: agoraIso
+            })
+            .eq('id', usuarioLogado.id);
         } catch (err) {}
       };
+
       atualizarPresenca(true);
-      intervaloHeartbeat = setInterval(() => atualizarPresenca(true), 15000);
+      intervaloHeartbeat = setInterval(() => {
+        if (!document.hidden) atualizarPresenca(true);
+      }, 15000);
+
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) atualizarPresenca(true);
+        else atualizarPresenca(false);
+      });
+
+      window.addEventListener('pagehide', () => {
+        atualizarPresenca(false);
+      });
+
       window.addEventListener('beforeunload', () => {
-        supabaseClient.from('usuarios').update({ online: false }).eq('id', usuarioLogado.id);
+        atualizarPresenca(false);
       });
     }
 
@@ -647,7 +669,15 @@
 
     async function sairConta() {
       if (usuarioLogado && usuarioLogado.id) {
-        try { await supabaseClient.from('usuarios').update({ online: false }).eq('id', usuarioLogado.id); } catch(e) {}
+        try {
+          await supabaseClient
+            .from('usuarios')
+            .update({
+              online: false,
+              ultimo_acesso: new Date().toISOString()
+            })
+            .eq('id', usuarioLogado.id);
+        } catch (e) {}
       }
       clearInterval(intervaloHeartbeat);
       localStorage.clear();
