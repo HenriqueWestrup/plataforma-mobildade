@@ -1,4 +1,4 @@
-// admin_shared.js (v16)
+// admin_shared.js (v17)
 const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -11,6 +11,7 @@ function obterSenhaMestre() {
 let listaUsuariosCache = [];
 let usuarioModalAtual = null;
 const blobUrlCacheAdmin = {};
+let intervaloSyncAdmin = null;
 
 function normalizarStatusConta(status) {
   const s = String(status || '').toLowerCase().trim();
@@ -50,12 +51,26 @@ function temSegundoVeiculoPendenteAdmin(user) {
   return stV2 === 'pendente' || stV2 === 'em_analise' || stV2 === '';
 }
 
+function flagOnlineAtivoNoRegistro(user) {
+  if (!user) return false;
+  if (user.online === true || user.radar_ativo === true || user.disponivel === true) return true;
+  const onlineStr = String(user.online ?? user.status_online ?? user.radar ?? '').toLowerCase().trim();
+  return onlineStr === 'true' || onlineStr === 'online' || onlineStr === 'ativo' || onlineStr === '1';
+}
+
 function usuarioEstaAtivoNoAppAdmin(user) {
-  if (!user || user.online !== true) return false;
+  if (!user) return false;
+  if (!flagOnlineAtivoNoRegistro(user)) return false;
+
   const refTempo = user.ultimo_acesso || user.ultima_atividade || user.updated_at;
-  if (!refTempo) return false;
-  const diffMs = Date.now() - new Date(refTempo).getTime();
-  return !Number.isNaN(diffMs) && diffMs >= 0 && diffMs <= 60000;
+  if (!refTempo) return true;
+
+  const ts = new Date(refTempo).getTime();
+  if (Number.isNaN(ts)) return true;
+
+  // Tolerância de 5 minutos para evitar falsos offline por atraso de heartbeat ou diferença de relógio
+  const diffMs = Math.abs(Date.now() - ts);
+  return diffMs <= 300000;
 }
 
 function filtrarUsuariosPorSetorAdmin(lista, setor) {
@@ -220,7 +235,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <i class="fa-solid fa-shield-halved text-base"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v16</span></h1>
+          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v17</span></h1>
           <p class="text-[10px] text-slate-400">Gestão Avançada e Suporte</p>
         </div>
       </a>
@@ -562,11 +577,21 @@ function inicializarLayoutAdmin(paginaAtiva) {
   document.body.insertAdjacentHTML('beforeend', modaisHtml);
 }
 
+function iniciarSincronizacaoAutomaticaAdmin() {
+  if (intervaloSyncAdmin) clearInterval(intervaloSyncAdmin);
+  intervaloSyncAdmin = setInterval(() => {
+    if (sessionStorage.getItem('admin_autenticado') === 'true') {
+      atualizarDadosGlobais();
+    }
+  }, 10000);
+}
+
 function verificarSessaoAdmin(paginaAtiva, callbackCarregarPagina) {
   inicializarLayoutAdmin(paginaAtiva);
   if (sessionStorage.getItem('admin_autenticado') === 'true') {
     document.getElementById('tela-login-admin').classList.add('hidden');
     atualizarContadoresNavegacao();
+    iniciarSincronizacaoAutomaticaAdmin();
     if (callbackCarregarPagina) callbackCarregarPagina();
   } else {
     document.getElementById('tela-login-admin').classList.remove('hidden');
@@ -587,6 +612,7 @@ function autenticarAdmin(e) {
 }
 
 function sairAdmin() {
+  if (intervaloSyncAdmin) clearInterval(intervaloSyncAdmin);
   sessionStorage.removeItem('admin_autenticado');
   window.location.href = 'auth.html';
 }
