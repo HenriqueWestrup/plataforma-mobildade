@@ -1,4 +1,4 @@
-// admin_shared.js (v15)
+// admin_shared.js (v16)
 const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -60,21 +60,24 @@ function usuarioEstaAtivoNoAppAdmin(user) {
 
 function filtrarUsuariosPorSetorAdmin(lista, setor) {
   const arr = Array.isArray(lista) ? lista : [];
-  if (!setor || setor === 'todos') return arr;
+  const setorLimpo = String(setor || 'todos').toLowerCase().trim();
 
-  if (setor === 'online') {
+  if (setorLimpo === 'todos') {
+    return arr.filter(u => normalizarStatusConta(u.status) === 'aprovado');
+  }
+  if (setorLimpo === 'online') {
     return arr.filter(u => usuarioEstaAtivoNoAppAdmin(u) && normalizarStatusConta(u.status) === 'aprovado');
   }
-  if (setor === 'analise' || setor === 'pendente') {
+  if (setorLimpo === 'analise' || setorLimpo === 'pendente') {
     return arr.filter(u => normalizarStatusConta(u.status) === 'pendente');
   }
-  if (setor === 'bloqueados' || setor === 'bloqueado') {
+  if (setorLimpo === 'bloqueados' || setorLimpo === 'bloqueado') {
     return arr.filter(u => normalizarStatusConta(u.status) === 'bloqueado');
   }
-  if (setor === 'segundo_carro') {
+  if (setorLimpo === 'segundo_carro') {
     return arr.filter(u => ehPerfilMotoristaAdmin(u) && temSegundoVeiculoPendenteAdmin(u));
   }
-  return arr.filter(u => normalizarStatusConta(u.status) === normalizarStatusConta(setor));
+  return arr.filter(u => normalizarStatusConta(u.status) === normalizarStatusConta(setorLimpo));
 }
 
 function obterUrlSeguraDocumentoAdmin(url, chaveCache) {
@@ -217,7 +220,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <i class="fa-solid fa-shield-halved text-base"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v15</span></h1>
+          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v16</span></h1>
           <p class="text-[10px] text-slate-400">Gestão Avançada e Suporte</p>
         </div>
       </a>
@@ -692,6 +695,10 @@ function gerarCardAdmin(user) {
   else if (isPendente) badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-400">Em Análise</span>';
   else if (isOnline) badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Online</span>';
 
+  const bolinhaInferiorDireita = isOnline
+    ? `<span title="Usuário online no aplicativo" class="absolute bottom-3 right-3 w-3 h-3 rounded-full bg-emerald-400 animate-ping pointer-events-none"></span><span title="Usuário online no aplicativo" class="absolute bottom-3 right-3 w-3 h-3 rounded-full bg-emerald-500 border border-slate-900 pointer-events-none"></span>`
+    : '';
+
   const temV2Pendente = isMotorista && temSegundoVeiculoPendenteAdmin(user);
 
   const acaoRestricaoHtml = (isBloqueado || isPendente)
@@ -707,6 +714,7 @@ function gerarCardAdmin(user) {
 
   return `
     <div class="relative bg-slate-900 p-4 rounded-2xl border ${isBloqueado ? 'border-red-500/40' : (isPendente || temV2Pendente ? 'border-amber-500/50' : (isOnline ? 'border-emerald-500/40' : 'border-slate-800'))} space-y-3 shadow">
+      ${bolinhaInferiorDireita}
       <div class="flex items-center gap-3">
         <img src="${user.foto_url || 'https://ui-avatars.com/api/?name=Usuario'}" class="w-12 h-12 rounded-full object-cover border-2 border-slate-700">
         <div class="flex-1">
