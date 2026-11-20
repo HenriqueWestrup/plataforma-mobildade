@@ -60,7 +60,6 @@ function flagOnlineAtivoNoRegistro(user) {
   return onlineStr === 'true' || onlineStr === 'online' || onlineStr === 'ativo' || onlineStr === '1' || onlineStr === 't';
 }
 
-// Lê diretamente a coluna boolean `online` da tabela public.usuarios (sem exigir colunas de data inexistentes)
 function usuarioEstaAtivoNoAppAdmin(user) {
   if (!user) return false;
   if (user.online === true) return true;
@@ -86,7 +85,7 @@ function usuarioCorrespondeBuscaAdmin(user, termo) {
   ].filter(Boolean).join(' ').toLowerCase();
 
   if (camposTexto.includes(q)) return true;
-  if (qNumeros.length >= 3) {
+  if (qNumeros.length >= 2) {
     const telCpfNum = `${user.cpf || ''}${user.telefone || ''}`.replace(/\D/g, '');
     if (telCpfNum.includes(qNumeros)) return true;
   }
@@ -112,78 +111,13 @@ function filtrarUsuariosPorSetorAdmin(lista, setor) {
     filtrados = arr.filter(u => normalizarStatusConta(u.status) === normalizarStatusConta(setorLimpo));
   }
 
-  // Se estiver na página de motoristas e houver termo digitado no buscador, aplica o filtro também
-  const inputBuscaMot = document.getElementById('busca-motoristas') || document.getElementById('input-busca-motoristas-admin');
+  const inputBuscaMot = document.getElementById('busca-motoristas');
   const termoAtivo = inputBuscaMot ? inputBuscaMot.value : termoBuscaMotoristaAdmin;
   if (termoAtivo && termoAtivo.trim() !== '') {
     filtrados = filtrados.filter(u => usuarioCorrespondeBuscaAdmin(u, termoAtivo));
   }
 
   return filtrados;
-}
-
-function garantirBuscadorNaPaginaMotorista(paginaAtiva) {
-  if (paginaAtiva !== 'motorista') return;
-  if (document.getElementById('busca-motoristas') || document.getElementById('input-busca-motoristas-admin')) return;
-
-  // Tenta localizar o container das sub-abas (Todos / Online / Em Análise) para inserir o buscador logo abaixo
-  const alvo = document.querySelector('[data-setor], #filtro-todos, #tab-todos, .grid-cols-5')?.parentElement
-    || document.querySelector('main')
-    || document.body;
-
-  if (!alvo) return;
-
-  const boxBusca = document.createElement('div');
-  boxBusca.id = 'wrapper-busca-motoristas-admin';
-  boxBusca.className = 'px-3 pt-2 pb-1';
-  boxBusca.innerHTML = `
-    <div class="relative">
-      <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-      <input
-        type="text"
-        id="input-busca-motoristas-admin"
-        placeholder="Buscar motorista por nome, CPF, celular, carro ou placa..."
-        class="w-full bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-2xl pl-9 pr-9 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none transition"
-      >
-      <button
-        type="button"
-        id="btn-limpar-busca-motoristas-admin"
-        title="Limpar busca"
-        class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
-      >
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
-  `;
-
-  if (alvo === document.body) {
-    const navEl = document.querySelector('nav');
-    if (navEl && navEl.parentNode) {
-      navEl.parentNode.insertBefore(boxBusca, navEl.nextSibling);
-    }
-  } else {
-    alvo.parentNode.insertBefore(boxBusca, alvo.nextSibling);
-  }
-
-  const input = document.getElementById('input-busca-motoristas-admin');
-  const btnLimpar = document.getElementById('btn-limpar-busca-motoristas-admin');
-
-  input.addEventListener('input', () => {
-    termoBuscaMotoristaAdmin = input.value;
-    btnLimpar.classList.toggle('hidden', !input.value);
-    if (typeof renderizarMotoristas === 'function') renderizarMotoristas();
-    else if (typeof filtrarListaMotoristas === 'function') filtrarListaMotoristas();
-    else if (typeof carregarPaginaAtual === 'function') carregarPaginaAtual();
-  });
-
-  btnLimpar.addEventListener('click', () => {
-    input.value = '';
-    termoBuscaMotoristaAdmin = '';
-    btnLimpar.classList.add('hidden');
-    if (typeof renderizarMotoristas === 'function') renderizarMotoristas();
-    else if (typeof filtrarListaMotoristas === 'function') filtrarListaMotoristas();
-    else if (typeof carregarPaginaAtual === 'function') carregarPaginaAtual();
-  });
 }
 
 function obterUrlSeguraDocumentoAdmin(url, chaveCache) {
@@ -666,7 +600,6 @@ function inicializarLayoutAdmin(paginaAtiva) {
 
   document.body.insertAdjacentHTML('afterbegin', headerENav);
   document.body.insertAdjacentHTML('beforeend', modaisHtml);
-  garantirBuscadorNaPaginaMotorista(paginaAtiva);
 }
 
 function iniciarSincronizacaoAutomaticaAdmin() {
@@ -930,7 +863,6 @@ function preencherAbaVeiculosMotorista(user) {
   }
   if (!isMotorista) return;
 
-  // Veículo 1 (editável manualmente)
   document.getElementById('edit-v1-marca').value = user.veiculo_marca || '';
   document.getElementById('edit-v1-modelo').value = user.veiculo_modelo || '';
   document.getElementById('edit-v1-cor').value = user.veiculo_cor || '';
@@ -946,7 +878,6 @@ function preencherAbaVeiculosMotorista(user) {
     `${user.id}_v1`
   );
 
-  // Veículo 2
   const temV2 = temSegundoVeiculoCadastrado(user);
   const statusV2 = String(user.veiculo2_status || 'pendente').toLowerCase();
   const badgeV2 = document.getElementById('v2-status-badge');

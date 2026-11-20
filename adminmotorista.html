@@ -30,6 +30,27 @@
       </button>
     </div>
 
+    <!-- BUSCADOR DE MOTORISTAS -->
+    <div class="relative">
+      <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+      <input
+        type="text"
+        id="busca-motoristas"
+        oninput="aoDigitarBuscaMotoristaAdmin()"
+        placeholder="Buscar por nome, CPF, celular, carro ou placa..."
+        class="w-full bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-2xl pl-9 pr-9 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none transition"
+      >
+      <button
+        type="button"
+        id="btn-limpar-busca-motoristas"
+        onclick="limparBuscaMotoristaAdmin()"
+        title="Limpar busca"
+        class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+      >
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
     <div id="lista-admin-motoristas" class="space-y-3">
       <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Carregando motoristas...</div>
     </div>
@@ -39,6 +60,23 @@
   <script>
     let motoristasCacheAdmin = [];
     let subAbaMotoristaAtual = 'todos';
+
+    function aoDigitarBuscaMotoristaAdmin() {
+      const input = document.getElementById('busca-motoristas');
+      const btnLimpar = document.getElementById('btn-limpar-busca-motoristas');
+      termoBuscaMotoristaAdmin = input ? input.value : '';
+      if (btnLimpar) btnLimpar.classList.toggle('hidden', !termoBuscaMotoristaAdmin);
+      renderizarListaMotoristasAdmin();
+    }
+
+    function limparBuscaMotoristaAdmin() {
+      const input = document.getElementById('busca-motoristas');
+      const btnLimpar = document.getElementById('btn-limpar-busca-motoristas');
+      if (input) input.value = '';
+      termoBuscaMotoristaAdmin = '';
+      if (btnLimpar) btnLimpar.classList.add('hidden');
+      renderizarListaMotoristasAdmin();
+    }
 
     function mudarSubAbaMotoristaAdmin(setor) {
       subAbaMotoristaAtual = setor;
@@ -54,7 +92,7 @@
 
     function atualizarContadoresSubAbasMotoristas() {
       const lista = motoristasCacheAdmin;
-      document.getElementById('cnt-mot-todos').innerText = lista.length;
+      document.getElementById('cnt-mot-todos').innerText = filtrarUsuariosPorSetorAdmin(lista, 'todos').length;
       document.getElementById('cnt-mot-online').innerText = filtrarUsuariosPorSetorAdmin(lista, 'online').length;
       document.getElementById('cnt-mot-analise').innerText = filtrarUsuariosPorSetorAdmin(lista, 'analise').length;
       document.getElementById('cnt-mot-bloqueados').innerText = filtrarUsuariosPorSetorAdmin(lista, 'bloqueados').length;
@@ -67,7 +105,10 @@
       const container = document.getElementById('lista-admin-motoristas');
 
       if (!filtrados || filtrados.length === 0) {
-        container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">Nenhum motorista encontrado neste setor.</div>`;
+        const msgVazia = termoBuscaMotoristaAdmin
+          ? 'Nenhum motorista corresponde à busca neste setor.'
+          : 'Nenhum motorista encontrado neste setor.';
+        container.innerHTML = `<div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-slate-500 text-center">${msgVazia}</div>`;
         return;
       }
 
@@ -81,7 +122,7 @@
 
       let motoristas = todos.filter(u => ehPerfilMotoristaAdmin(u));
       motoristas.sort((a, b) =>
-        (b.online === true ? 1 : 0) - (a.online === true ? 1 : 0) ||
+        (usuarioEstaAtivoNoAppAdmin(b) ? 1 : 0) - (usuarioEstaAtivoNoAppAdmin(a) ? 1 : 0) ||
         (a.nome || '').localeCompare(b.nome || '')
       );
 
