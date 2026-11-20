@@ -1,4 +1,4 @@
-// admin_shared.js (v11)
+// admin_shared.js (v12)
 const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -43,12 +43,21 @@ function temSegundoVeiculoCadastrado(user) {
   );
 }
 
+// Considera online no uso do app apenas se houver pulso recente (até 60s)
+function usuarioEstaAtivoNoAppAdmin(user) {
+  if (!user || user.online !== true) return false;
+  const refTempo = user.ultimo_acesso || user.ultima_atividade || user.updated_at;
+  if (!refTempo) return false;
+  const diffMs = Date.now() - new Date(refTempo).getTime();
+  return !Number.isNaN(diffMs) && diffMs >= 0 && diffMs <= 60000;
+}
+
 function filtrarUsuariosPorSetorAdmin(lista, setor) {
   const arr = Array.isArray(lista) ? lista : [];
   if (!setor || setor === 'todos') return arr;
 
   if (setor === 'online') {
-    return arr.filter(u => u.online === true && normalizarStatusConta(u.status) === 'aprovado');
+    return arr.filter(u => usuarioEstaAtivoNoAppAdmin(u) && normalizarStatusConta(u.status) === 'aprovado');
   }
   if (setor === 'analise' || setor === 'pendente') {
     return arr.filter(u => normalizarStatusConta(u.status) === 'pendente');
@@ -208,7 +217,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <i class="fa-solid fa-shield-halved text-base"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v11</span></h1>
+          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v12</span></h1>
           <p class="text-[10px] text-slate-400">Gestão Avançada e Suporte</p>
         </div>
       </a>
@@ -650,12 +659,21 @@ function salvarNovaSenhaMestre() {
 }
 
 // --- CARD PADRÃO DE USUÁRIO / MOTORISTA ---
+function alternarMenuRestricaoCardAdmin(idUsuario) {
+  const menu = document.getElementById(`menu-restricao-${idUsuario}`);
+  if (!menu) return;
+  document.querySelectorAll('[id^="menu-restricao-"]').forEach(el => {
+    if (el.id !== `menu-restricao-${idUsuario}`) el.classList.add('hidden');
+  });
+  menu.classList.toggle('hidden');
+}
+
 function gerarCardAdmin(user) {
   const statusNorm = normalizarStatusConta(user.status);
   const isBloqueado = statusNorm === 'bloqueado';
   const isPendente = statusNorm === 'pendente';
   const isMotorista = ehPerfilMotoristaAdmin(user);
-  const isOnline = user.online === true;
+  const isOnline = usuarioEstaAtivoNoAppAdmin(user) && !isBloqueado && !isPendente;
 
   let badge = '';
   if (isBloqueado) badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-500/20 text-red-400">Bloqueado</span>';
@@ -665,7 +683,7 @@ function gerarCardAdmin(user) {
   const temV2Pendente = isMotorista && temSegundoVeiculoCadastrado(user) && String(user.veiculo2_status || 'pendente').toLowerCase() === 'pendente';
 
   return `
-    <div class="bg-slate-900 p-4 rounded-2xl border ${isBloqueado ? 'border-red-500/40' : (temV2Pendente ? 'border-amber-500/50' : (isOnline ? 'border-emerald-500/40' : 'border-slate-800'))} space-y-3 shadow">
+    <div class="relative bg-slate-900 p-4 rounded-2xl border ${isBloqueado ? 'border-red-500/40' : (isPendente || temV2Pendente ? 'border-amber-500/50' : (isOnline ? 'border-emerald-500/40' : 'border-slate-800'))} space-y-3 shadow">
       <div class="flex items-center gap-3">
         <img src="${user.foto_url || 'https://ui-avatars.com/api/?name=Usuario'}" class="w-12 h-12 rounded-full object-cover border-2 border-slate-700">
         <div class="flex-1">
@@ -678,11 +696,26 @@ function gerarCardAdmin(user) {
           ${temV2Pendente ? `<p class="text-amber-300 font-bold text-[10px] mt-0.5"><i class="fa-solid fa-car-side mr-1"></i> 2º carro pendente: ${user.veiculo2_modelo || ''} (${user.veiculo2_placa || '-'})</p>` : ''}
         </div>
       </div>
-      <div class="flex gap-2 pt-2 border-t border-slate-800 text-[11px]">
+
+      <div class="flex gap-2 pt-2 border-t border-slate-800 text-[11px] items-center">
         <button onclick="abrirModalEdicao('${user.id}')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 rounded-xl">Editar Perfil / Suporte</button>
-        ${isBloqueado 
-          ? `<button onclick="mudarStatusConta('${user.id}', 'aprovado')" class="bg-emerald-600/20 text-emerald-400 px-3 py-2 rounded-xl font-bold">Desbloquear</button>` 
-          : `<button onclick="mudarStatusConta('${user.id}', 'bloqueado')" class="bg-red-600/20 text-red-400 px-3 py-2 rounded-xl font-bold">Bloquear</button>`}
+        ${(isBloqueado || isPendente)
+          ? `<button onclick="mudarStatusConta('${user.id}', 'aprovado')" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-3 py-2 rounded-xl font-bold">Desbloquear</button>`
+          : `<button type="button" onclick="alternarMenuRestricaoCardAdmin('${user.id}')" class="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl font-bold">Bloquear ▾</button>`
+        }
+      </div>
+
+      <!-- SUB-MENU COM AS DUAS OPÇÕES: ANALISAR E BLOQUEAR -->
+      <div id="menu-restricao-${user.id}" class="hidden bg-slate-950 border border-slate-700 rounded-2xl p-2.5 space-y-2 shadow-xl">
+        <p class="text-[10px] text-slate-400 font-bold px-1">Escolha como restringir este usuário:</p>
+        <div class="grid grid-cols-2 gap-2 text-[11px]">
+          <button type="button" onclick="mudarStatusConta('${user.id}', 'pendente')" class="bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 py-2 px-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-magnifying-glass"></i> Analisar
+          </button>
+          <button type="button" onclick="mudarStatusConta('${user.id}', 'bloqueado')" class="bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/40 py-2 px-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-ban"></i> Bloquear
+          </button>
+        </div>
       </div>
     </div>
   `;
