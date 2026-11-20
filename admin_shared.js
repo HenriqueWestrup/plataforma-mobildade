@@ -1,4 +1,4 @@
-// admin_shared.js (v19)
+// admin_shared.js (v20)
 const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -8,11 +8,59 @@ function obterSenhaMestre() {
   return localStorage.getItem('admin_master_pass') || 'admin123';
 }
 
+const REGRAS_PADRAO_ADMIN = {
+  valor_base: 5.00,
+  valor_por_km: 3.50,
+  valor_minimo: 10.00,
+  valor_por_parada: 0.00,
+  percentual_repasse_motorista: 100,
+  max_paradas: 2,
+  tempo_espera_segundos: 180,
+  intervalo_radar_ms: 5000,
+  raio_alerta_proximidade_metros: 100
+};
+
 let listaUsuariosCache = [];
 let usuarioModalAtual = null;
 const blobUrlCacheAdmin = {};
 let intervaloSyncAdmin = null;
 let termoBuscaMotoristaAdmin = '';
+
+function normalizarRegrasAdmin(bruto = {}) {
+  const num = (val, padrao) => {
+    const n = Number(val);
+    return Number.isFinite(n) ? n : padrao;
+  };
+  return {
+    valor_base: Math.max(0, num(bruto.valor_base, REGRAS_PADRAO_ADMIN.valor_base)),
+    valor_por_km: Math.max(0, num(bruto.valor_por_km, REGRAS_PADRAO_ADMIN.valor_por_km)),
+    valor_minimo: Math.max(0, num(bruto.valor_minimo, REGRAS_PADRAO_ADMIN.valor_minimo)),
+    valor_por_parada: Math.max(0, num(bruto.valor_por_parada, REGRAS_PADRAO_ADMIN.valor_por_parada)),
+    percentual_repasse_motorista: Math.min(100, Math.max(0, num(bruto.percentual_repasse_motorista, REGRAS_PADRAO_ADMIN.percentual_repasse_motorista))),
+    max_paradas: Math.max(0, Math.floor(num(bruto.max_paradas, REGRAS_PADRAO_ADMIN.max_paradas))),
+    tempo_espera_segundos: Math.max(15, Math.floor(num(bruto.tempo_espera_segundos, REGRAS_PADRAO_ADMIN.tempo_espera_segundos))),
+    intervalo_radar_ms: Math.max(1500, Math.floor(num(bruto.intervalo_radar_ms, REGRAS_PADRAO_ADMIN.intervalo_radar_ms))),
+    raio_alerta_proximidade_metros: Math.max(10, num(bruto.raio_alerta_proximidade_metros, REGRAS_PADRAO_ADMIN.raio_alerta_proximidade_metros))
+  };
+}
+
+function obterRegrasOperacaoAdmin() {
+  try {
+    const salvo = JSON.parse(localStorage.getItem('regras_corrida_mapa') || 'null');
+    if (salvo && typeof salvo === 'object') {
+      return normalizarRegrasAdmin({ ...REGRAS_PADRAO_ADMIN, ...salvo });
+    }
+  } catch (e) {}
+  return { ...REGRAS_PADRAO_ADMIN };
+}
+
+function salvarRegrasOperacaoLocalAdmin(novasRegras) {
+  const normalizadas = normalizarRegrasAdmin({ ...REGRAS_PADRAO_ADMIN, ...novasRegras });
+  try {
+    localStorage.setItem('regras_corrida_mapa', JSON.stringify(normalizadas));
+  } catch (e) {}
+  return normalizadas;
+}
 
 function normalizarStatusConta(status) {
   const s = String(status || '').toLowerCase().trim();
@@ -221,6 +269,15 @@ function fecharPreviaDocumentoAdmin() {
   if (box) box.classList.add('hidden');
 }
 
+function irParaRegrasAdmin() {
+  const secao = document.getElementById('secao-regras-operacao');
+  if (secao) {
+    secao.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  window.location.href = 'admin.html#secao-regras-operacao';
+}
+
 function inicializarLayoutAdmin(paginaAtiva) {
   const headerENav = `
     <!-- TELA DE LOGIN MESTRE ADMIN -->
@@ -260,18 +317,21 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <i class="fa-solid fa-shield-halved text-base"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v19</span></h1>
+          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v20</span></h1>
           <p class="text-[10px] text-slate-400">Gestão Avançada e Suporte</p>
         </div>
       </a>
       <div class="flex gap-2">
-        <button onclick="abrirModalSenhaMestre()" title="Alterar Senha Mestre" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-2 rounded-xl font-bold border border-slate-700">
+        <button type="button" onclick="irParaRegrasAdmin()" title="Regras de Cálculo e Busca" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-3 py-2 rounded-xl font-bold border border-slate-700">
+          <i class="fa-solid fa-sliders"></i>
+        </button>
+        <button type="button" onclick="abrirModalSenhaMestre()" title="Alterar Senha Mestre" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-2 rounded-xl font-bold border border-slate-700">
           <i class="fa-solid fa-key"></i>
         </button>
-        <button onclick="atualizarDadosGlobais()" title="Atualizar Dados" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl font-bold border border-slate-700">
+        <button type="button" onclick="atualizarDadosGlobais()" title="Atualizar Dados" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl font-bold border border-slate-700">
           <i class="fa-solid fa-rotate"></i>
         </button>
-        <button onclick="sairAdmin()" class="bg-slate-800 hover:bg-red-950/50 text-slate-300 hover:text-red-400 px-3 py-2 rounded-xl font-bold border border-slate-700">Sair</button>
+        <button type="button" onclick="sairAdmin()" class="bg-slate-800 hover:bg-red-950/50 text-slate-300 hover:text-red-400 px-3 py-2 rounded-xl font-bold border border-slate-700">Sair</button>
       </div>
     </header>
 
@@ -310,7 +370,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
             <i class="fa-solid fa-user-pen text-emerald-400"></i> Gestão de Perfil do Usuário
           </h3>
-          <button onclick="fecharModalEdicao()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+          <button type="button" onclick="fecharModalEdicao()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
         </div>
 
         <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
@@ -323,7 +383,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           </div>
         </div>
 
-        <!-- ABAS DO MODAL (VEÍCULOS EXIBIDA APENAS QUANDO FOR MOTORISTA) -->
+        <!-- ABAS DO MODAL -->
         <div id="abas-modal-usuario" class="flex flex-wrap gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px]">
           <button type="button" onclick="mudarAbaModal('dados')" id="tab-btn-dados" class="flex-1 min-w-[65px] py-2 px-2 rounded-lg font-bold bg-emerald-600 text-white transition">Dados</button>
           <button type="button" onclick="mudarAbaModal('veiculos')" id="tab-btn-veiculos" class="flex-1 min-w-[75px] py-2 px-2 rounded-lg font-bold bg-slate-900 text-slate-400 transition hidden">Veículos</button>
@@ -336,7 +396,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
         <form id="form-editar-usuario" onsubmit="salvarEdicaoUsuario(event)" class="space-y-4 text-xs">
           <input type="hidden" id="edit-id">
 
-          <!-- ABA DADOS: SOMENTE NOME COMPLETO, CPF, CELULAR E ENDEREÇO -->
+          <!-- ABA DADOS -->
           <div id="modal-conteudo-dados" class="space-y-3">
             <div class="flex items-center gap-3 pb-2 border-b border-slate-800">
               <img id="edit-foto-preview" class="w-14 h-14 rounded-full object-cover border border-emerald-500">
@@ -369,7 +429,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
             </div>
           </div>
 
-          <!-- ABA VEÍCULOS (VEÍCULO 1 E VEÍCULO 2 COM EDIÇÃO MANUAL COMPLETA) -->
+          <!-- ABA VEÍCULOS -->
           <div id="modal-conteudo-veiculos" class="space-y-3 hidden">
             <div class="grid grid-cols-2 gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px]">
               <button type="button" onclick="mudarSubAbaVeiculoModal('v1')" id="subtab-v1" class="py-2 px-2 rounded-lg font-bold bg-emerald-600 text-white transition">
@@ -380,7 +440,6 @@ function inicializarLayoutAdmin(paginaAtiva) {
               </button>
             </div>
 
-            <!-- SUB-ABA VEÍCULO 1 (EDITÁVEL MANUALMENTE PELO ADMIN) -->
             <div id="conteudo-subtab-v1" class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-3">
               <div class="flex items-center justify-between">
                 <span class="text-[11px] font-extrabold text-emerald-400 uppercase">Dados do Veículo 1 (CRLV)</span>
@@ -424,7 +483,6 @@ function inicializarLayoutAdmin(paginaAtiva) {
               </div>
             </div>
 
-            <!-- SUB-ABA VEÍCULO 2 (EDITÁVEL + APROVAR / RECUSAR VEÍCULO) -->
             <div id="conteudo-subtab-v2" class="bg-slate-950 p-3.5 rounded-2xl border border-amber-500/30 space-y-3 hidden">
               <div class="flex items-center justify-between gap-2">
                 <span class="text-[11px] font-extrabold text-amber-400 uppercase">Dados do Veículo 2 (CRLV)</span>
@@ -577,7 +635,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
             <i class="fa-solid fa-key text-amber-400"></i> Configurar Senha Mestre
           </h3>
-          <button onclick="fecharModalSenhaMestre()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+          <button type="button" onclick="fecharModalSenhaMestre()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
         </div>
         <div class="space-y-3 text-xs">
           <div class="space-y-1">
@@ -1061,17 +1119,21 @@ async function carregarHistoricoEGanhosModal(id, isMotorista) {
     return;
   }
 
+  const regras = obterRegrasOperacaoAdmin();
+  const fatorRepasse = regras.percentual_repasse_motorista / 100;
+
   let htmlViagens = '';
   let totalGanhos = 0;
 
   corridas.forEach(c => {
-    const valor = Number(c.valor || c.preco || 15.0);
-    if (isMotorista) totalGanhos += valor;
+    const valorBruto = Number(c.valor || c.preco || 15.0);
+    const valorExibido = isMotorista ? valorBruto * fatorRepasse : valorBruto;
+    if (isMotorista) totalGanhos += valorExibido;
     htmlViagens += `
       <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 space-y-1">
         <div class="flex justify-between items-center text-[10px] text-slate-400">
           <span>Viagem #${c.id} • ${c.status || 'Concluída'}</span>
-          <span class="text-emerald-400 font-bold">R$ ${valor.toFixed(2)}</span>
+          <span class="text-emerald-400 font-bold">R$ ${valorExibido.toFixed(2).replace('.', ',')}</span>
         </div>
         <p class="text-slate-300 truncate"><strong>De:</strong> ${c.origem || 'N/D'}</p>
         <p class="text-slate-300 truncate"><strong>Para:</strong> ${c.destino || 'N/D'}</p>
@@ -1080,7 +1142,7 @@ async function carregarHistoricoEGanhosModal(id, isMotorista) {
   });
 
   if (isMotorista) {
-    htmlViagens = `<div class="bg-emerald-950/40 p-2 rounded-xl border border-emerald-500/30 text-emerald-300 text-center font-bold mb-2">Total de Ganhos: R$ ${totalGanhos.toFixed(2)}</div>` + htmlViagens;
+    htmlViagens = `<div class="bg-emerald-950/40 p-2 rounded-xl border border-emerald-500/30 text-emerald-300 text-center font-bold mb-2">Total de Ganhos (${regras.percentual_repasse_motorista}%): R$ ${totalGanhos.toFixed(2).replace('.', ',')}</div>` + htmlViagens;
   }
   containerViagens.innerHTML = htmlViagens;
 

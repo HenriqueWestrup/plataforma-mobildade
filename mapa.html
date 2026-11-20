@@ -9,7 +9,6 @@
 
   <!-- PAINEL FLUTUANTE DE SOLICITAÇÃO DE CORRIDA -->
   <div id="painel-solicitacao" class="absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-slate-800 p-4 rounded-2xl space-y-3 shadow-2xl z-10">
-    
     <!-- CAMPO ORIGEM -->
     <div class="relative">
       <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
@@ -52,7 +51,7 @@
       </button>
     </div>
 
-    <!-- BOTÃO CHAMAR MOTORISTA (SÓ LIBERA APÓS O CÁLCULO PRONTO) -->
+    <!-- BOTÃO CHAMAR MOTORISTA -->
     <button id="btn-chamar-motorista" onclick="chamarMotorista()" disabled class="w-full bg-slate-800 text-slate-500 cursor-not-allowed font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
       <i class="fa-solid fa-route"></i> <span>Preencha origem e destino</span>
     </button>
@@ -68,13 +67,11 @@
       <p class="text-[11px] text-slate-400">Aguardando aceitação dos motoristas online na região.</p>
     </div>
 
-    <!-- CONTADOR REGRESSIVO DE 3 MINUTOS -->
     <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center px-4">
       <span class="text-slate-400 text-xs">Tempo restante:</span>
       <span id="timer-regressivo" class="font-mono text-amber-400 font-bold text-sm">03:00</span>
     </div>
 
-    <!-- BOTÃO DE CANCELAMENTO ANTES DE O MOTORISTA ACEITAR -->
     <button onclick="cancelarBuscaCorrida()" class="w-full bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
       <i class="fa-solid fa-xmark"></i> Cancelar Corrida
     </button>
@@ -96,7 +93,6 @@
       </div>
     </div>
 
-    <!-- ILUSTRAÇÃO DINÂMICA DA JORNADA -->
     <div id="container-ilustracao-jornada" class="bg-slate-950 px-3 py-2.5 rounded-xl border border-slate-800 flex items-center justify-center gap-3 text-emerald-400 text-sm"></div>
 
     <div class="space-y-1.5 text-xs text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800">
@@ -157,30 +153,30 @@
 </div>
 
 <script>
-  const SUPABASE_URL_MAPA = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
-  const SUPABASE_ANON_KEY_MAPA = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
-  const supabaseMapa = window.supabase ? window.supabase.createClient(SUPABASE_URL_MAPA, SUPABASE_ANON_KEY_MAPA) : null;
+  var SUPABASE_URL_MAPA = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
+  var SUPABASE_ANON_KEY_MAPA = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
+  var supabaseMapa = window.__supabaseMapaInstance || (window.__supabaseMapaInstance = window.supabase ? window.supabase.createClient(SUPABASE_URL_MAPA, SUPABASE_ANON_KEY_MAPA) : null);
 
-  let mapaLeaflet = null;
-  let marcadorOrigem = null;
-  let marcadorDestino = null;
-  let marcadoresParadas = {};
-  let polylineRota = null;
-  let coordsOrigem = null;
-  let coordsDestino = null;
-  let coordsParadas = {};
-  let formaPagamentoSelecionada = 'PIX';
-  let marcadoresMotoristas = {};
-  let intervaloRadarMotoristas = null;
-  let timerIntervalId = null;
-  let modalTimeoutId = null;
-  let corridaAtualId = null;
-  let canalPassageiroRealtime = null;
-  let passageiroNotaSelecionada = 5;
-  let ultimaNotificacaoProximidade = false;
-  let calculoRotaPronto = false;
-  let valorCalculadoAtual = 0;
-  let timerBuscaDebounced = {};
+  var mapaLeaflet = null;
+  var marcadorOrigem = null;
+  var marcadorDestino = null;
+  var marcadoresParadas = {};
+  var polylineRota = null;
+  var coordsOrigem = null;
+  var coordsDestino = null;
+  var coordsParadas = {};
+  var formaPagamentoSelecionada = 'PIX';
+  var marcadoresMotoristas = {};
+  var intervaloRadarMotoristas = null;
+  var timerIntervalId = null;
+  var modalTimeoutId = null;
+  var corridaAtualId = null;
+  var canalPassageiroRealtime = null;
+  var passageiroNotaSelecionada = 5;
+  var ultimaNotificacaoProximidade = false;
+  var calculoRotaPronto = false;
+  var valorCalculadoAtual = 0;
+  var timerBuscaDebounced = {};
 
   function primeiroNome(nomeCompleto) {
     if (!nomeCompleto) return 'Motorista';
@@ -194,17 +190,17 @@
     if (estado === 'pronto') {
       calculoRotaPronto = true;
       btn.disabled = false;
-      btn.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer";
+      btn.className = 'w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer';
       btn.innerHTML = `<i class="fa-solid fa-car-side"></i> <span>Chamar Motorista (${document.getElementById('valor-estimado').innerText})</span>`;
     } else if (estado === 'calculando') {
       calculoRotaPronto = false;
       btn.disabled = true;
-      btn.className = "w-full bg-slate-800 text-amber-400 cursor-wait font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 border border-amber-500/30";
+      btn.className = 'w-full bg-slate-800 text-amber-400 cursor-wait font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 border border-amber-500/30';
       btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>${textoCustomizado || 'Calculando rota e valor...'}</span>`;
     } else {
       calculoRotaPronto = false;
       btn.disabled = true;
-      btn.className = "w-full bg-slate-800 text-slate-500 cursor-not-allowed font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2";
+      btn.className = 'w-full bg-slate-800 text-slate-500 cursor-not-allowed font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2';
       btn.innerHTML = `<i class="fa-solid fa-route"></i> <span>${textoCustomizado || 'Preencha origem e destino'}</span>`;
       document.getElementById('bloco-estimativa').classList.add('hidden');
       if (polylineRota && mapaLeaflet) {
@@ -212,21 +208,6 @@
         polylineRota = null;
       }
     }
-  }
-
-  function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
-    const R = 6371e3;
-    const phi1 = lat1 * Math.PI / 180;
-    const phi2 = lat2 * Math.PI / 180;
-    const dPhi = (lat2 - lat1) * Math.PI / 180;
-    const dLambda = (lon2 - lon1) * Math.PI / 180;
-
-    const a = Math.sin(dPhi / 2) * Math.sin(dPhi / 2) +
-              Math.cos(phi1) * Math.cos(phi2) *
-              Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
   }
 
   function tocarSom(tipo) {
@@ -269,11 +250,11 @@
 
     if (tipo === 'sucesso') {
       tocarSom('sucesso');
-      iconeDiv.className = "w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
+      iconeDiv.className = 'w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40';
       iconeDiv.innerHTML = '<i class="fa-solid fa-car-side"></i>';
     } else {
       tocarSom('cancelar');
-      iconeDiv.className = "w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-red-500/20 text-red-400 border border-red-500/40";
+      iconeDiv.className = 'w-12 h-12 rounded-full flex items-center justify-center mx-auto text-xl bg-red-500/20 text-red-400 border border-red-500/40';
       iconeDiv.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
     }
 
@@ -290,7 +271,101 @@
     document.getElementById('modal-aviso').classList.add('hidden');
   }
 
-  function inicializarMapa() {
+  function centralizarNoUsuario() {
+    const inputOrigem = document.getElementById('origem-corrida');
+    const campoOrigemVazio = !inputOrigem || inputOrigem.value.trim() === '';
+
+    if (campoOrigemVazio || !coordsOrigem) {
+      usarMinhaLocalizacao(true);
+      return;
+    }
+
+    if (coordsOrigem && mapaLeaflet) {
+      mapaLeaflet.setView([coordsOrigem.lat, coordsOrigem.lng], 16);
+    }
+  }
+
+  function selecionarPagamento(tipo) {
+    formaPagamentoSelecionada = tipo;
+    const btnPix = document.getElementById('btn-pay-pix');
+    const btnDinheiro = document.getElementById('btn-pay-dinheiro');
+
+    if (tipo === 'PIX') {
+      btnPix.className = 'bg-emerald-600/20 border border-emerald-500 text-emerald-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2';
+      btnDinheiro.className = 'bg-slate-950 border border-slate-800 text-slate-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2 hover:border-slate-700';
+    } else {
+      btnDinheiro.className = 'bg-emerald-600/20 border border-emerald-500 text-emerald-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2';
+      btnPix.className = 'bg-slate-950 border border-slate-800 text-slate-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2 hover:border-slate-700';
+    }
+  }
+
+  function usarMinhaLocalizacao(forcarPreenchimento = true) {
+    const inputOrigem = document.getElementById('origem-corrida');
+    if (forcarPreenchimento && inputOrigem) {
+      inputOrigem.placeholder = 'Localizando via GPS...';
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          coordsOrigem = { lat, lng };
+
+          if (mapaLeaflet) {
+            mapaLeaflet.setView([lat, lng], 16);
+            if (marcadorOrigem) mapaLeaflet.removeLayer(marcadorOrigem);
+            marcadorOrigem = L.marker([lat, lng]).addTo(mapaLeaflet).bindPopup('Local de Embarque').openPopup();
+          }
+
+          if (forcarPreenchimento && inputOrigem) {
+            try {
+              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+              const data = await res.json();
+              inputOrigem.value = (data && data.display_name) ? data.display_name : `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            } catch (e) {
+              inputOrigem.value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            }
+            inputOrigem.placeholder = 'Local de embarque';
+          }
+
+          verificarECalcularSePronto();
+        },
+        () => {
+          if (inputOrigem) inputOrigem.placeholder = 'Local de embarque';
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else if (inputOrigem) {
+      inputOrigem.placeholder = 'Local de embarque';
+    }
+  }
+
+  function carregarScriptsMapa(callback) {
+    const scripts = ['mapa_regras.js', 'mapa_rotas.js', 'mapa_corrida.js'];
+    let idx = 0;
+
+    function proximo() {
+      if (idx >= scripts.length) {
+        if (typeof callback === 'function') callback();
+        return;
+      }
+      const src = scripts[idx++];
+      if (document.querySelector(`script[src="${src}"]`)) {
+        proximo();
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = proximo;
+      s.onerror = proximo;
+      document.body.appendChild(s);
+    }
+
+    proximo();
+  }
+
+  async function inicializarMapa() {
     if (mapaLeaflet) {
       mapaLeaflet.invalidateSize();
       return;
@@ -308,750 +383,17 @@
 
     setTimeout(() => mapaLeaflet.invalidateSize(), 300);
     atualizarEstadoBotaoChamar('bloqueado');
+
+    if (typeof carregarRegrasMapa === 'function') {
+      await carregarRegrasMapa(supabaseMapa);
+    }
+
     usarMinhaLocalizacao(true);
-    iniciarRadarMotoristasOnline();
-    verificarCorridaAtivaPassageiro();
+    if (typeof iniciarRadarMotoristasOnline === 'function') iniciarRadarMotoristasOnline();
+    if (typeof verificarCorridaAtivaPassageiro === 'function') verificarCorridaAtivaPassageiro();
   }
 
-  async function verificarCorridaAtivaPassageiro() {
-    const dadosUsuario = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
-    if (!dadosUsuario.id || !supabaseMapa) return;
-
-    try {
-      const { data } = await supabaseMapa
-        .from('corridas')
-        .select('*, motorista:motorista_id(nome, foto_url, nota)')
-        .eq('passageiro_id', dadosUsuario.id)
-        .in('status', ['procurando', 'aceito', 'a_caminho', 'no_local', 'em_andamento', 'concluido'])
-        .order('id', { ascending: false })
-        .limit(1);
-
-      if (data && data.length > 0) {
-        const corrida = data[0];
-        corridaAtualId = corrida.id;
-
-        if (corrida.status === 'procurando') {
-          document.getElementById('painel-solicitacao').classList.add('hidden');
-          document.getElementById('painel-espera-corrida').classList.remove('hidden');
-          iniciarTimerEsperaCorrida();
-        } else if (corrida.status === 'concluido') {
-          exibirPainelAvaliacaoPassageiro(corrida);
-        } else {
-          exibirPainelMotoristaEncontrado(corrida);
-        }
-        iniciarEscutaPassageiroRealtime();
-      }
-    } catch (e) {}
-  }
-
-  // BOTÃO DE CENTRALIZAR MAPA:
-  // Se o passageiro apagou o local de embarque (ou ainda não tem coordsOrigem), puxa do GPS e preenche o campo automaticamente.
-  function centralizarNoUsuario() {
-    const inputOrigem = document.getElementById('origem-corrida');
-    const campoOrigemVazio = !inputOrigem || inputOrigem.value.trim() === '';
-
-    if (campoOrigemVazio || !coordsOrigem) {
-      usarMinhaLocalizacao(true);
-      return;
-    }
-
-    if (coordsOrigem && mapaLeaflet) {
-      mapaLeaflet.setView([coordsOrigem.lat, coordsOrigem.lng], 16);
-    }
-  }
-
-  async function iniciarRadarMotoristasOnline() {
-    if (!supabaseMapa) return;
-    atualizarPosicoesMotoristas();
-    intervaloRadarMotoristas = setInterval(atualizarPosicoesMotoristas, 5000);
-  }
-
-  async function atualizarPosicoesMotoristas() {
-    if (!mapaLeaflet) return;
-    try {
-      const { data: motoristas, error } = await supabaseMapa
-        .from('usuarios')
-        .select('id, lat, lng, online')
-        .eq('online', true);
-
-      if (error || !motoristas) return;
-
-      const idsAtuais = motoristas.map(m => m.id);
-
-      Object.keys(marcadoresMotoristas).forEach(id => {
-        if (!idsAtuais.includes(id)) {
-          mapaLeaflet.removeLayer(marcadoresMotoristas[id]);
-          delete marcadoresMotoristas[id];
-        }
-      });
-
-      const iconeCarroMapa = L.divIcon({
-        className: 'custom-car-radar',
-        html: '<div style="background-color: #10b981; color: #fff; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.6); border: 2px solid #fff;"><i class="fa-solid fa-car text-[10px]"></i></div>',
-        iconSize: [26, 26],
-        iconAnchor: [13, 13]
-      });
-
-      motoristas.forEach(m => {
-        if (m.lat && m.lng) {
-          if (marcadoresMotoristas[m.id]) {
-            marcadoresMotoristas[m.id].setLatLng([m.lat, m.lng]);
-          } else {
-            const marcador = L.marker([m.lat, m.lng], { icon: iconeCarroMapa }).addTo(mapaLeaflet);
-            marcadoresMotoristas[m.id] = marcador;
-          }
-        }
-      });
-
-      if (corridaAtualId) {
-        const { data: corridaAtual } = await supabaseMapa.from('corridas').select('motorista_id, status').eq('id', corridaAtualId).single();
-        if (corridaAtual && corridaAtual.motorista_id && ['a_caminho', 'aceito'].includes(corridaAtual.status)) {
-          const motEncontrado = motoristas.find(x => x.id === corridaAtual.motorista_id);
-          if (motEncontrado && motEncontrado.lat && motEncontrado.lng && coordsOrigem) {
-            const distancia = calcularDistanciaMetros(coordsOrigem.lat, coordsOrigem.lng, motEncontrado.lat, motEncontrado.lng);
-            if (distancia <= 100 && !ultimaNotificacaoProximidade) {
-              ultimaNotificacaoProximidade = true;
-              mostrarModal("Motorista Próximo!", "O motorista está a menos de 100 metros do seu local de embarque.", "sucesso", 4000);
-            }
-          }
-        }
-      }
-    } catch (err) {}
-  }
-
-  function selecionarPagamento(tipo) {
-    formaPagamentoSelecionada = tipo;
-    const btnPix = document.getElementById('btn-pay-pix');
-    const btnDinheiro = document.getElementById('btn-pay-dinheiro');
-
-    if (tipo === 'PIX') {
-      btnPix.className = "bg-emerald-600/20 border border-emerald-500 text-emerald-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2";
-      btnDinheiro.className = "bg-slate-950 border border-slate-800 text-slate-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2 hover:border-slate-700";
-    } else {
-      btnDinheiro.className = "bg-emerald-600/20 border border-emerald-500 text-emerald-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2";
-      btnPix.className = "bg-slate-950 border border-slate-800 text-slate-400 font-bold py-2 rounded-xl text-center transition flex items-center justify-center gap-2 hover:border-slate-700";
-    }
-  }
-
-  function usarMinhaLocalizacao(forcarPreenchimento = true) {
-    const inputOrigem = document.getElementById('origem-corrida');
-    if (forcarPreenchimento && inputOrigem) {
-      inputOrigem.placeholder = "Localizando via GPS...";
-    }
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          coordsOrigem = { lat, lng };
-
-          if (mapaLeaflet) {
-            mapaLeaflet.setView([lat, lng], 16);
-            if (marcadorOrigem) mapaLeaflet.removeLayer(marcadorOrigem);
-            marcadorOrigem = L.marker([lat, lng]).addTo(mapaLeaflet).bindPopup("Local de Embarque").openPopup();
-          }
-
-          if (forcarPreenchimento && inputOrigem) {
-            try {
-              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-              const data = await res.json();
-              if (data && data.display_name) {
-                inputOrigem.value = data.display_name;
-              } else {
-                inputOrigem.value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-              }
-            } catch (e) {
-              inputOrigem.value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-            }
-            inputOrigem.placeholder = "Local de embarque";
-          }
-
-          verificarECalcularSePronto();
-        },
-        () => {
-          if (inputOrigem) inputOrigem.placeholder = "Local de embarque";
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    } else if (inputOrigem) {
-      inputOrigem.placeholder = "Local de embarque";
-    }
-  }
-
-  function aoDigitarEndereco(tipo, valor) {
-    // Sempre que o usuário edita manualmente o texto, invalida as coordenadas antigas daquele campo até selecionar uma sugestão
-    if (tipo === 'origem') {
-      coordsOrigem = null;
-      if (marcadorOrigem && mapaLeaflet) {
-        mapaLeaflet.removeLayer(marcadorOrigem);
-        marcadorOrigem = null;
-      }
-      atualizarEstadoBotaoChamar('bloqueado', 'Selecione o local de embarque');
-    } else if (tipo === 'destino') {
-      coordsDestino = null;
-      if (marcadorDestino && mapaLeaflet) {
-        mapaLeaflet.removeLayer(marcadorDestino);
-        marcadorDestino = null;
-      }
-      atualizarEstadoBotaoChamar('bloqueado', 'Selecione o destino');
-    } else if (tipo.startsWith('parada-')) {
-      delete coordsParadas[tipo];
-      if (marcadoresParadas[tipo] && mapaLeaflet) {
-        mapaLeaflet.removeLayer(marcadoresParadas[tipo]);
-        delete marcadoresParadas[tipo];
-      }
-      if (valor.trim() === '') {
-        verificarECalcularSePronto();
-      } else {
-        atualizarEstadoBotaoChamar('bloqueado', 'Selecione o endereço da parada');
-      }
-    }
-
-    if (timerBuscaDebounced[tipo]) clearTimeout(timerBuscaDebounced[tipo]);
-    timerBuscaDebounced[tipo] = setTimeout(() => {
-      buscarSugestoes(valor, tipo);
-    }, 350);
-  }
-
-  async function buscarSugestoes(termo, tipo) {
-    const container = document.getElementById(`sugestoes-${tipo}`);
-    if (!container) return;
-
-    if (termo.trim().length < 3) {
-      container.classList.add('hidden');
-      return;
-    }
-
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(termo)}`);
-      const resultados = await res.json();
-
-      if (!resultados || resultados.length === 0) {
-        container.classList.add('hidden');
-        return;
-      }
-
-      container.innerHTML = resultados.map(item => {
-        const nomeSeguro = item.display_name.replace(/'/g, "").replace(/"/g, "");
-        return `
-          <div onclick="selecionarEndereco('${nomeSeguro}', ${item.lat}, ${item.lon}, '${tipo}')" class="p-2.5 hover:bg-slate-800 cursor-pointer border-b border-slate-800 text-slate-200 truncate">
-            <i class="fa-solid fa-location-dot text-emerald-400 mr-2"></i> ${item.display_name}
-          </div>
-        `;
-      }).join('');
-      container.classList.remove('hidden');
-    } catch (e) {}
-  }
-
-  function selecionarEndereco(nome, lat, lon, tipo) {
-    const idInput = (tipo === 'origem' || tipo === 'destino') ? `${tipo}-corrida` : tipo;
-    const inputEl = document.getElementById(idInput);
-    if (inputEl) inputEl.value = nome;
-
-    const sugEl = document.getElementById(`sugestoes-${tipo}`);
-    if (sugEl) sugEl.classList.add('hidden');
-
-    const coord = { lat: parseFloat(lat), lng: parseFloat(lon), nome: nome };
-
-    if (tipo === 'origem') {
-      coordsOrigem = coord;
-      if (marcadorOrigem) mapaLeaflet.removeLayer(marcadorOrigem);
-      marcadorOrigem = L.marker([coord.lat, coord.lng]).addTo(mapaLeaflet).bindPopup("Embarque");
-    } else if (tipo === 'destino') {
-      coordsDestino = coord;
-      if (marcadorDestino) mapaLeaflet.removeLayer(marcadorDestino);
-      marcadorDestino = L.marker([coord.lat, coord.lng], {
-        icon: L.divIcon({ className: 'bg-amber-500 w-3.5 h-3.5 rounded-full border-2 border-white shadow' })
-      }).addTo(mapaLeaflet).bindPopup("Destino Final");
-    } else if (tipo.startsWith('parada-')) {
-      coordsParadas[tipo] = coord;
-      if (marcadoresParadas[tipo]) mapaLeaflet.removeLayer(marcadoresParadas[tipo]);
-      marcadoresParadas[tipo] = L.marker([coord.lat, coord.lng], {
-        icon: L.divIcon({ className: 'bg-sky-400 w-3 h-3 rounded-full border-2 border-white shadow' })
-      }).addTo(mapaLeaflet).bindPopup("Parada");
-    }
-
-    verificarECalcularSePronto();
-  }
-
-  function adicionarCampoParada() {
-    const container = document.getElementById('container-paradas');
-    if (container.children.length >= 2) {
-      mostrarModal("Atenção", "Limite máximo de 2 paradas intermediárias.", "cancelar", 3000);
-      return;
-    }
-    const idParada = 'parada-' + Date.now();
-    const div = document.createElement('div');
-    div.className = "relative flex items-center gap-2 bg-slate-950 border border-slate-800 p-2.5 rounded-xl";
-    div.innerHTML = `
-      <i class="fa-solid fa-stop text-sky-400"></i>
-      <input type="text" id="${idParada}" placeholder="Adicionar parada" oninput="aoDigitarEndereco('${idParada}', this.value)" class="w-full bg-transparent text-slate-100 focus:outline-none placeholder-slate-500">
-      <button onclick="removerCampoParada('${idParada}', this)" class="text-red-400 hover:text-red-300 px-1"><i class="fa-solid fa-xmark"></i></button>
-      <div id="sugestoes-${idParada}" class="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-30 hidden max-h-36 overflow-y-auto"></div>
-    `;
-    container.appendChild(div);
-  }
-
-  function removerCampoParada(idParada, btnEl) {
-    delete coordsParadas[idParada];
-    if (marcadoresParadas[idParada] && mapaLeaflet) {
-      mapaLeaflet.removeLayer(marcadoresParadas[idParada]);
-      delete marcadoresParadas[idParada];
-    }
-    btnEl.parentElement.remove();
-    verificarECalcularSePronto();
-  }
-
-  function obterListaParadasValidas() {
-    const container = document.getElementById('container-paradas');
-    if (!container) return [];
-    const inputs = container.querySelectorAll('input');
-    const lista = [];
-    inputs.forEach(inp => {
-      const id = inp.id;
-      const texto = inp.value.trim();
-      if (texto !== '') {
-        lista.push({
-          id: id,
-          texto: texto,
-          coord: coordsParadas[id] || null
-        });
-      }
-    });
-    return lista;
-  }
-
-  function verificarECalcularSePronto() {
-    const origemTexto = document.getElementById('origem-corrida')?.value.trim();
-    const destinoTexto = document.getElementById('destino-corrida')?.value.trim();
-
-    if (!origemTexto || !coordsOrigem) {
-      atualizarEstadoBotaoChamar('bloqueado', 'Defina o local de embarque');
-      return;
-    }
-
-    if (!destinoTexto || !coordsDestino) {
-      atualizarEstadoBotaoChamar('bloqueado', 'Defina o destino final');
-      return;
-    }
-
-    const paradas = obterListaParadasValidas();
-    const paradaSemCoord = paradas.find(p => !p.coord);
-    if (paradaSemCoord) {
-      atualizarEstadoBotaoChamar('bloqueado', 'Selecione o endereço da parada');
-      return;
-    }
-
-    calcularRotaEValor();
-  }
-
-  async function calcularRotaEValor() {
-    if (!coordsOrigem || !coordsDestino) return;
-
-    atualizarEstadoBotaoChamar('calculando', 'Calculando rota e valor...');
-
-    const paradasValidas = obterListaParadasValidas();
-    const pontosRota = [coordsOrigem, ...paradasValidas.map(p => p.coord), coordsDestino];
-
-    try {
-      const coordenadasString = pontosRota.map(p => `${p.lng},${p.lat}`).join(';');
-      const urlOsrm = `https://router.project-osrm.org/route/v1/driving/${coordenadasString}?overview=full&geometries=geojson`;
-      const res = await fetch(urlOsrm);
-      const data = await res.json();
-
-      if (data && data.routes && data.routes.length > 0) {
-        const route = data.routes[0];
-        const coordenadasGeo = route.geometry.coordinates.map(c => [c[1], c[0]]);
-
-        if (polylineRota) mapaLeaflet.removeLayer(polylineRota);
-
-        polylineRota = L.polyline(coordenadasGeo, {
-          color: '#10b981',
-          weight: 5,
-          opacity: 0.85
-        }).addTo(mapaLeaflet);
-
-        const distanciaKm = route.distance / 1000;
-        let valorCalculado = 5.0 + (distanciaKm * 3.50);
-        if (valorCalculado < 10.0) valorCalculado = 10.0;
-
-        valorCalculadoAtual = valorCalculado;
-        document.getElementById('valor-estimado').innerText = `R$ ${valorCalculado.toFixed(2).replace('.', ',')}`;
-        document.getElementById('distancia-estimada').innerText = `${distanciaKm.toFixed(1).replace('.', ',')} km${paradasValidas.length > 0 ? ` • ${paradasValidas.length} parada(s)` : ''}`;
-        document.getElementById('bloco-estimativa').classList.remove('hidden');
-
-        mapaLeaflet.fitBounds(polylineRota.getBounds(), { padding: [60, 60] });
-        atualizarEstadoBotaoChamar('pronto');
-        return;
-      }
-    } catch (e) {}
-
-    // Fallback linear somando todos os trechos (Origem -> Paradas -> Destino)
-    let distanciaTotalMetros = 0;
-    const latLngsLinha = [];
-    for (let i = 0; i < pontosRota.length; i++) {
-      latLngsLinha.push([pontosRota[i].lat, pontosRota[i].lng]);
-      if (i > 0) {
-        distanciaTotalMetros += calcularDistanciaMetros(
-          pontosRota[i - 1].lat, pontosRota[i - 1].lng,
-          pontosRota[i].lat, pontosRota[i].lng
-        );
-      }
-    }
-
-    if (polylineRota) mapaLeaflet.removeLayer(polylineRota);
-    polylineRota = L.polyline(latLngsLinha, {
-      color: '#10b981',
-      weight: 5,
-      opacity: 0.85,
-      dashArray: '8, 8'
-    }).addTo(mapaLeaflet);
-
-    const distanciaKm = distanciaTotalMetros / 1000;
-    let valorCalculado = 5.0 + (distanciaKm * 3.50);
-    if (valorCalculado < 10.0) valorCalculado = 10.0;
-
-    valorCalculadoAtual = valorCalculado;
-    document.getElementById('valor-estimado').innerText = `R$ ${valorCalculado.toFixed(2).replace('.', ',')}`;
-    document.getElementById('distancia-estimada').innerText = `~${distanciaKm.toFixed(1).replace('.', ',')} km${paradasValidas.length > 0 ? ` • ${paradasValidas.length} parada(s)` : ''}`;
-    document.getElementById('bloco-estimativa').classList.remove('hidden');
-
-    mapaLeaflet.fitBounds(polylineRota.getBounds(), { padding: [50, 50] });
-    atualizarEstadoBotaoChamar('pronto');
-  }
-
-  async function chamarMotorista() {
-    if (!calculoRotaPronto || valorCalculadoAtual <= 0) {
-      mostrarModal("Aguarde o Cálculo", "Selecione os endereços e aguarde o cálculo do valor antes de chamar.", "cancelar", 3000);
-      return;
-    }
-
-    const dadosUsuario = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
-
-    if (!dadosUsuario.id) {
-      mostrarModal("Erro de Autenticação", "Passageiro não identificado. Faça login novamente.", "cancelar", 2500);
-      setTimeout(() => window.location.href = 'auth.html', 2500);
-      return;
-    }
-
-    const clienteSupabaseAtivo = supabaseMapa || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
-    if (!clienteSupabaseAtivo) {
-      mostrarModal("Erro Crítico", "Conexão com o banco de dados indisponível.", "cancelar", 3500);
-      return;
-    }
-
-    const btn = document.getElementById('btn-chamar-motorista');
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Chamando motorista...</span>`;
-
-    try {
-      const { data: usuarioAtualizado } = await clienteSupabaseAtivo
-        .from('usuarios')
-        .select('status')
-        .eq('id', dadosUsuario.id)
-        .single();
-
-      if (usuarioAtualizado && (usuarioAtualizado.status === 'bloqueado' || usuarioAtualizado.status === 'pendente')) {
-        mostrarModal("Conta Suspensa", "Sua conta está suspensa ou pendente. Não é possível solicitar viagens.", "cancelar", 4000);
-        atualizarEstadoBotaoChamar('pronto');
-        return;
-      }
-    } catch (e) {}
-
-    const origem = document.getElementById('origem-corrida').value.trim();
-    const destino = document.getElementById('destino-corrida').value.trim();
-    const paradasValidas = obterListaParadasValidas();
-    const paradaTexto = paradasValidas.length > 0 ? paradasValidas.map(p => p.texto).join(' | ') : null;
-    
-    if (!origem || !destino) {
-      mostrarModal("Campos Incompletos", "Por favor, preencha a origem e o destino.", "cancelar", 3500);
-      atualizarEstadoBotaoChamar('bloqueado');
-      return;
-    }
-
-    const payloadCorrida = {
-      passageiro_id: dadosUsuario.id,
-      origem: origem,
-      destino: destino,
-      valor: Number(valorCalculadoAtual.toFixed(2)),
-      forma_pagamento: String(formaPagamentoSelecionada || 'PIX'),
-      status: 'procurando'
-    };
-
-    if (paradaTexto) {
-      payloadCorrida.parada = paradaTexto;
-    }
-
-    const { data, error } = await clienteSupabaseAtivo.from('corridas').insert([payloadCorrida]).select().single();
-
-    if (error) {
-      mostrarModal("Erro", "Erro ao solicitar corrida: " + error.message, "cancelar", 4000);
-      atualizarEstadoBotaoChamar('pronto');
-    } else {
-      corridaAtualId = data.id;
-      document.getElementById('painel-solicitacao').classList.add('hidden');
-      document.getElementById('painel-espera-corrida').classList.remove('hidden');
-
-      mostrarModal("Buscando Motorista", "Sua solicitação foi enviada aos motoristas próximos.", "sucesso", 3500);
-      iniciarTimerEsperaCorrida();
-      iniciarEscutaPassageiroRealtime();
-    }
-  }
-
-  function iniciarEscutaPassageiroRealtime() {
-    if (!corridaAtualId || !supabaseMapa) return;
-    if (canalPassageiroRealtime) supabaseMapa.removeChannel(canalPassageiroRealtime);
-
-    canalPassageiroRealtime = supabaseMapa
-      .channel(`public:corridas_passageiro:${corridaAtualId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'corridas', filter: `id=eq.${corridaAtualId}` }, async payload => {
-        if (payload.new) {
-          const corridaAtualizada = payload.new;
-
-          if (['aceito', 'a_caminho', 'no_local', 'em_andamento'].includes(corridaAtualizada.status)) {
-            let motoristaInfo = { nome: 'Motorista', foto_url: '', nota: '5.0' };
-            if (corridaAtualizada.motorista_id) {
-              const { data: mot } = await supabaseMapa.from('usuarios').select('nome, foto_url, nota').eq('id', corridaAtualizada.motorista_id).single();
-              if (mot) motoristaInfo = mot;
-            }
-            corridaAtualizada.motorista = motoristaInfo;
-            exibirPainelMotoristaEncontrado(corridaAtualizada);
-          } else if (corridaAtualizada.status === 'concluido') {
-            exibirPainelAvaliacaoPassageiro(corridaAtualizada);
-          } else if (corridaAtualizada.status === 'cancelado' || corridaAtualizada.status === 'expirado') {
-            tocarSom('cancelar');
-            mostrarModal("Aviso", "A corrida foi encerrada ou cancelada.", "cancelar", 3500);
-            resetarPainelCompletoPassageiro();
-          }
-        }
-      })
-      .subscribe();
-  }
-
-  async function exibirPainelMotoristaEncontrado(corrida) {
-    if (timerIntervalId) clearInterval(timerIntervalId);
-    document.getElementById('painel-espera-corrida').classList.add('hidden');
-    document.getElementById('painel-solicitacao').classList.add('hidden');
-    document.getElementById('painel-avaliacao-passageiro').classList.add('hidden');
-    
-    const painelMotorista = document.getElementById('painel-motorista-encontrado');
-    painelMotorista.classList.remove('hidden');
-
-    let motorista = corrida.motorista;
-    if (!motorista && corrida.motorista_id) {
-      const { data: mot } = await supabaseMapa.from('usuarios').select('nome, foto_url, nota').eq('id', corrida.motorista_id).single();
-      if (mot) motorista = mot;
-    }
-
-    const nomeMotorista = primeiroNome(motorista?.nome || 'Motorista Parceiro');
-    const fotoMotorista = motorista?.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeMotorista)}`;
-    const notaMotorista = motorista?.nota || '5.0';
-
-    document.getElementById('passageiro-motorista-nome').innerText = nomeMotorista;
-    document.getElementById('passageiro-motorista-foto').src = fotoMotorista;
-    document.getElementById('passageiro-motorista-nota').innerText = notaMotorista;
-
-    document.getElementById('pass-ativa-destino').innerText = corrida.destino;
-
-    const blocoParadaAtiva = document.getElementById('bloco-parada-ativa-container');
-    if (corrida.parada) {
-      document.getElementById('pass-ativa-parada').innerText = corrida.parada;
-      blocoParadaAtiva.classList.remove('hidden');
-    } else {
-      blocoParadaAtiva.classList.add('hidden');
-    }
-
-    const textoStatus = document.getElementById('passageiro-status-viagem-texto');
-    const btnCancelarAtivo = document.getElementById('btn-cancelar-passageiro-ativo');
-    const containerIlustracao = document.getElementById('container-ilustracao-jornada');
-    const blocoEmbarque = document.getElementById('bloco-embarque-container');
-
-    if (corrida.status === 'em_andamento') {
-      textoStatus.innerText = "Viagem em andamento";
-      btnCancelarAtivo.classList.add('hidden');
-      blocoEmbarque.style.display = 'none';
-
-      containerIlustracao.innerHTML = `
-        <i class="fa-solid fa-house text-sky-400 text-base" title="Início do Trajeto"></i>
-        <div class="flex-1 border-t-2 border-dashed border-emerald-500/50 relative flex items-center justify-center">
-          <i class="fa-solid fa-car text-emerald-400 absolute bg-slate-950 px-1 text-xs"></i>
-        </div>
-        <i class="fa-solid fa-flag-checkered text-amber-400 text-base" title="Destino Final"></i>
-      `;
-    } else {
-      textoStatus.innerText = "Motorista a caminho do embarque";
-      btnCancelarAtivo.classList.remove('hidden');
-      blocoEmbarque.style.display = 'block';
-      document.getElementById('pass-ativa-origem').innerText = corrida.origem;
-
-      containerIlustracao.innerHTML = `
-        <i class="fa-solid fa-car text-emerald-400 text-base" title="Motorista a Caminho"></i>
-        <div class="flex-1 border-t-2 border-dashed border-emerald-500/50 relative flex items-center justify-center">
-          <i class="fa-solid fa-arrow-right text-emerald-500/80 absolute bg-slate-950 px-1 text-[10px]"></i>
-        </div>
-        <i class="fa-solid fa-house text-sky-400 text-base" title="Local de Embarque"></i>
-      `;
-    }
-  }
-
-  async function cancelarCorridaPassageiroAtiva() {
-    if (!corridaAtualId || !supabaseMapa) return;
-    if (confirm("Deseja realmente cancelar a corrida?")) {
-      await supabaseMapa.from('corridas').update({ status: 'cancelado' }).eq('id', corridaAtualId);
-      mostrarModal("Cancelado", "Sua corrida foi cancelada.", "cancelar", 3000);
-      resetarPainelCompletoPassageiro();
-    }
-  }
-
-  function exibirPainelAvaliacaoPassageiro(corrida) {
-    document.getElementById('painel-motorista-encontrado').classList.add('hidden');
-    document.getElementById('painel-espera-corrida').classList.add('hidden');
-    document.getElementById('painel-solicitacao').classList.add('hidden');
-
-    document.getElementById('passageiro-valor-final').innerText = `R$ ${(corrida.valor || 15.0).toFixed(2).replace('.', ',')}`;
-    passageiroSelecionarEstrela(5);
-    document.getElementById('passageiro-input-motivo-negativo').value = '';
-
-    document.getElementById('painel-avaliacao-passageiro').classList.remove('hidden');
-  }
-
-  function passageiroSelecionarEstrela(nota) {
-    passageiroNotaSelecionada = nota;
-    const estrelas = document.querySelectorAll('#passageiro-container-estrelas i');
-    const textoNota = document.getElementById('passageiro-texto-feedback');
-    const blocoJustificativa = document.getElementById('passageiro-bloco-justificativa');
-
-    estrelas.forEach((star, index) => {
-      if (index < nota) {
-        star.classList.remove('text-slate-600');
-        star.classList.add('text-amber-400');
-      } else {
-        star.classList.remove('text-amber-400');
-        star.classList.add('text-slate-600');
-      }
-    });
-
-    if (nota === 5) {
-      textoNota.innerText = "Excelente (5 estrelas)";
-      blocoJustificativa.classList.add('hidden');
-    } else if (nota === 4) {
-      textoNota.innerText = "Bom (4 estrelas)";
-      blocoJustificativa.classList.remove('hidden');
-    } else if (nota === 3) {
-      textoNota.innerText = "Regular (3 estrelas)";
-      blocoJustificativa.classList.remove('hidden');
-    } else {
-      textoNota.innerText = "Ruim / Muito Ruim";
-      blocoJustificativa.classList.remove('hidden');
-    }
-  }
-
-  async function passageiroConcluirAvaliacao() {
-    if (!corridaAtualId || !supabaseMapa) return;
-
-    const motivo = document.getElementById('passageiro-input-motivo-negativo').value.trim();
-    if (passageiroNotaSelecionada < 5 && !motivo) {
-      mostrarModal("Atenção", "Por favor, informe o motivo da avaliação baixa.", "cancelar", 3000);
-      return;
-    }
-
-    try {
-      await supabaseMapa.from('corridas').update({
-        avaliacao_passageiro: passageiroNotaSelecionada,
-        motivo_avaliacao_passageiro: motivo || null
-      }).eq('id', corridaAtualId);
-
-      if (passageiroNotaSelecionada < 5) {
-        const dadosUsuario = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
-        if (dadosUsuario.id) {
-          await supabaseMapa.from('mensagens_suporte_app').insert([{
-            usuario_id: String(dadosUsuario.id),
-            mensagem: `[Relato de Nota Baixa - Corrida #${corridaAtualId}] Nota: ${passageiroNotaSelecionada} estrelas. Motivo: ${motivo}`,
-            remetente: 'passageiro',
-            lido: false
-          }]);
-        }
-      }
-
-      mostrarModal("Obrigado", "Avaliação enviada com sucesso!", "sucesso", 3000);
-      resetarPainelCompletoPassageiro();
-    } catch (e) {
-      mostrarModal("Erro", "Erro ao enviar avaliação.", "cancelar", 3000);
-    }
-  }
-
-  function resetarPainelCompletoPassageiro() {
-    if (timerIntervalId) clearInterval(timerIntervalId);
-    if (canalPassageiroRealtime && supabaseMapa) supabaseMapa.removeChannel(canalPassageiroRealtime);
-    corridaAtualId = null;
-    ultimaNotificacaoProximidade = false;
-    coordsDestino = null;
-    coordsParadas = {};
-    valorCalculadoAtual = 0;
-
-    document.getElementById('painel-espera-corrida').classList.add('hidden');
-    document.getElementById('painel-motorista-encontrado').classList.add('hidden');
-    document.getElementById('painel-avaliacao-passageiro').classList.add('hidden');
-    document.getElementById('painel-solicitacao').classList.remove('hidden');
-
-    document.getElementById('destino-corrida').value = '';
-    document.getElementById('container-paradas').innerHTML = '';
-    document.getElementById('bloco-estimativa').classList.add('hidden');
-
-    if (marcadorDestino && mapaLeaflet) {
-      mapaLeaflet.removeLayer(marcadorDestino);
-      marcadorDestino = null;
-    }
-    Object.values(marcadoresParadas).forEach(m => {
-      if (mapaLeaflet) mapaLeaflet.removeLayer(m);
-    });
-    marcadoresParadas = {};
-
-    if (polylineRota && mapaLeaflet) {
-      mapaLeaflet.removeLayer(polylineRota);
-      polylineRota = null;
-    }
-
-    atualizarEstadoBotaoChamar('bloqueado');
-    usarMinhaLocalizacao(true);
-  }
-
-  function iniciarTimerEsperaCorrida() {
-    let tempoRestante = 180;
-    const display = document.getElementById('timer-regressivo');
-
-    if (timerIntervalId) clearInterval(timerIntervalId);
-
-    timerIntervalId = setInterval(async () => {
-      let minutos = Math.floor(tempoRestante / 60);
-      let segundos = tempoRestante % 60;
-
-      display.innerText = `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
-
-      if (tempoRestante <= 0) {
-        clearInterval(timerIntervalId);
-        mostrarModal("Tempo Esgotado", "Tempo limite de 3 minutos esgotado sem motoristas aceitarem.", "cancelar", 4000);
-        
-        if (corridaAtualId && supabaseMapa) {
-          await supabaseMapa.from('corridas').update({ status: 'expirado' }).eq('id', corridaAtualId);
-        }
-        resetarPainelCompletoPassageiro();
-      }
-      tempoRestante--;
-    }, 1000);
-  }
-
-  async function cancelarBuscaCorrida() {
-    if (timerIntervalId) clearInterval(timerIntervalId);
-
-    if (corridaAtualId && supabaseMapa) {
-      await supabaseMapa.from('corridas').update({ status: 'cancelado' }).eq('id', corridaAtualId);
-    }
-
-    mostrarModal("Cancelado", "Corrida cancelada com sucesso.", "cancelar", 3000);
-    resetarPainelCompletoPassageiro();
-  }
-
-  setTimeout(inicializarMapa, 100);
+  carregarScriptsMapa(() => {
+    setTimeout(inicializarMapa, 100);
+  });
 </script>

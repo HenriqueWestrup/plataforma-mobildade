@@ -10,7 +10,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs">
 
-  <main class="flex-1 overflow-y-auto p-4 space-y-4 pb-16">
+  <main class="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex justify-between items-center">
       <div>
         <h2 class="text-sm font-extrabold text-white">Visão Geral da Operação</h2>
@@ -67,7 +67,6 @@
           <div class="w-10 h-10 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center text-base">
             <i class="fa-solid fa-headset"></i>
           </div>
-          <!-- Bolinha vermelha com quantidade de mensagens novas -->
           <span id="badge-dash-suporte" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-600 text-white animate-bounce shadow-lg">0</span>
         </div>
         <div>
@@ -76,6 +75,98 @@
         </div>
       </a>
     </div>
+
+    <!-- REGRAS DE CÁLCULO, GANHOS E SISTEMA DE BUSCA -->
+    <section id="secao-regras-operacao" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4 shadow">
+      <div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-sm font-extrabold text-white flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-emerald-400"></i> Regras de Cálculo, Ganhos e Busca
+          </h3>
+          <p class="text-[11px] text-slate-400">Controle de tarifa, repasse ao motorista e parâmetros do radar/despacho.</p>
+        </div>
+        <button type="button" onclick="restaurarRegrasPadraoAdmin()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-xl text-[10px] font-bold border border-slate-700 transition">
+          Restaurar Padrão
+        </button>
+      </div>
+
+      <form id="form-regras-operacao" onsubmit="salvarRegrasOperacaoAdmin(event)" class="space-y-4">
+        <!-- BLOCO 1: CÁLCULO E GANHOS -->
+        <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 space-y-3">
+          <p class="text-[11px] font-extrabold text-emerald-400 uppercase tracking-wider">
+            <i class="fa-solid fa-calculator mr-1"></i> Cálculo da Corrida e Repasse de Ganhos
+          </p>
+
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+            <div class="space-y-1">
+              <label class="text-[10px] text-slate-400 font-semibold block">Tarifa Base (R$)</label>
+              <input type="number" step="0.10" min="0" id="regra-valor-base" oninput="atualizarSimulacaoRegrasAdmin()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-100 font-mono text-xs">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] text-slate-400 font-semibold block">Valor por Km (R$)</label>
+              <input type="number" step="0.10" min="0" id="regra-valor-por-km" oninput="atualizarSimulacaoRegrasAdmin()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-100 font-mono text-xs">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] text-slate-400 font-semibold block">Tarifa Mínima (R$)</label>
+              <input type="number" step="0.50" min="0" id="regra-valor-minimo" oninput="atualizarSimulacaoRegrasAdmin()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-100 font-mono text-xs">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] text-slate-400 font-semibold block">Adicional Parada (R$)</label>
+              <input type="number" step="0.50" min="0" id="regra-valor-parada" oninput="atualizarSimulacaoRegrasAdmin()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-100 font-mono text-xs">
+            </div>
+            <div class="space-y-1 col-span-2 sm:col-span-1">
+              <label class="text-[10px] text-slate-400 font-semibold block">Repasse Motorista (%)</label>
+              <input type="number" step="1" min="0" max="100" id="regra-repasse-motorista" oninput="atualizarSimulacaoRegrasAdmin()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-emerald-300 font-mono font-bold text-xs">
+            </div>
+          </div>
+
+          <!-- PRÉVIA DE EXEMPLO (5 KM + 1 PARADA) -->
+          <div class="bg-slate-900/90 border border-emerald-500/20 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+            <span class="text-slate-400">
+              Simulação exemplo (<strong class="text-slate-200">5,0 km</strong> + <strong class="text-slate-200">1 parada</strong>):
+            </span>
+            <div class="flex items-center gap-3 font-mono">
+              <span class="text-white font-bold">Corrida: <span id="sim-valor-corrida" class="text-emerald-400">R$ 22,50</span></span>
+              <span class="text-sky-300 font-bold">Motorista: <span id="sim-ganho-motorista">R$ 22,50</span></span>
+              <span class="text-amber-300 font-bold">Plataforma: <span id="sim-taxa-plataforma">R$ 0,00</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BLOCO 2: SISTEMA DE BUSCA E DESPACHO -->
+        <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 space-y-3">
+          <p class="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider">
+            <i class="fa-solid fa-radar mr-1"></i> Regra do Sistema de Busca e Radar
+          </p>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div class="space-y-1">
+              <label class="text-[10px] text-slate-400 font-semibold block">Tempo Espera (seg)</label>
+              <input type="number" step="5" min="15" id="regra-tempo-espera" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-100 font-mono text-xs">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] text-slate-400 font-semibold block">Radar / Posição (ms)</label>
+              <input type="number" step="500" min="1500" id="regra-intervalo-radar" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-100 font-mono text-xs">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] text-slate-400 font-semibold block">Alerta Proximidade (m)</label>
+              <input type="number" step="10" min="10" id="regra-raio-proximidade" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-100 font-mono text-xs">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] text-slate-400 font-semibold block">Máx. Paradas na Rota</label>
+              <input type="number" step="1" min="0" max="5" id="regra-max-paradas" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-100 font-mono text-xs">
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between gap-3">
+          <p id="status-salvamento-regras" class="text-[11px] text-emerald-400 font-semibold hidden"></p>
+          <button type="submit" class="ml-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl transition shadow flex items-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i> <span>Salvar Regras de Cálculo e Busca</span>
+          </button>
+        </div>
+      </form>
+    </section>
   </main>
 
   <script src="admin_shared.js"></script>
@@ -101,13 +192,117 @@
       } catch (e) {}
     }
 
+    function preencherFormularioRegrasAdmin(regras) {
+      const r = normalizarRegrasAdmin(regras);
+      document.getElementById('regra-valor-base').value = r.valor_base;
+      document.getElementById('regra-valor-por-km').value = r.valor_por_km;
+      document.getElementById('regra-valor-minimo').value = r.valor_minimo;
+      document.getElementById('regra-valor-parada').value = r.valor_por_parada;
+      document.getElementById('regra-repasse-motorista').value = r.percentual_repasse_motorista;
+      document.getElementById('regra-tempo-espera').value = r.tempo_espera_segundos;
+      document.getElementById('regra-intervalo-radar').value = r.intervalo_radar_ms;
+      document.getElementById('regra-raio-proximidade').value = r.raio_alerta_proximidade_metros;
+      document.getElementById('regra-max-paradas').value = r.max_paradas;
+      atualizarSimulacaoRegrasAdmin();
+    }
+
+    function lerFormularioRegrasAdmin() {
+      return normalizarRegrasAdmin({
+        valor_base: document.getElementById('regra-valor-base').value,
+        valor_por_km: document.getElementById('regra-valor-por-km').value,
+        valor_minimo: document.getElementById('regra-valor-minimo').value,
+        valor_por_parada: document.getElementById('regra-valor-parada').value,
+        percentual_repasse_motorista: document.getElementById('regra-repasse-motorista').value,
+        tempo_espera_segundos: document.getElementById('regra-tempo-espera').value,
+        intervalo_radar_ms: document.getElementById('regra-intervalo-radar').value,
+        raio_alerta_proximidade_metros: document.getElementById('regra-raio-proximidade').value,
+        max_paradas: document.getElementById('regra-max-paradas').value
+      });
+    }
+
+    function atualizarSimulacaoRegrasAdmin() {
+      const r = lerFormularioRegrasAdmin();
+      const kmExemplo = 5.0;
+      const paradasExemplo = 1;
+      const bruto = r.valor_base + (kmExemplo * r.valor_por_km) + (paradasExemplo * r.valor_por_parada);
+      const total = Math.max(r.valor_minimo, bruto);
+      const ganhoMot = total * (r.percentual_repasse_motorista / 100);
+      const taxaPlat = Math.max(0, total - ganhoMot);
+
+      document.getElementById('sim-valor-corrida').innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
+      document.getElementById('sim-ganho-motorista').innerText = `R$ ${ganhoMot.toFixed(2).replace('.', ',')}`;
+      document.getElementById('sim-taxa-plataforma').innerText = `R$ ${taxaPlat.toFixed(2).replace('.', ',')}`;
+    }
+
+    async function carregarRegrasNoPainelAdmin() {
+      let regras = obterRegrasOperacaoAdmin();
+      try {
+        const { data, error } = await supabaseClient
+          .from('configuracoes_corrida')
+          .select('*')
+          .order('id', { ascending: false })
+          .limit(1);
+        if (!error && data && data.length > 0) {
+          regras = salvarRegrasOperacaoLocalAdmin(data[0]);
+        }
+      } catch (e) {}
+      preencherFormularioRegrasAdmin(regras);
+    }
+
+    function exibirAvisoRegras(texto, erro = false) {
+      const el = document.getElementById('status-salvamento-regras');
+      if (!el) return;
+      el.innerText = texto;
+      el.className = erro
+        ? 'text-[11px] text-amber-400 font-semibold'
+        : 'text-[11px] text-emerald-400 font-semibold';
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
+    async function salvarRegrasOperacaoAdmin(e) {
+      e.preventDefault();
+      const regras = salvarRegrasOperacaoLocalAdmin(lerFormularioRegrasAdmin());
+      atualizarSimulacaoRegrasAdmin();
+
+      try {
+        const { data: existentes } = await supabaseClient
+          .from('configuracoes_corrida')
+          .select('id')
+          .order('id', { ascending: false })
+          .limit(1);
+
+        if (existentes && existentes.length > 0) {
+          const { error } = await supabaseClient
+            .from('configuracoes_corrida')
+            .update({ ...regras, atualizado_em: new Date().toISOString() })
+            .eq('id', existentes[0].id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabaseClient
+            .from('configuracoes_corrida')
+            .insert([{ ...regras }]);
+          if (error) throw error;
+        }
+        exibirAvisoRegras('Regras salvas no banco e aplicadas ao mapa!');
+      } catch (err) {
+        exibirAvisoRegras('Regras salvas localmente (tabela configuracoes_corrida opcional).', true);
+      }
+    }
+
+    function restaurarRegrasPadraoAdmin() {
+      const padrao = salvarRegrasOperacaoLocalAdmin(REGRAS_PADRAO_ADMIN);
+      preencherFormularioRegrasAdmin(padrao);
+      exibirAvisoRegras('Valores padrão restaurados. Clique em Salvar para confirmar.');
+    }
+
     async function carregarPaginaAtual() {
       const { data: usuarios } = await supabaseClient.from('usuarios').select('*');
       const todos = usuarios || [];
       listaUsuariosCache = todos;
 
-      const motoristas = todos.filter(u => u.tipo === 'motorista' || u.veiculo_modelo);
-      const passageiros = todos.filter(u => u.tipo !== 'motorista' && !u.veiculo_modelo);
+      const motoristas = todos.filter(u => ehPerfilMotoristaAdmin(u));
+      const passageiros = todos.filter(u => !ehPerfilMotoristaAdmin(u));
 
       document.getElementById('dash-total-motoristas').innerText = motoristas.length;
       document.getElementById('dash-motoristas-online').innerText = `${motoristas.filter(m => m.online).length} online`;
@@ -121,7 +316,6 @@
         .in('status', ['aceita', 'em_andamento', 'em_curso', 'pendente']);
       document.getElementById('dash-total-viagens').innerText = viagensAtivas || 0;
 
-      // Conta mensagens de suporte novas enviadas pelos passageiros
       const { data: msgs } = await supabaseClient
         .from('mensagens_suporte_app')
         .select('id, lido, remetente')
@@ -130,7 +324,7 @@
 
       const totalMsgsNovas = (msgs || []).length;
       document.getElementById('dash-total-suporte').innerText = totalMsgsNovas;
-      
+
       const badgeSup = document.getElementById('badge-dash-suporte');
       if (totalMsgsNovas > 0) {
         badgeSup.innerText = totalMsgsNovas;
@@ -139,6 +333,7 @@
         badgeSup.classList.add('hidden');
       }
 
+      await carregarRegrasNoPainelAdmin();
       iniciarEscutaRealtimeAdminPrincipal();
     }
 
