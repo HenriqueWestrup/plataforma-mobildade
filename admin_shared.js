@@ -1,4 +1,4 @@
-// admin_shared.js (v12)
+// admin_shared.js (v13)
 const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -27,7 +27,8 @@ function ehPerfilMotoristaAdmin(user) {
     user.veiculo_modelo ||
     user.veiculo_placa ||
     user.veiculo2_modelo ||
-    user.veiculo2_placa
+    user.veiculo2_placa ||
+    user.veiculo2_documento_url
   );
 }
 
@@ -41,6 +42,12 @@ function temSegundoVeiculoCadastrado(user) {
     user.veiculo2_placa ||
     user.veiculo2_documento_url
   );
+}
+
+function temSegundoVeiculoPendenteAdmin(user) {
+  if (!user || !temSegundoVeiculoCadastrado(user)) return false;
+  const stV2 = String(user.veiculo2_status || 'pendente').toLowerCase().trim();
+  return stV2 === 'pendente' || stV2 === 'em_analise' || stV2 === '';
 }
 
 // Considera online no uso do app apenas se houver pulso recente (até 60s)
@@ -66,11 +73,7 @@ function filtrarUsuariosPorSetorAdmin(lista, setor) {
     return arr.filter(u => normalizarStatusConta(u.status) === 'bloqueado');
   }
   if (setor === 'segundo_carro') {
-    return arr.filter(u =>
-      ehPerfilMotoristaAdmin(u) &&
-      temSegundoVeiculoCadastrado(u) &&
-      String(u.veiculo2_status || 'pendente').toLowerCase() === 'pendente'
-    );
+    return arr.filter(u => ehPerfilMotoristaAdmin(u) && temSegundoVeiculoPendenteAdmin(u));
   }
   return arr.filter(u => normalizarStatusConta(u.status) === normalizarStatusConta(setor));
 }
@@ -217,7 +220,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <i class="fa-solid fa-shield-halved text-base"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v12</span></h1>
+          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v13</span></h1>
           <p class="text-[10px] text-slate-400">Gestão Avançada e Suporte</p>
         </div>
       </a>
@@ -374,7 +377,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
             <!-- SUB-ABA VEÍCULO 2 (EXIBIDA QUANDO HÁ 2º VEÍCULO CADASTRADO) -->
             <div id="conteudo-subtab-v2" class="bg-slate-950 p-3.5 rounded-2xl border border-amber-500/30 space-y-3 hidden">
               <div class="flex items-center justify-between gap-2">
-                <span class="text-[11px] font-extrabold text-amber-400 uppercase">2º Veículo • Análise CRLV</span>
+                <span class="text-[11px] font-extrabold text-amber-400 uppercase">2º Veículo • Aprovação de Cadastro e CRLV</span>
                 <span id="v2-status-badge" class="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300">pendente</span>
               </div>
 
@@ -416,21 +419,21 @@ function inicializarLayoutAdmin(paginaAtiva) {
               <!-- PRÉVIA E ABERTURA EXTERNA DO CRLV DO 2º VEÍCULO -->
               <div class="pt-2 border-t border-slate-800 space-y-2">
                 <div class="flex items-center justify-between gap-2 text-[10px]">
-                  <span class="text-slate-300 font-bold truncate">CRLV (2º Carro): <span id="v2-doc-nome" class="text-amber-300 font-mono">-</span></span>
+                  <span class="text-slate-300 font-bold truncate">Documento / CRLV (2º Carro): <span id="v2-doc-nome" class="text-amber-300 font-mono">-</span></span>
                   <button type="button" id="v2-doc-btn-ext" onclick="abrirDocumentoExternamenteAdmin('v2')" class="hidden shrink-0 bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2.5 py-1 rounded-lg font-bold border border-slate-700">
                     <i class="fa-solid fa-up-right-from-square mr-1"></i> Abrir Original Externo
                   </button>
                 </div>
-                <img id="v2-doc-img" src="" alt="CRLV 2º carro" onclick="ampliarPreviaDocumentoAdmin('v2')" title="Clique para ampliar prévia no modal" class="hidden w-full max-h-48 object-contain rounded-xl border border-slate-700 bg-slate-900 cursor-zoom-in">
+                <img id="v2-doc-img" src="" alt="Documento enviado do 2º carro" onclick="ampliarPreviaDocumentoAdmin('v2')" title="Clique para ampliar prévia no modal" class="hidden w-full max-h-52 object-contain rounded-xl border border-slate-700 bg-slate-900 cursor-zoom-in">
               </div>
 
               <!-- APROVAR / RECUSAR DOCUMENTO E 2º CARRO (SEM ALTERAR STATUS DA CONTA) -->
               <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-                <button type="button" onclick="decidirSegundoVeiculoAdmin('aprovado')" class="bg-emerald-600 hover:bg-emerald-500 text-white py-2 px-3 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1.5">
-                  <i class="fa-solid fa-check"></i> Aprovar CRLV / 2º Carro
+                <button type="button" onclick="decidirSegundoVeiculoAdmin('aprovado')" class="bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-3 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-check"></i> Aprovar 2º Carro
                 </button>
-                <button type="button" onclick="decidirSegundoVeiculoAdmin('recusado')" class="bg-red-600/20 hover:bg-red-600/35 text-red-300 border border-red-500/40 py-2 px-3 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1.5">
-                  <i class="fa-solid fa-xmark"></i> Recusar CRLV / 2º Carro
+                <button type="button" onclick="decidirSegundoVeiculoAdmin('recusado')" class="bg-red-600/20 hover:bg-red-600/35 text-red-300 border border-red-500/40 py-2.5 px-3 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-xmark"></i> Recusar 2º Carro
                 </button>
               </div>
             </div>
@@ -680,7 +683,7 @@ function gerarCardAdmin(user) {
   else if (isPendente) badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-400">Em Análise</span>';
   else if (isOnline) badge = '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Online</span>';
 
-  const temV2Pendente = isMotorista && temSegundoVeiculoCadastrado(user) && String(user.veiculo2_status || 'pendente').toLowerCase() === 'pendente';
+  const temV2Pendente = isMotorista && temSegundoVeiculoPendenteAdmin(user);
 
   return `
     <div class="relative bg-slate-900 p-4 rounded-2xl border ${isBloqueado ? 'border-red-500/40' : (isPendente || temV2Pendente ? 'border-amber-500/50' : (isOnline ? 'border-emerald-500/40' : 'border-slate-800'))} space-y-3 shadow">
@@ -693,12 +696,12 @@ function gerarCardAdmin(user) {
           </div>
           <p class="text-slate-400 text-[11px]">Cel: ${user.telefone || '-'} • CPF: ${user.cpf || '-'}</p>
           ${isMotorista ? `<p class="text-slate-300 font-bold text-[11px]">Veículo: ${user.veiculo_modelo || 'Não informado'} (${user.veiculo_placa || 'Sem placa'})</p>` : ''}
-          ${temV2Pendente ? `<p class="text-amber-300 font-bold text-[10px] mt-0.5"><i class="fa-solid fa-car-side mr-1"></i> 2º carro pendente: ${user.veiculo2_modelo || ''} (${user.veiculo2_placa || '-'})</p>` : ''}
+          ${temV2Pendente ? `<p class="text-amber-300 font-bold text-[10px] mt-0.5"><i class="fa-solid fa-car-side mr-1"></i> 2º carro aguardando aprovação: ${user.veiculo2_modelo || ''} (${user.veiculo2_placa || '-'})</p>` : ''}
         </div>
       </div>
 
       <div class="flex gap-2 pt-2 border-t border-slate-800 text-[11px] items-center">
-        <button onclick="abrirModalEdicao('${user.id}')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 rounded-xl">Editar Perfil / Suporte</button>
+        <button onclick="abrirModalEdicao('${user.id}')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 rounded-xl">${temV2Pendente ? 'Analisar 2º Carro / Perfil' : 'Editar Perfil / Suporte'}</button>
         ${(isBloqueado || isPendente)
           ? `<button onclick="mudarStatusConta('${user.id}', 'aprovado')" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-3 py-2 rounded-xl font-bold">Desbloquear</button>`
           : `<button type="button" onclick="alternarMenuRestricaoCardAdmin('${user.id}')" class="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl font-bold">Bloquear ▾</button>`
@@ -846,7 +849,7 @@ function preencherAbaVeiculosMotorista(user) {
     `${user.id}_v2`
   );
 
-  mudarSubAbaVeiculoModal(temV2 && statusV2 === 'pendente' ? 'v2' : 'v1');
+  mudarSubAbaVeiculoModal(temV2 ? 'v2' : 'v1');
 }
 
 async function decidirSegundoVeiculoAdmin(novoStatusV2) {
@@ -899,8 +902,8 @@ async function decidirSegundoVeiculoAdmin(novoStatusV2) {
   preencherAbaVeiculosMotorista(usuarioModalAtual);
   mostrarAlertaModal(
     novoStatusV2 === 'aprovado'
-      ? "CRLV / 2º veículo aprovado! Status da conta mantido sem bloqueio."
-      : "CRLV / 2º veículo recusado! Status da conta mantido sem bloqueio.",
+      ? "2º carro e documento aprovados! Status da conta mantido sem bloqueio."
+      : "2º carro e documento recusados! Status da conta mantido sem bloqueio.",
     "sucesso"
   );
   atualizarDadosGlobais();
@@ -955,7 +958,14 @@ async function abrirModalEdicao(id) {
 
   preencherAbaVeiculosMotorista(user);
   definirStatusModal(user.status || 'aprovado');
-  mudarAbaModal('dados');
+
+  // Se houver 2º veículo pendente, abre direto na aba Veículos para análise rápida
+  const abrirEmV2 = isMotorista && temSegundoVeiculoPendenteAdmin(user);
+  mudarAbaModal(abrirEmV2 ? 'veiculos' : 'dados');
+  if (abrirEmV2) {
+    mudarSubAbaVeiculoModal('v2');
+  }
+
   document.getElementById('modal-edicao').classList.remove('hidden');
 
   carregarHistoricoEGanhosModal(user.id, isMotorista);
