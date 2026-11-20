@@ -1154,8 +1154,7 @@ async function salvarEdicaoUsuario(e) {
 
   if (senhaTemp !== '') {
     atualizacao.senha = senhaTemp;
-    atualizacao.precisa_trocar_senha = true;
-    atualizacao.senha_temporaria_ativa = true;
+    atualizacao.senha_temporaria = true;
   }
 
   if (isMotorista) {

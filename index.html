@@ -48,7 +48,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.8</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.9</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -130,7 +130,7 @@
           <i class="fa-solid fa-key text-emerald-400"></i> Defina sua nova senha
         </h3>
         <p class="text-[11px] text-slate-400 leading-relaxed">
-          Você entrou com uma senha definida pelo administrador. Crie sua nova senha com <strong>mínimo de 8 caracteres</strong>, contendo <strong>letras e números</strong> (símbolos e outras teclas são permitidos, sem limite máximo).
+          Você entrou com uma senha temporária definida pelo administrador. Crie sua nova senha com <strong>mínimo de 8 caracteres</strong>, contendo <strong>letras e números</strong> (símbolos e outras teclas são permitidos, sem limite máximo).
         </p>
       </div>
 
@@ -278,7 +278,7 @@
     }
 
     function verificarExigenciaTrocaSenha(usuario) {
-      if (usuario && (usuario.precisa_trocar_senha === true || usuario.senha_temporaria_ativa === true)) {
+      if (usuario && usuario.senha_temporaria === true) {
         aguardandoTrocaSenhaObrigatoria = true;
         document.getElementById('nova-senha-input').value = '';
         document.getElementById('confirmar-nova-senha-input').value = '';
@@ -320,8 +320,7 @@
         .from('usuarios')
         .update({
           senha: s1,
-          precisa_trocar_senha: false,
-          senha_temporaria_ativa: false
+          senha_temporaria: false
         })
         .eq('id', usuarioLogado.id);
 
@@ -334,8 +333,7 @@
       usuarioLogado = {
         ...usuarioLogado,
         senha: s1,
-        precisa_trocar_senha: false,
-        senha_temporaria_ativa: false
+        senha_temporaria: false
       };
       localStorage.setItem('passageiro_logado', JSON.stringify(usuarioLogado));
       aguardandoTrocaSenhaObrigatoria = false;
@@ -660,4 +658,3 @@
   </script>
 </body>
 </html>
-```[cite: 19]
