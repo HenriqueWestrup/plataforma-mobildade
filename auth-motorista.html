@@ -96,7 +96,7 @@
 
       <form id="form-cadastro-motorista" class="space-y-3 text-xs" oninput="validarEtapasMotorista(); salvarRascunhoMotorista();" onsubmit="realizarCadastroMotorista(event)">
 
-        <!-- ETAPA 1: NOME COMPLETO, CPF E CELULAR -->
+        <!-- ETAPA 1: NOME COMPLETO, CPF, DATA DE ANIVERSÁRIO E CELULAR -->
         <div id="etapa-mot-1" class="space-y-3">
           <div class="space-y-1">
             <label class="text-slate-300 font-medium">Nome completo <span class="text-amber-400">*</span></label>
@@ -106,6 +106,11 @@
           <div class="space-y-1">
             <label class="text-slate-300 font-medium">CPF <span class="text-amber-400">*</span></label>
             <input type="text" id="mot-cpf" inputmode="numeric" maxlength="14" required placeholder="000.000.000-00" oninput="formatarCpfInput(this); validarEtapasMotorista(); salvarRascunhoMotorista();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-mono focus:outline-none focus:border-amber-500">
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Data de aniversário <span class="text-amber-400">*</span></label>
+            <input type="date" id="mot-data-nascimento" required onchange="validarEtapasMotorista(); salvarRascunhoMotorista();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500">
           </div>
 
           <div class="space-y-1">
@@ -367,6 +372,7 @@
           etapa: etapaMotAtual,
           nome: document.getElementById('mot-nome').value,
           cpf: document.getElementById('mot-cpf').value,
+          dataNascimento: document.getElementById('mot-data-nascimento').value,
           celular: document.getElementById('mot-celular').value,
           endereco: document.getElementById('mot-endereco').value,
           emerg1Nome: document.getElementById('mot-emerg-1-nome').value,
@@ -422,6 +428,7 @@
 
       document.getElementById('mot-nome').value = rascunho.nome || '';
       document.getElementById('mot-cpf').value = rascunho.cpf || '';
+      document.getElementById('mot-data-nascimento').value = rascunho.dataNascimento || '';
       document.getElementById('mot-celular').value = rascunho.celular || '';
       document.getElementById('mot-endereco').value = rascunho.endereco || '';
       document.getElementById('mot-emerg-1-nome').value = rascunho.emerg1Nome || '';
@@ -707,8 +714,9 @@
     function etapa1MotValida() {
       const nome = document.getElementById('mot-nome').value.trim();
       const cpfDigitos = document.getElementById('mot-cpf').value.replace(/\D/g, '');
+      const dataNascimento = document.getElementById('mot-data-nascimento').value;
       const celDigitos = document.getElementById('mot-celular').value.replace(/\D/g, '');
-      return Boolean(nome && cpfDigitos.length === 11 && celDigitos.length >= 10);
+      return Boolean(nome && cpfDigitos.length === 11 && dataNascimento && celDigitos.length >= 10);
     }
 
     function etapa2MotValida() {
@@ -746,7 +754,7 @@
     function irParaEtapaMotorista(numero) {
       document.getElementById('box-erro-modal').classList.add('hidden');
       if (numero === 2 && !etapa1MotValida()) {
-        mostrarErroModal('Preencha Nome completo, CPF (11 dígitos) e Celular.');
+        mostrarErroModal('Preencha Nome completo, CPF (11 dígitos), Data de aniversário e Celular.');
         return;
       }
       if (numero === 3 && !etapa2MotValida()) {
@@ -953,6 +961,7 @@
 
       const nome = document.getElementById('mot-nome').value.trim();
       const cpf = document.getElementById('mot-cpf').value.trim();
+      const dataNascimento = document.getElementById('mot-data-nascimento').value;
       const celular = document.getElementById('mot-celular').value.trim();
       const endereco = document.getElementById('mot-endereco').value.trim();
       const emerg1Nome = document.getElementById('mot-emerg-1-nome').value.trim();
@@ -982,6 +991,7 @@
           tipo: 'motorista',
           nome,
           cpf,
+          data_nascimento: dataNascimento,
           telefone: celular,
           endereco,
           senha,
@@ -1009,6 +1019,7 @@
             tipo: 'motorista',
             nome,
             cpf,
+            data_nascimento: dataNascimento,
             telefone: celular,
             endereco,
             senha,

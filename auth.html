@@ -78,7 +78,7 @@
 
       <form id="form-cadastro-modal" class="space-y-3 text-xs" oninput="validarEtapaAtual()" onsubmit="realizarCadastro(event)">
 
-        <!-- ETAPA 1: NOME COMPLETO, CPF E CELULAR -->
+        <!-- ETAPA 1: NOME COMPLETO, CPF, DATA DE ANIVERSÁRIO E CELULAR -->
         <div id="etapa-cad-1" class="space-y-3">
           <div class="space-y-1">
             <label class="text-slate-300 font-medium">Nome completo <span class="text-emerald-400">*</span></label>
@@ -88,6 +88,11 @@
           <div class="space-y-1">
             <label class="text-slate-300 font-medium">CPF <span class="text-emerald-400">*</span></label>
             <input type="text" id="cad-cpf" inputmode="numeric" maxlength="14" required placeholder="000.000.000-00" oninput="formatarCpfInput(this); validarEtapaAtual();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-mono focus:outline-none focus:border-emerald-500">
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Data de aniversário <span class="text-emerald-400">*</span></label>
+            <input type="date" id="cad-data-nascimento" required onchange="validarEtapaAtual()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500">
           </div>
 
           <div class="space-y-1">
@@ -468,8 +473,9 @@
     function etapa1Valida() {
       const nome = document.getElementById('cad-nome').value.trim();
       const cpfDigitos = document.getElementById('cad-cpf').value.replace(/\D/g, '');
+      const dataNascimento = document.getElementById('cad-data-nascimento').value;
       const celDigitos = document.getElementById('cad-celular').value.replace(/\D/g, '');
-      return Boolean(nome && cpfDigitos.length === 11 && celDigitos.length >= 10);
+      return Boolean(nome && cpfDigitos.length === 11 && dataNascimento && celDigitos.length >= 10);
     }
 
     function etapa2Valida() {
@@ -497,7 +503,7 @@
     function irParaEtapa(numero) {
       document.getElementById('box-erro-modal').classList.add('hidden');
       if (numero === 2 && !etapa1Valida()) {
-        mostrarErroModal('Preencha Nome completo, CPF (11 dígitos) e Celular para continuar.');
+        mostrarErroModal('Preencha Nome completo, CPF (11 dígitos), Data de aniversário e Celular para continuar.');
         return;
       }
       if (numero === 3 && !etapa2Valida()) {
@@ -634,7 +640,6 @@
     }
 
     async function detectarRostoNoCanvas(canvas) {
-      // 1. Tenta via face-api.js (funciona em qualquer navegador moderno)
       const carregado = await garantirModeloFacial();
       if (carregado && typeof faceapi !== 'undefined') {
         try {
@@ -644,12 +649,9 @@
           });
           const deteccoes = await faceapi.detectAllFaces(canvas, opcoes);
           return Array.isArray(deteccoes) && deteccoes.length > 0;
-        } catch (_) {
-          // Segue para fallback abaixo se houver falha pontual
-        }
+        } catch (_) {}
       }
 
-      // 2. Fallback para FaceDetector nativo do navegador
       if ('FaceDetector' in window) {
         try {
           const detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 3 });
@@ -774,6 +776,7 @@
 
       const nome = document.getElementById('cad-nome').value.trim();
       const cpfFormatado = document.getElementById('cad-cpf').value.trim();
+      const dataNascimento = document.getElementById('cad-data-nascimento').value;
       const cel = document.getElementById('cad-celular').value.trim();
       const endereco = document.getElementById('cad-endereco').value.trim();
       const emerg1Nome = document.getElementById('emerg-1-nome').value.trim();
@@ -801,6 +804,7 @@
             tipo: 'passageiro',
             nome,
             cpf: cpfFormatado,
+            data_nascimento: dataNascimento,
             telefone: cel,
             endereco,
             senha,
