@@ -50,7 +50,6 @@
   <!-- TOPO DO APP -->
   <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0 z-40">
     <div class="flex items-center gap-3">
-      <!-- BOTÃO MENU HAMBÚRGUER COM BADGE DE NOTIFICAÇÃO DE SUPORTE -->
       <button onclick="toggleMenuLateral()" class="relative text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center">
         <i class="fa-solid fa-bars text-sm"></i>
         <span id="badge-menu-hamburguer" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center shadow animate-pulse">0</span>
@@ -90,7 +89,6 @@
       <button onclick="carregarModulo('perfil')" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <i class="fa-solid fa-user text-sky-400 w-5"></i> Meu Perfil
       </button>
-      <!-- BOTÃO DE MENSAGENS DE SUPORTE NO MENU COM BADGE CONTADOR -->
       <button onclick="abrirSuporteAssuntoMotorista('Suporte Geral')" class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <div class="flex items-center gap-3">
           <i class="fa-solid fa-headset text-emerald-400 w-5"></i> Mensagens do Suporte
@@ -161,16 +159,17 @@
           <p><strong>Destino:</strong> <span id="ativa-destino" class="text-white">-</span></p>
         </div>
 
-        <!-- BOTÕES DE CHAT E CHAMADA DE VOZ LADO A LADO NA BARRA DE NOTIFICAÇÃO / VIAGEM -->
+        <!-- BOTÕES DE CHAT (COM BADGE) E CHAMADA DE VOZ LADO A LADO -->
         <div id="acoes-comunicacao-motorista" class="grid grid-cols-2 gap-2 pt-0.5">
           <button
             type="button"
             id="btn-chat-viagem-motorista"
             onclick="abrirChatViagemMotorista(); event.stopPropagation();"
-            class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/50 font-bold py-2 px-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow"
+            class="relative bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/50 font-bold py-2 px-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow"
           >
             <i class="fa-solid fa-comments"></i>
             <span>Chat</span>
+            <span id="badge-chat-motorista" class="hidden -top-1.5 -right-1.5 absolute min-w-[20px] h-5 px-1.5 bg-red-600 text-white text-[10px] font-extrabold rounded-full flex items-center justify-center shadow animate-bounce">0</span>
           </button>
 
           <button
@@ -276,6 +275,42 @@
     </div>
   </div>
 
+  <!-- MODAL DE CHAMADA DE VOZ P2P (MOTORISTA) -->
+  <div id="modal-chamada-p2p-mot" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[75] flex items-center justify-center p-4" onclick="event.stopPropagation()">
+    <div class="bg-slate-900 border border-sky-500/50 w-full max-w-xs rounded-3xl p-5 text-center space-y-4 shadow-2xl">
+      <div class="w-14 h-14 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-300 flex items-center justify-center mx-auto text-xl animate-pulse">
+        <i class="fa-solid fa-phone-volume"></i>
+      </div>
+      <div class="space-y-1">
+        <h4 id="p2p-mot-nome" class="text-white font-extrabold text-sm">Passageiro</h4>
+        <p id="p2p-mot-status" class="text-sky-300 text-xs font-semibold">Conectando...</p>
+        <p id="p2p-mot-timer" class="text-slate-400 font-mono text-[11px] hidden">00:00</p>
+      </div>
+
+      <div id="p2p-mot-botoes-recebendo" class="hidden grid grid-cols-2 gap-2">
+        <button type="button" onclick="p2pMotRecusarChamada()" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl text-xs transition">
+          Recusar
+        </button>
+        <button type="button" onclick="p2pMotAceitarChamada()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs transition">
+          Atender
+        </button>
+      </div>
+
+      <div id="p2p-mot-botoes-ativa" class="grid grid-cols-2 gap-2">
+        <button type="button" id="btn-p2p-mot-mudo" onclick="p2pMotAlternarMudo()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-microphone"></i>
+          <span>Mudo</span>
+        </button>
+        <button type="button" onclick="p2pMotEncerrarChamada(true)" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-phone-slash"></i>
+          <span>Desligar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="p2p-remote-audio-mot" autoplay playsinline class="hidden"></audio>
+
   <!-- MODAL DE CHAT DA CORRIDA COM HISTÓRICO (mensagens_chat) -->
   <div id="modal-chat-corrida-motorista" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4" onclick="event.stopPropagation()">
     <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-md rounded-3xl p-4 space-y-3 shadow-2xl max-h-[88vh] flex flex-col">
@@ -363,6 +398,9 @@
     let canalRealtimeMotorista = null;
     let canalRealtimeSuporteMotorista = null;
     let canalChatMotoristaAtivo = null;
+    let canalBadgeChatMotorista = null;
+    let corridaBadgeChatMotoristaId = null;
+    let naoLidasChatMotorista = 0;
     let corridaChatMotoristaId = null;
     let outroUsuarioChatMotoristaId = null;
     let corridaPendenteAtual = null;
@@ -380,6 +418,27 @@
     let mapaPreviaInstancia = null;
     let assuntoAtualSuporteMotorista = 'Suporte Geral';
 
+    // --- ESTADO DA CHAMADA DE VOZ WEBRTC P2P (MOTORISTA) ---
+    let p2pMotCanal = null;
+    let p2pMotCanalCorridaId = null;
+    let p2pMotCanalInscrito = false;
+    let p2pMotPeer = null;
+    let p2pMotLocalStream = null;
+    let p2pMotMudo = false;
+    let p2pMotEmCurso = false;
+    let p2pMotOfertaRecebida = null;
+    let p2pMotTimerId = null;
+    let p2pMotSegundos = 0;
+    let p2pMotTimeoutId = null;
+    let p2pMotContexto = { corridaId: null, outroUsuarioId: null, outroNome: 'Passageiro', papelLocal: 'motorista' };
+
+    const P2P_MOT_ICE = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    };
+
     function escaparHtml(texto) {
       return String(texto || '')
         .replace(/&/g, '&amp;')
@@ -387,6 +446,65 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+    }
+
+    function atualizarBadgeChatMotorista(qtd) {
+      naoLidasChatMotorista = Math.max(0, Number(qtd) || 0);
+      const badge = document.getElementById('badge-chat-motorista');
+      if (!badge) return;
+      if (naoLidasChatMotorista > 0) {
+        badge.innerText = naoLidasChatMotorista > 99 ? '99+' : String(naoLidasChatMotorista);
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function pararBadgeChatMotorista() {
+      if (canalBadgeChatMotorista) {
+        supabaseClient.removeChannel(canalBadgeChatMotorista);
+        canalBadgeChatMotorista = null;
+      }
+      corridaBadgeChatMotoristaId = null;
+      atualizarBadgeChatMotorista(0);
+    }
+
+    function iniciarEscutaBadgeChatMotorista(corridaId) {
+      if (!corridaId) return;
+      if (canalBadgeChatMotorista && String(corridaBadgeChatMotoristaId) === String(corridaId)) return;
+
+      if (canalBadgeChatMotorista) {
+        supabaseClient.removeChannel(canalBadgeChatMotorista);
+        canalBadgeChatMotorista = null;
+      }
+
+      corridaBadgeChatMotoristaId = corridaId;
+      const meuId = motoristaLogado?.id ? String(motoristaLogado.id) : null;
+
+      canalBadgeChatMotorista = supabaseClient
+        .channel(`mot_chat_badge_${corridaId}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'mensagens_chat',
+          filter: `corrida_id=eq.${corridaId}`
+        }, (payload) => {
+          const nova = payload.new;
+          if (!nova) return;
+          const ehMinha = meuId && String(nova.remetente_id) === meuId;
+          if (ehMinha) return;
+
+          const modalAberto = !document.getElementById('modal-chat-corrida-motorista')?.classList.contains('hidden');
+          if (modalAberto) {
+            carregarMensagensCorridaMotorista(corridaId, outroUsuarioChatMotoristaId);
+            return;
+          }
+
+          // Não abre o modal à força: apenas notifica e incrementa o contador
+          atualizarBadgeChatMotorista(naoLidasChatMotorista + 1);
+          mostrarToastAdmin(`Nova mensagem de ${primeiroNome(nova.remetente_nome || 'Passageiro')}`, 'aviso');
+        })
+        .subscribe();
     }
 
     function pararRealtimeChatMotorista() {
@@ -493,6 +611,7 @@
       if (!corridaId && !passageiroId) return;
       corridaChatMotoristaId = corridaId;
       outroUsuarioChatMotoristaId = passageiroId;
+      atualizarBadgeChatMotorista(0);
 
       document.getElementById('chat-mot-titulo').innerText = `Chat • ${nomePassageiro}`;
       document.getElementById('chat-mot-subtitulo').innerText = corridaId
@@ -549,22 +668,337 @@
       abrirChatCorridaMotorista(corridaAtiva.id, nomePass, corridaAtiva.passageiro_id || null);
     }
 
+    // --- FUNÇÕES WEBRTC P2P (MOTORISTA) ---
+    function atualizarUiChamadaMot(estado, statusTexto) {
+      const modal = document.getElementById('modal-chamada-p2p-mot');
+      const nomeEl = document.getElementById('p2p-mot-nome');
+      const statusEl = document.getElementById('p2p-mot-status');
+      const timerEl = document.getElementById('p2p-mot-timer');
+      const btnsReceb = document.getElementById('p2p-mot-botoes-recebendo');
+      const btnsAtiva = document.getElementById('p2p-mot-botoes-ativa');
+
+      if (!modal) return;
+      if (nomeEl) nomeEl.innerText = p2pMotContexto.outroNome || 'Passageiro';
+      if (statusEl && statusTexto) statusEl.innerText = statusTexto;
+
+      if (estado === 'oculto') {
+        modal.classList.add('hidden');
+        timerEl?.classList.add('hidden');
+        return;
+      }
+
+      modal.classList.remove('hidden');
+      if (estado === 'recebendo') {
+        btnsReceb?.classList.remove('hidden');
+        btnsAtiva?.classList.add('hidden');
+        timerEl?.classList.add('hidden');
+      } else {
+        btnsReceb?.classList.add('hidden');
+        btnsAtiva?.classList.remove('hidden');
+        if (estado === 'conectada') {
+          timerEl?.classList.remove('hidden');
+        } else {
+          timerEl?.classList.add('hidden');
+        }
+      }
+    }
+
+    function pararTimerChamadaMot() {
+      if (p2pMotTimerId) {
+        clearInterval(p2pMotTimerId);
+        p2pMotTimerId = null;
+      }
+      if (p2pMotTimeoutId) {
+        clearTimeout(p2pMotTimeoutId);
+        p2pMotTimeoutId = null;
+      }
+    }
+
+    function iniciarTimerChamadaMot() {
+      pararTimerChamadaMot();
+      p2pMotSegundos = 0;
+      const timerEl = document.getElementById('p2p-mot-timer');
+      if (timerEl) {
+        timerEl.innerText = '00:00';
+        timerEl.classList.remove('hidden');
+      }
+      p2pMotTimerId = setInterval(() => {
+        p2pMotSegundos++;
+        const min = String(Math.floor(p2pMotSegundos / 60)).padStart(2, '0');
+        const seg = String(p2pMotSegundos % 60).padStart(2, '0');
+        if (timerEl) timerEl.innerText = `${min}:${seg}`;
+      }, 1000);
+    }
+
+    function limparMidiaMot() {
+      pararTimerChamadaMot();
+      p2pMotEmCurso = false;
+      p2pMotOfertaRecebida = null;
+      p2pMotMudo = false;
+
+      const btnMudo = document.getElementById('btn-p2p-mot-mudo');
+      if (btnMudo) btnMudo.innerHTML = '<i class="fa-solid fa-microphone"></i><span>Mudo</span>';
+
+      if (p2pMotPeer) {
+        try { p2pMotPeer.close(); } catch (_) {}
+        p2pMotPeer = null;
+      }
+      if (p2pMotLocalStream) {
+        p2pMotLocalStream.getTracks().forEach((t) => {
+          try { t.stop(); } catch (_) {}
+        });
+        p2pMotLocalStream = null;
+      }
+      const audioEl = document.getElementById('p2p-remote-audio-mot');
+      if (audioEl) audioEl.srcObject = null;
+    }
+
+    async function p2pMotEnviarSinal(evento, dados = {}) {
+      if (!p2pMotCanal || !p2pMotCanalInscrito) return false;
+      try {
+        await p2pMotCanal.send({
+          type: 'broadcast',
+          event: 'sinal_chamada',
+          payload: {
+            evento,
+            corridaId: p2pMotContexto.corridaId,
+            remetentePapel: p2pMotContexto.papelLocal,
+            ...dados
+          }
+        });
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function garantirCanalChamadaMot(corridaId) {
+      return new Promise((resolve) => {
+        if (!corridaId) {
+          resolve(false);
+          return;
+        }
+        if (p2pMotCanal && String(p2pMotCanalCorridaId) === String(corridaId) && p2pMotCanalInscrito) {
+          resolve(true);
+          return;
+        }
+        if (p2pMotCanal) {
+          try { supabaseClient.removeChannel(p2pMotCanal); } catch (_) {}
+          p2pMotCanal = null;
+          p2pMotCanalInscrito = false;
+        }
+
+        p2pMotCanalCorridaId = corridaId;
+        p2pMotContexto.corridaId = corridaId;
+
+        const canal = supabaseClient.channel(`chamada_voz_corrida_${corridaId}`, {
+          config: { broadcast: { self: false } }
+        });
+
+        canal.on('broadcast', { event: 'sinal_chamada' }, async (msg) => {
+          const payload = msg?.payload || {};
+          if (!payload.evento) return;
+
+          if (payload.evento === 'chamando') {
+            if (payload.remetentePapel !== 'motorista' && !p2pMotEmCurso) {
+              p2pMotContexto.outroNome = payload.remetenteNome || p2pMotContexto.outroNome || 'Passageiro';
+              tocarSomAlerta('novo_pedido');
+              atualizarUiChamadaMot('recebendo', 'Chamada de voz recebida...');
+            }
+          } else if (payload.evento === 'offer' && payload.sdp) {
+            p2pMotOfertaRecebida = payload.sdp;
+            if (!p2pMotEmCurso) {
+              p2pMotContexto.outroNome = payload.remetenteNome || p2pMotContexto.outroNome || 'Passageiro';
+              tocarSomAlerta('novo_pedido');
+              atualizarUiChamadaMot('recebendo', 'Chamada de voz recebida...');
+            }
+          } else if (payload.evento === 'answer' && payload.sdp && p2pMotPeer) {
+            try {
+              await p2pMotPeer.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+              pararTimerChamadaMot();
+              iniciarTimerChamadaMot();
+              atualizarUiChamadaMot('conectada', 'Em chamada');
+            } catch (_) {}
+          } else if (payload.evento === 'ice' && payload.candidate && p2pMotPeer) {
+            try {
+              await p2pMotPeer.addIceCandidate(new RTCIceCandidate(payload.candidate));
+            } catch (_) {}
+          } else if (payload.evento === 'aceita') {
+            atualizarUiChamadaMot('chamando', 'Atendido! Conectando áudio...');
+          } else if (payload.evento === 'recusada') {
+            limparMidiaMot();
+            atualizarUiChamadaMot('oculto');
+            mostrarToastAdmin('Chamada recusada.', 'aviso');
+          } else if (payload.evento === 'encerrada') {
+            limparMidiaMot();
+            atualizarUiChamadaMot('oculto');
+            mostrarToastAdmin('Chamada encerrada.', 'aviso');
+          }
+        });
+
+        canal.subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            p2pMotCanalInscrito = true;
+            resolve(true);
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            p2pMotCanalInscrito = false;
+            resolve(false);
+          }
+        });
+
+        p2pMotCanal = canal;
+      });
+    }
+
+    async function criarPeerMot(comoChamador) {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Microfone não suportado neste navegador.');
+      }
+
+      p2pMotLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      const pc = new RTCPeerConnection(P2P_MOT_ICE);
+
+      p2pMotLocalStream.getTracks().forEach((track) => {
+        pc.addTrack(track, p2pMotLocalStream);
+      });
+
+      pc.ontrack = (event) => {
+        const audioEl = document.getElementById('p2p-remote-audio-mot');
+        if (audioEl && event.streams && event.streams[0]) {
+          audioEl.srcObject = event.streams[0];
+          audioEl.play().catch(() => {});
+        }
+      };
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          p2pMotEnviarSinal('ice', { candidate: event.candidate });
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'connected') {
+          pararTimerChamadaMot();
+          iniciarTimerChamadaMot();
+          atualizarUiChamadaMot('conectada', 'Em chamada');
+        } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+          atualizarUiChamadaMot('chamando', 'Conexão de rede instável...');
+        }
+      };
+
+      p2pMotPeer = pc;
+
+      if (comoChamador) {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await p2pMotEnviarSinal('offer', {
+          sdp: pc.localDescription,
+          remetenteNome: primeiroNome(motoristaLogado?.nome || 'Motorista')
+        });
+      }
+
+      return pc;
+    }
+
+    window.iniciarChamadaP2P = async function ({ corridaId, outroUsuarioId = null, outroNome = 'Passageiro', papelLocal = 'motorista' }) {
+      if (!corridaId) return;
+      p2pMotContexto = { corridaId, outroUsuarioId, outroNome, papelLocal };
+      limparMidiaMot();
+      p2pMotEmCurso = true;
+      atualizarUiChamadaMot('chamando', `Chamando ${outroNome}...`);
+
+      const pronto = await garantirCanalChamadaMot(corridaId);
+      if (!pronto) {
+        limparMidiaMot();
+        atualizarUiChamadaMot('oculto');
+        mostrarToastAdmin('Falha ao conectar ao canal de chamada.', 'erro');
+        return;
+      }
+
+      await p2pMotEnviarSinal('chamando', {
+        remetenteNome: primeiroNome(motoristaLogado?.nome || 'Motorista')
+      });
+
+      try {
+        await criarPeerMot(true);
+      } catch (err) {
+        limparMidiaMot();
+        atualizarUiChamadaMot('oculto');
+        mostrarToastAdmin(err.message || 'Permita o microfone para ligar.', 'erro');
+        return;
+      }
+
+      p2pMotTimeoutId = setTimeout(() => {
+        if (p2pMotPeer && p2pMotPeer.connectionState !== 'connected') {
+          p2pMotEnviarSinal('encerrada', { motivo: 'timeout' });
+          limparMidiaMot();
+          atualizarUiChamadaMot('oculto');
+          mostrarToastAdmin('Sem resposta na chamada.', 'aviso');
+        }
+      }, 35000);
+    };
+
+    async function p2pMotAceitarChamada() {
+      if (!p2pMotContexto.corridaId) return;
+      p2pMotEmCurso = true;
+      atualizarUiChamadaMot('chamando', 'Conectando áudio...');
+
+      try {
+        const pc = await criarPeerMot(false);
+        if (p2pMotOfertaRecebida) {
+          await pc.setRemoteDescription(new RTCSessionDescription(p2pMotOfertaRecebida));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          await p2pMotEnviarSinal('aceita');
+          await p2pMotEnviarSinal('answer', { sdp: pc.localDescription });
+        }
+      } catch (err) {
+        limparMidiaMot();
+        atualizarUiChamadaMot('oculto');
+        mostrarToastAdmin(err.message || 'Não foi possível acessar o microfone.', 'erro');
+      }
+    }
+
+    async function p2pMotRecusarChamada() {
+      await p2pMotEnviarSinal('recusada');
+      limparMidiaMot();
+      atualizarUiChamadaMot('oculto');
+    }
+
+    function p2pMotAlternarMudo() {
+      if (!p2pMotLocalStream) return;
+      p2pMotMudo = !p2pMotMudo;
+      p2pMotLocalStream.getAudioTracks().forEach((track) => {
+        track.enabled = !p2pMotMudo;
+      });
+      const btn = document.getElementById('btn-p2p-mot-mudo');
+      if (btn) {
+        btn.innerHTML = p2pMotMudo
+          ? '<i class="fa-solid fa-microphone-slash text-amber-400"></i><span>Ativar Som</span>'
+          : '<i class="fa-solid fa-microphone"></i><span>Mudo</span>';
+      }
+    }
+
+    async function p2pMotEncerrarChamada(notificarOutro = true) {
+      if (notificarOutro) {
+        await p2pMotEnviarSinal('encerrada');
+      }
+      limparMidiaMot();
+      atualizarUiChamadaMot('oculto');
+    }
+
     function iniciarChamadaVozMotorista() {
       if (!corridaAtiva) {
         mostrarToastAdmin('Nenhuma corrida ativa para iniciar chamada.', 'aviso');
         return;
       }
       const nomePass = primeiroNome(corridaAtiva.passageiro?.nome || 'Passageiro');
-      if (typeof window.iniciarChamadaP2P === 'function') {
-        window.iniciarChamadaP2P({
-          corridaId: corridaAtiva.id,
-          outroUsuarioId: corridaAtiva.passageiro_id || null,
-          outroNome: nomePass,
-          papelLocal: 'motorista'
-        });
-      } else {
-        mostrarToastAdmin(`Chamada de voz P2P com ${nomePass} pronta para conexão.`, 'sucesso');
-      }
+      window.iniciarChamadaP2P({
+        corridaId: corridaAtiva.id,
+        outroUsuarioId: corridaAtiva.passageiro_id || null,
+        outroNome: nomePass,
+        papelLocal: 'motorista'
+      });
     }
 
     function primeiroNome(nomeCompleto) {
@@ -1487,6 +1921,9 @@
 
       atualizarBotaoEStatusEtapaViagem();
 
+      iniciarEscutaBadgeChatMotorista(corridaAtiva.id);
+      garantirCanalChamadaMot(corridaAtiva.id);
+
       setGavetaAberta(true);
       iniciarEscutaCorridaAtivaRealtime();
     }
@@ -1654,6 +2091,9 @@
     function limparCorridaAtivaLocal() {
       if (timerEspera3mId) clearInterval(timerEspera3mId);
       if (canalCorridaAtiva) supabaseClient.removeChannel(canalCorridaAtiva);
+      pararBadgeChatMotorista();
+      limparMidiaMot();
+      atualizarUiChamadaMot('oculto');
       fecharChatCorridaMotorista();
       corridaAtiva = null;
       paradaFinalizada = false;
@@ -1735,7 +2175,9 @@
     }
 
     async function sairConta() {
+      pararBadgeChatMotorista();
       pararRealtimeChatMotorista();
+      limparMidiaMot();
       await pararRastreamentoGPS();
       clearInterval(intervaloPresencaApp);
       clearInterval(intervaloValidacaoSessao);
