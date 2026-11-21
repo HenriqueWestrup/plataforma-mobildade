@@ -318,6 +318,48 @@
     let tokenPendenteFacial = null;
     let contatosEmergenciaExtras = [];
 
+    function apenasDigitos(valor) {
+      return String(valor || '').replace(/\D/g, '');
+    }
+
+    async function buscarUsuarioPorTelefoneESenha(telefoneInput, senhaInput) {
+      const telLimpo = telefoneInput.trim();
+      const digitos = apenasDigitos(telLimpo);
+
+      // 1) Busca exata pelo telefone formatado
+      const { data: exato } = await supabaseClient
+        .from('usuarios')
+        .select('*')
+        .eq('telefone', telLimpo)
+        .eq('senha', senhaInput)
+        .limit(1);
+
+      if (exato && exato.length > 0) {
+        return exato[0];
+      }
+
+      // 2) Busca flexível pelos últimos 8 dígitos (ignora espaços, DDD ou pontuação diferente)
+      if (digitos.length >= 8) {
+        const ultimos8 = digitos.slice(-8);
+        const { data: candidatos } = await supabaseClient
+          .from('usuarios')
+          .select('*')
+          .ilike('telefone', `%${ultimos8}%`)
+          .limit(20);
+
+        if (Array.isArray(candidatos)) {
+          const encontrado = candidatos.find((u) => {
+            const digBanco = apenasDigitos(u.telefone);
+            const mesmoNumero = digBanco === digitos || digBanco.endsWith(ultimos8);
+            return mesmoNumero && String(u.senha || '') === senhaInput;
+          });
+          if (encontrado) return encontrado;
+        }
+      }
+
+      return null;
+    }
+
     async function garantirModeloFacial() {
       if (modeloFacialCarregado) return true;
       if (typeof faceapi === 'undefined') return false;
@@ -885,8 +927,8 @@
       btn.disabled = true;
 
       try {
-        const { data, error } = await supabaseClient.from('usuarios').select('*').eq('telefone', cel).eq('senha', senha).single();
-        if (error || !data) {
+        const data = await buscarUsuarioPorTelefoneESenha(cel, senha);
+        if (!data) {
           throw new Error("Celular ou senha inválidos.");
         }
 
