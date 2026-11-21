@@ -1,4 +1,4 @@
-// admin_shared.js (v20)
+// admin_shared.js (v21)
 const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -278,6 +278,113 @@ function irParaRegrasAdmin() {
   window.location.href = 'admin.html#secao-regras-operacao';
 }
 
+function atualizarBotoesAcaoRapidaModal(user) {
+  const btnDerrubar = document.getElementById('btn-modal-derrubar-online');
+  if (!btnDerrubar || !user) return;
+  const estaOnline = usuarioEstaAtivoNoAppAdmin(user);
+  btnDerrubar.disabled = !estaOnline;
+  btnDerrubar.className = estaOnline
+    ? "bg-amber-600/20 hover:bg-amber-600/35 text-amber-300 border border-amber-500/40 px-3 py-2 rounded-xl font-bold text-[11px] transition flex items-center gap-1.5"
+    : "bg-slate-800/60 text-slate-500 border border-slate-800 px-3 py-2 rounded-xl font-bold text-[11px] cursor-not-allowed flex items-center gap-1.5";
+}
+
+async function derrubarOnlineUsuarioAdmin(idUsuario, nomeUsuario = 'Usuário') {
+  if (!idUsuario) return;
+  if (!confirm(`Deseja derrubar o status ONLINE de ${nomeUsuario}? Isso vai remover o status fantasma/online no banco.`)) return;
+
+  try {
+    let { error } = await supabaseClient
+      .from('usuarios')
+      .update({
+        online: false,
+        radar_ativo: false,
+        disponivel: false
+      })
+      .eq('id', idUsuario);
+
+    if (error) {
+      const retry = await supabaseClient
+        .from('usuarios')
+        .update({ online: false })
+        .eq('id', idUsuario);
+      error = retry.error;
+    }
+
+    if (error) {
+      alert("Erro ao derrubar status online: " + error.message);
+      return;
+    }
+
+    if (usuarioModalAtual && String(usuarioModalAtual.id) === String(idUsuario)) {
+      usuarioModalAtual.online = false;
+      usuarioModalAtual.radar_ativo = false;
+      usuarioModalAtual.disponivel = false;
+      atualizarBotoesAcaoRapidaModal(usuarioModalAtual);
+      mostrarAlertaModal("Status ONLINE derrubado com sucesso!", "sucesso");
+    }
+
+    atualizarDadosGlobais();
+  } catch (e) {
+    alert("Erro inesperado ao derrubar status online.");
+  }
+}
+
+async function encerrarViagemTravadaAdmin(idCorrida = null, idUsuarioRelacionado = null, novoStatus = 'cancelado') {
+  const statusFinal = novoStatus === 'concluido' ? 'concluido' : 'cancelado';
+  const acaoTexto = statusFinal === 'concluido' ? 'encerrar/concluir' : 'cancelar/destravar';
+
+  if (!confirm(`Deseja ${acaoTexto} esta viagem travada pela administração?`)) return;
+
+  try {
+    let alvoId = idCorrida;
+
+    if (!alvoId && idUsuarioRelacionado) {
+      const { data: ativas, error: buscaErr } = await supabaseClient
+        .from('corridas')
+        .select('id, status')
+        .or(`passageiro_id.eq.${idUsuarioRelacionado},motorista_id.eq.${idUsuarioRelacionado}`)
+        .in('status', ['procurando', 'pendente', 'aceito', 'aceita', 'a_caminho', 'no_local', 'em_andamento', 'em_curso'])
+        .order('id', { ascending: false })
+        .limit(1);
+
+      if (buscaErr) throw buscaErr;
+      if (!ativas || ativas.length === 0) {
+        mostrarAlertaModal("Nenhuma viagem ativa ou travada encontrada para este usuário.", "erro");
+        return;
+      }
+      alvoId = ativas[0].id;
+    }
+
+    if (!alvoId) return;
+
+    let { error } = await supabaseClient
+      .from('corridas')
+      .update({
+        status: statusFinal,
+        encerrado_por_admin: true
+      })
+      .eq('id', alvoId);
+
+    if (error && /encerrado_por_admin/i.test(error.message || '')) {
+      const retry = await supabaseClient
+        .from('corridas')
+        .update({ status: statusFinal })
+        .eq('id', alvoId);
+      error = retry.error;
+    }
+
+    if (error) throw error;
+
+    mostrarAlertaModal(`Viagem #${alvoId} encerrada (${statusFinal}) pela administração!`, "sucesso");
+    if (usuarioModalAtual) {
+      carregarHistoricoEGanhosModal(usuarioModalAtual.id, ehPerfilMotoristaAdmin(usuarioModalAtual));
+    }
+    atualizarDadosGlobais();
+  } catch (e) {
+    mostrarAlertaModal("Erro ao encerrar viagem travada: " + (e.message || e), "erro");
+  }
+}
+
 function inicializarLayoutAdmin(paginaAtiva) {
   const headerENav = `
     <!-- TELA DE LOGIN MESTRE ADMIN -->
@@ -317,7 +424,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <i class="fa-solid fa-shield-halved text-base"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v20</span></h1>
+          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v21</span></h1>
           <p class="text-[10px] text-slate-400">Gestão Avançada e Suporte</p>
         </div>
       </a>
@@ -373,12 +480,18 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <button type="button" onclick="fecharModalEdicao()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
         </div>
 
-        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex flex-wrap justify-between items-center gap-2 text-xs">
           <div>
             <span class="text-[10px] text-slate-400 block">ID Único no Banco:</span>
             <span id="edit-id-display" class="font-mono text-emerald-400 font-bold select-all text-[11px]">-</span>
           </div>
-          <div class="text-right">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button type="button" id="btn-modal-derrubar-online" onclick="derrubarOnlineUsuarioAdmin(usuarioModalAtual?.id, usuarioModalAtual?.nome)" title="Derrubar status online fantasma" class="bg-amber-600/20 hover:bg-amber-600/35 text-amber-300 border border-amber-500/40 px-2.5 py-1.5 rounded-xl font-bold text-[10px] transition flex items-center gap-1">
+              <i class="fa-solid fa-power-off"></i> Derrubar Online
+            </button>
+            <button type="button" id="btn-modal-encerrar-viagem" onclick="encerrarViagemTravadaAdmin(null, usuarioModalAtual?.id, 'cancelado')" title="Encerrar viagem travada" class="bg-red-600/20 hover:bg-red-600/35 text-red-300 border border-red-500/40 px-2.5 py-1.5 rounded-xl font-bold text-[10px] transition flex items-center gap-1">
+              <i class="fa-solid fa-ban"></i> Encerrar Viagem
+            </button>
             <span id="edit-tipo-badge" class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Usuário</span>
           </div>
         </div>
@@ -806,6 +919,10 @@ function gerarCardAdmin(user) {
 
   const temV2Pendente = isMotorista && temSegundoVeiculoPendenteAdmin(user);
 
+  const btnDerrubarCard = isOnline
+    ? `<button type="button" onclick="derrubarOnlineUsuarioAdmin('${user.id}', '${(user.nome || 'Usuário').replace(/'/g, '')}')" title="Derrubar status online" class="bg-amber-600/20 hover:bg-amber-600/35 text-amber-300 border border-amber-500/40 px-2.5 py-2 rounded-xl font-bold shrink-0"><i class="fa-solid fa-power-off"></i></button>`
+    : '';
+
   const acaoRestricaoHtml = (isBloqueado || isPendente)
     ? `<button type="button" onclick="mudarStatusConta('${user.id}', 'aprovado')" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-2.5 py-2 rounded-xl font-bold shrink-0">Desbloquear</button>`
     : `
@@ -834,6 +951,7 @@ function gerarCardAdmin(user) {
 
       <div class="flex gap-1.5 pt-2 border-t border-slate-800 text-[11px] items-center">
         <button type="button" onclick="abrirModalEdicao('${user.id}')" class="flex-1 min-w-0 truncate bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 px-2.5 rounded-xl">${temV2Pendente ? 'Analisar 2º Carro / Perfil' : 'Editar Perfil / Suporte'}</button>
+        ${btnDerrubarCard}
         ${acaoRestricaoHtml}
       </div>
     </div>
@@ -1027,7 +1145,7 @@ async function decidirSegundoVeiculoAdmin(novoStatusV2) {
   preencherAbaVeiculosMotorista(usuarioModalAtual);
   mostrarAlertaModal(
     isRecusado
-      ? "2º veículo recusado e removido da lista! O motorista poderá enviar um novo veículo."
+      ? "2º veículo recusado e removido da lista! O motorista poderá enviar um novo cadastro corretamente, sem alterar o status da conta."
       : "2º veículo aprovado! Status da conta mantido sem bloqueio.",
     "sucesso"
   );
@@ -1082,6 +1200,7 @@ async function abrirModalEdicao(id) {
 
   const isMotorista = ehPerfilMotoristaAdmin(user);
   document.getElementById('edit-tipo-badge').innerText = isMotorista ? "Motorista Parceiro" : "Passageiro";
+  atualizarBotoesAcaoRapidaModal(user);
 
   preencherAbaVeiculosMotorista(user);
   definirStatusModal(user.status || 'aprovado');
@@ -1121,6 +1240,7 @@ async function carregarHistoricoEGanhosModal(id, isMotorista) {
 
   const regras = obterRegrasOperacaoAdmin();
   const fatorRepasse = regras.percentual_repasse_motorista / 100;
+  const statusFinalizados = ['concluido', 'concluida', 'cancelado', 'cancelada', 'expirado', 'finalizada'];
 
   let htmlViagens = '';
   let totalGanhos = 0;
@@ -1129,11 +1249,17 @@ async function carregarHistoricoEGanhosModal(id, isMotorista) {
     const valorBruto = Number(c.valor || c.preco || 15.0);
     const valorExibido = isMotorista ? valorBruto * fatorRepasse : valorBruto;
     if (isMotorista) totalGanhos += valorExibido;
+    const statusAtual = String(c.status || 'Concluída');
+    const emAndamentoOuTravada = !statusFinalizados.includes(statusAtual.toLowerCase().trim());
+
     htmlViagens += `
-      <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 space-y-1">
-        <div class="flex justify-between items-center text-[10px] text-slate-400">
-          <span>Viagem #${c.id} • ${c.status || 'Concluída'}</span>
-          <span class="text-emerald-400 font-bold">R$ ${valorExibido.toFixed(2).replace('.', ',')}</span>
+      <div class="bg-slate-900 p-2.5 rounded-xl border ${emAndamentoOuTravada ? 'border-amber-500/40' : 'border-slate-800'} space-y-1">
+        <div class="flex justify-between items-center gap-2 text-[10px] text-slate-400">
+          <span>Viagem #${c.id} • <strong class="${emAndamentoOuTravada ? 'text-amber-300' : ''}">${statusAtual}</strong></span>
+          <div class="flex items-center gap-2">
+            ${emAndamentoOuTravada ? `<button type="button" onclick="encerrarViagemTravadaAdmin('${c.id}', null, 'cancelado')" class="bg-red-600/20 hover:bg-red-600/35 text-red-300 border border-red-500/40 px-2 py-0.5 rounded-lg text-[10px] font-bold">Encerrar Trava</button>` : ''}
+            <span class="text-emerald-400 font-bold">R$ ${valorExibido.toFixed(2).replace('.', ',')}</span>
+          </div>
         </div>
         <p class="text-slate-300 truncate"><strong>De:</strong> ${c.origem || 'N/D'}</p>
         <p class="text-slate-300 truncate"><strong>Para:</strong> ${c.destino || 'N/D'}</p>

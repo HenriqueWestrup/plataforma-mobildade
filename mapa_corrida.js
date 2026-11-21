@@ -196,7 +196,10 @@ function iniciarEscutaPassageiroRealtime() {
           exibirPainelAvaliacaoPassageiro(corridaAtualizada);
         } else if (corridaAtualizada.status === 'cancelado' || corridaAtualizada.status === 'expirado') {
           tocarSom('cancelar');
-          mostrarModal('Aviso', 'A corrida foi encerrada ou cancelada.', 'cancelar', 3500);
+          const msgAviso = corridaAtualizada.encerrado_por_admin
+            ? 'A viagem foi encerrada pela administração.'
+            : 'A corrida foi encerrada ou cancelada.';
+          mostrarModal('Aviso', msgAviso, 'cancelar', 3500);
           resetarPainelCompletoPassageiro();
         }
       }

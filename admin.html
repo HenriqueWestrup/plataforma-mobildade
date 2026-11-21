@@ -91,7 +91,6 @@
       </div>
 
       <form id="form-regras-operacao" onsubmit="salvarRegrasOperacaoAdmin(event)" class="space-y-4">
-        <!-- BLOCO 1: CÁLCULO E GANHOS -->
         <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 space-y-3">
           <p class="text-[11px] font-extrabold text-emerald-400 uppercase tracking-wider">
             <i class="fa-solid fa-calculator mr-1"></i> Cálculo da Corrida e Repasse de Ganhos
@@ -120,7 +119,6 @@
             </div>
           </div>
 
-          <!-- PRÉVIA DE EXEMPLO (5 KM + 1 PARADA) -->
           <div class="bg-slate-900/90 border border-emerald-500/20 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-[11px]">
             <span class="text-slate-400">
               Simulação exemplo (<strong class="text-slate-200">5,0 km</strong> + <strong class="text-slate-200">1 parada</strong>):
@@ -133,7 +131,6 @@
           </div>
         </div>
 
-        <!-- BLOCO 2: SISTEMA DE BUSCA E DESPACHO -->
         <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 space-y-3">
           <p class="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider">
             <i class="fa-solid fa-radar mr-1"></i> Regra do Sistema de Busca e Radar
@@ -305,10 +302,10 @@
       const passageiros = todos.filter(u => !ehPerfilMotoristaAdmin(u));
 
       document.getElementById('dash-total-motoristas').innerText = motoristas.length;
-      document.getElementById('dash-motoristas-online').innerText = `${motoristas.filter(m => m.online).length} online`;
+      document.getElementById('dash-motoristas-online').innerText = `${motoristas.filter(m => usuarioEstaAtivoNoAppAdmin(m)).length} online`;
 
       document.getElementById('dash-total-passageiros').innerText = passageiros.length;
-      document.getElementById('dash-passageiros-online').innerText = `${passageiros.filter(p => p.online).length} online`;
+      document.getElementById('dash-passageiros-online').innerText = `${passageiros.filter(p => usuarioEstaAtivoNoAppAdmin(p)).length} online`;
 
       const { count: viagensAtivas } = await supabaseClient
         .from('corridas')
