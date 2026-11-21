@@ -11,6 +11,7 @@ function obterSenhaMestre() {
 const REGRAS_PADRAO_ADMIN = {
   valor_base: 5.00,
   valor_por_km: 3.50,
+  valor_por_minuto: 0.00,
   valor_minimo: 10.00,
   valor_por_parada: 0.00,
   percentual_repasse_motorista: 100,
@@ -34,6 +35,7 @@ function normalizarRegrasAdmin(bruto = {}) {
   return {
     valor_base: Math.max(0, num(bruto.valor_base, REGRAS_PADRAO_ADMIN.valor_base)),
     valor_por_km: Math.max(0, num(bruto.valor_por_km, REGRAS_PADRAO_ADMIN.valor_por_km)),
+    valor_por_minuto: Math.max(0, num(bruto.valor_por_minuto, REGRAS_PADRAO_ADMIN.valor_por_minuto)),
     valor_minimo: Math.max(0, num(bruto.valor_minimo, REGRAS_PADRAO_ADMIN.valor_minimo)),
     valor_por_parada: Math.max(0, num(bruto.valor_por_parada, REGRAS_PADRAO_ADMIN.valor_por_parada)),
     percentual_repasse_motorista: Math.min(100, Math.max(0, num(bruto.percentual_repasse_motorista, REGRAS_PADRAO_ADMIN.percentual_repasse_motorista))),

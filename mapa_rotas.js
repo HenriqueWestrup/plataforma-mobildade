@@ -181,14 +181,23 @@ function verificarECalcularSePronto() {
   calcularRotaEValor();
 }
 
-function aplicarEstimativaNaTela(distanciaKm, quantidadeParadas, aproximada = false) {
-  const calculo = calcularValorCorrida(distanciaKm, quantidadeParadas);
+function formatarDuracaoMinutos(minutos) {
+  const totalMin = Math.max(1, Math.round(Number(minutos) || 0));
+  if (totalMin < 60) return `${totalMin} min`;
+  const horas = Math.floor(totalMin / 60);
+  const mins = totalMin % 60;
+  return `${horas}h ${String(mins).padStart(2, '0')}min`;
+}
+
+function aplicarEstimativaNaTela(distanciaKm, quantidadeParadas, duracaoMinutos, aproximada = false) {
+  const calculo = calcularValorCorrida(distanciaKm, quantidadeParadas, duracaoMinutos);
   valorCalculadoAtual = calculo.total;
 
   document.getElementById('valor-estimado').innerText = `R$ ${calculo.total.toFixed(2).replace('.', ',')}`;
   const prefixo = aproximada ? '~' : '';
+  const duracaoTexto = duracaoMinutos > 0 ? ` • ${prefixo}${formatarDuracaoMinutos(duracaoMinutos)}` : '';
   const sufixoParada = quantidadeParadas > 0 ? ` • ${quantidadeParadas} parada(s)` : '';
-  document.getElementById('distancia-estimada').innerText = `${prefixo}${distanciaKm.toFixed(1).replace('.', ',')} km${sufixoParada}`;
+  document.getElementById('distancia-estimada').innerText = `${prefixo}${distanciaKm.toFixed(1).replace('.', ',')} km${duracaoTexto}${sufixoParada}`;
   document.getElementById('bloco-estimativa').classList.remove('hidden');
 }
 
@@ -209,6 +218,8 @@ async function calcularRotaEValor() {
     if (data && data.routes && data.routes.length > 0) {
       const route = data.routes[0];
       const coordenadasGeo = route.geometry.coordinates.map(c => [c[1], c[0]]);
+      const distanciaKm = route.distance / 1000;
+      const duracaoMinutos = (route.duration || 0) / 60;
 
       if (polylineRota) mapaLeaflet.removeLayer(polylineRota);
 
@@ -218,7 +229,7 @@ async function calcularRotaEValor() {
         opacity: 0.85
       }).addTo(mapaLeaflet);
 
-      aplicarEstimativaNaTela(route.distance / 1000, paradasValidas.length, false);
+      aplicarEstimativaNaTela(distanciaKm, paradasValidas.length, duracaoMinutos, false);
       mapaLeaflet.fitBounds(polylineRota.getBounds(), { padding: [60, 60] });
       atualizarEstadoBotaoChamar('pronto');
       return;
@@ -237,6 +248,9 @@ async function calcularRotaEValor() {
     }
   }
 
+  const distanciaKmAprox = distanciaTotalMetros / 1000;
+  const duracaoMinutosAprox = (distanciaKmAprox / 30) * 60;
+
   if (polylineRota) mapaLeaflet.removeLayer(polylineRota);
   polylineRota = L.polyline(latLngsLinha, {
     color: '#10b981',
@@ -245,7 +259,7 @@ async function calcularRotaEValor() {
     dashArray: '8, 8'
   }).addTo(mapaLeaflet);
 
-  aplicarEstimativaNaTela(distanciaTotalMetros / 1000, paradasValidas.length, true);
+  aplicarEstimativaNaTela(distanciaKmAprox, paradasValidas.length, duracaoMinutosAprox, true);
   mapaLeaflet.fitBounds(polylineRota.getBounds(), { padding: [50, 50] });
   atualizarEstadoBotaoChamar('pronto');
 }

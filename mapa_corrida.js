@@ -394,6 +394,14 @@ function resetarPainelCompletoPassageiro() {
   usarMinhaLocalizacao(true);
 }
 
+function formatarSegundosHHMM(segundos) {
+  const totalSeg = Math.max(0, Math.round(Number(segundos) || 0));
+  const totalMin = Math.round(totalSeg / 60);
+  const horas = Math.floor(totalMin / 60);
+  const mins = totalMin % 60;
+  return `${String(horas).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+}
+
 function iniciarTimerEsperaCorrida() {
   const regras = obterRegrasMapa();
   let tempoRestante = regras.tempo_espera_segundos;
@@ -415,8 +423,8 @@ function iniciarTimerEsperaCorrida() {
 
     if (tempoRestante <= 0) {
       clearInterval(timerIntervalId);
-      const minsTexto = Math.ceil(regras.tempo_espera_segundos / 60);
-      mostrarModal('Tempo Esgotado', `Tempo limite de ${minsTexto} minuto(s) esgotado sem motoristas aceitarem.`, 'cancelar', 4000);
+      const tempoFormatado = formatarSegundosHHMM(regras.tempo_espera_segundos);
+      mostrarModal('Tempo Esgotado', `Tempo limite de ${tempoFormatado} esgotado sem motoristas aceitarem.`, 'cancelar', 4000);
 
       if (corridaAtualId && supabaseMapa) {
         await supabaseMapa.from('corridas').update({ status: 'expirado' }).eq('id', corridaAtualId);

@@ -2,6 +2,7 @@
 const REGRAS_PADRAO_MAPA = {
   valor_base: 5.00,
   valor_por_km: 3.50,
+  valor_por_minuto: 0.00,
   valor_minimo: 10.00,
   valor_por_parada: 0.00,
   percentual_repasse_motorista: 100, // % do valor da corrida que vai para o motorista
@@ -22,6 +23,7 @@ function normalizarRegrasMapa(bruto = {}) {
   return {
     valor_base: Math.max(0, num(bruto.valor_base, REGRAS_PADRAO_MAPA.valor_base)),
     valor_por_km: Math.max(0, num(bruto.valor_por_km, REGRAS_PADRAO_MAPA.valor_por_km)),
+    valor_por_minuto: Math.max(0, num(bruto.valor_por_minuto, REGRAS_PADRAO_MAPA.valor_por_minuto)),
     valor_minimo: Math.max(0, num(bruto.valor_minimo, REGRAS_PADRAO_MAPA.valor_minimo)),
     valor_por_parada: Math.max(0, num(bruto.valor_por_parada, REGRAS_PADRAO_MAPA.valor_por_parada)),
     percentual_repasse_motorista: Math.min(100, Math.max(0, num(bruto.percentual_repasse_motorista, REGRAS_PADRAO_MAPA.percentual_repasse_motorista))),
@@ -71,12 +73,23 @@ async function carregarRegrasMapa(clienteSupabase) {
   return regras;
 }
 
-function calcularValorCorrida(distanciaKm, quantidadeParadas = 0, regrasCustom = null) {
+function calcularValorCorrida(distanciaKm, quantidadeParadas = 0, duracaoOuRegras = 0, duracaoMinutosExtra = 0) {
+  let regrasCustom = null;
+  let duracaoMinutos = 0;
+
+  if (duracaoOuRegras && typeof duracaoOuRegras === 'object') {
+    regrasCustom = duracaoOuRegras;
+    duracaoMinutos = duracaoMinutosExtra;
+  } else {
+    duracaoMinutos = duracaoOuRegras || duracaoMinutosExtra;
+  }
+
   const r = regrasCustom ? normalizarRegrasMapa(regrasCustom) : obterRegrasMapa();
   const km = Math.max(0, Number(distanciaKm) || 0);
+  const minutos = Math.max(0, Number(duracaoMinutos) || 0);
   const paradas = Math.max(0, Number(quantidadeParadas) || 0);
 
-  const bruto = r.valor_base + (km * r.valor_por_km) + (paradas * r.valor_por_parada);
+  const bruto = r.valor_base + (km * r.valor_por_km) + (minutos * r.valor_por_minuto) + (paradas * r.valor_por_parada);
   const total = Math.max(r.valor_minimo, bruto);
   const ganhoMotorista = total * (r.percentual_repasse_motorista / 100);
   const taxaPlataforma = Math.max(0, total - ganhoMotorista);
