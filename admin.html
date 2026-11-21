@@ -21,6 +21,36 @@
       </span>
     </div>
 
+    <!-- BUSCA GERAL DE USUÁRIOS NA TELA INICIAL -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-3 shadow">
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+        <input
+          type="text"
+          id="busca-geral-inicio"
+          oninput="aoDigitarBuscaGeralInicio()"
+          placeholder="Buscar por nome, CPF, celular, carro ou placa..."
+          class="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-2xl pl-9 pr-9 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none transition"
+        >
+        <button
+          type="button"
+          id="btn-limpar-busca-geral-inicio"
+          onclick="limparBuscaGeralInicio()"
+          title="Limpar busca"
+          class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="container-resultados-busca-inicio" class="hidden space-y-2.5 pt-1 border-t border-slate-800">
+        <div class="flex items-center justify-between text-[11px] text-slate-400">
+          <span>Resultados da busca: <strong id="qtd-resultados-busca-inicio" class="text-emerald-400">0</strong></span>
+        </div>
+        <div id="lista-resultados-busca-inicio" class="space-y-2.5"></div>
+      </div>
+    </section>
+
     <!-- CARDS DE ATALHO PARA AS PÁGINAS SEPARADAS -->
     <div class="grid grid-cols-2 gap-3">
       <a href="adminmotorista.html" class="bg-slate-900 hover:bg-slate-800/80 border border-slate-800 hover:border-emerald-500/40 p-4 rounded-2xl space-y-2 transition shadow">
@@ -173,6 +203,78 @@
   <script src="admin_shared.js"></script>
   <script>
     let canalRealtimeAdminPrincipal = null;
+    let todosUsuariosInicioCache = [];
+
+    function usuarioCombinaBuscaInicio(u, termoBruto) {
+      const termo = (termoBruto || '').toLowerCase().trim();
+      if (!termo) return false;
+      const digitosTermo = termo.replace(/\D/g, '');
+
+      const camposTexto = [
+        u.nome,
+        u.cpf,
+        u.telefone,
+        u.celular,
+        u.veiculo,
+        u.carro,
+        u.veiculo_marca,
+        u.veiculo_modelo,
+        u.veiculo_ano,
+        u.veiculo_placa,
+        u.placa,
+        u.tipo,
+        u.status
+      ].filter(Boolean).map(v => String(v).toLowerCase());
+
+      if (camposTexto.some(c => c.includes(termo))) return true;
+
+      if (digitosTermo.length >= 2) {
+        const camposDigitos = [u.cpf, u.telefone, u.celular]
+          .filter(Boolean)
+          .map(v => String(v).replace(/\D/g, ''));
+        if (camposDigitos.some(d => d.includes(digitosTermo))) return true;
+      }
+
+      return false;
+    }
+
+    function renderizarBuscaGeralInicio() {
+      const input = document.getElementById('busca-geral-inicio');
+      const btnLimpar = document.getElementById('btn-limpar-busca-geral-inicio');
+      const container = document.getElementById('container-resultados-busca-inicio');
+      const listaEl = document.getElementById('lista-resultados-busca-inicio');
+      const qtdEl = document.getElementById('qtd-resultados-busca-inicio');
+
+      const termo = (input?.value || '').trim();
+      if (btnLimpar) btnLimpar.classList.toggle('hidden', !termo);
+
+      if (!termo) {
+        container.classList.add('hidden');
+        listaEl.innerHTML = '';
+        return;
+      }
+
+      const encontrados = todosUsuariosInicioCache.filter(u => usuarioCombinaBuscaInicio(u, termo));
+      container.classList.remove('hidden');
+      qtdEl.innerText = encontrados.length;
+
+      if (encontrados.length === 0) {
+        listaEl.innerHTML = '<div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-slate-500 text-center">Nenhum usuário encontrado para esta busca.</div>';
+        return;
+      }
+
+      listaEl.innerHTML = encontrados.map(u => gerarCardAdmin(u)).join('');
+    }
+
+    function aoDigitarBuscaGeralInicio() {
+      renderizarBuscaGeralInicio();
+    }
+
+    function limparBuscaGeralInicio() {
+      const input = document.getElementById('busca-geral-inicio');
+      if (input) input.value = '';
+      renderizarBuscaGeralInicio();
+    }
 
     function segundosParaHHMM(segundos) {
       const totalSeg = Math.max(0, Math.round(Number(segundos) || 180));
@@ -331,6 +433,7 @@
       const { data: usuarios } = await supabaseClient.from('usuarios').select('*');
       const todos = usuarios || [];
       listaUsuariosCache = todos;
+      todosUsuariosInicioCache = todos;
 
       const motoristas = todos.filter(u => ehPerfilMotoristaAdmin(u));
       const passageiros = todos.filter(u => !ehPerfilMotoristaAdmin(u));
@@ -364,6 +467,7 @@
         badgeSup.classList.add('hidden');
       }
 
+      renderizarBuscaGeralInicio();
       await carregarRegrasNoPainelAdmin();
       iniciarEscutaRealtimeAdminPrincipal();
     }
