@@ -153,12 +153,35 @@
     <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto mb-1"></div>
 
     <div id="conteudo-gaveta-notificacao" class="flex flex-col gap-3 max-h-0 overflow-hidden transition-all duration-300">
-      
+
       <div id="bloco-detalhes-corrida-ativa" class="hidden bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
         <div class="space-y-1 text-xs text-slate-300">
           <p><strong>Embarque:</strong> <span id="ativa-origem" class="text-white">-</span></p>
           <p id="bloco-ativa-parada" class="hidden"><strong>Parada:</strong> <span id="ativa-parada" class="text-amber-200">-</span></p>
           <p><strong>Destino:</strong> <span id="ativa-destino" class="text-white">-</span></p>
+        </div>
+
+        <!-- BOTÕES DE CHAT E CHAMADA DE VOZ LADO A LADO NA BARRA DE NOTIFICAÇÃO / VIAGEM -->
+        <div id="acoes-comunicacao-motorista" class="grid grid-cols-2 gap-2 pt-0.5">
+          <button
+            type="button"
+            id="btn-chat-viagem-motorista"
+            onclick="abrirChatViagemMotorista(); event.stopPropagation();"
+            class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/50 font-bold py-2 px-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow"
+          >
+            <i class="fa-solid fa-comments"></i>
+            <span>Chat</span>
+          </button>
+
+          <button
+            type="button"
+            id="btn-chamada-voz-motorista"
+            onclick="iniciarChamadaVozMotorista(); event.stopPropagation();"
+            class="bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/50 font-bold py-2 px-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow"
+          >
+            <i class="fa-solid fa-phone"></i>
+            <span id="label-chamada-voz-motorista">Chamada de Voz</span>
+          </button>
         </div>
 
         <div id="bloco-espera-local" class="hidden bg-amber-950/40 border border-amber-600/50 p-2 rounded-xl flex justify-between items-center px-3">
@@ -253,6 +276,45 @@
     </div>
   </div>
 
+  <!-- MODAL DE CHAT DA CORRIDA COM HISTÓRICO (mensagens_chat) -->
+  <div id="modal-chat-corrida-motorista" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4" onclick="event.stopPropagation()">
+    <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-md rounded-3xl p-4 space-y-3 shadow-2xl max-h-[88vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3 shrink-0">
+        <div>
+          <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
+            <i class="fa-solid fa-comments text-emerald-400"></i>
+            <span id="chat-mot-titulo">Chat da Corrida</span>
+          </h3>
+          <p id="chat-mot-subtitulo" class="text-[10px] text-slate-400">Histórico de conversas</p>
+        </div>
+        <button type="button" onclick="fecharChatCorridaMotorista()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <div id="chat-mot-mensagens" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 overflow-y-auto text-[11px] flex-1 min-h-[180px] max-h-72">
+        <p class="text-slate-500 text-center py-4">Carregando histórico...</p>
+      </div>
+
+      <form id="form-chat-mot" onsubmit="enviarMensagemCorridaMotorista(event)" class="flex gap-2 pt-1 border-t border-slate-800 shrink-0">
+        <input
+          type="text"
+          id="chat-mot-input"
+          autocomplete="off"
+          placeholder="Digite uma mensagem..."
+          class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-xs outline-none focus:border-emerald-500"
+        />
+        <button
+          type="submit"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5"
+        >
+          <i class="fa-solid fa-paper-plane"></i>
+          <span>Enviar</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL DE ATENDIMENTO DIRECIONADO PARA O MOTORISTA -->
   <div id="modal-suporte-motorista" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] flex flex-col">
@@ -300,6 +362,9 @@
     let canalCorridaAtiva = null;
     let canalRealtimeMotorista = null;
     let canalRealtimeSuporteMotorista = null;
+    let canalChatMotoristaAtivo = null;
+    let corridaChatMotoristaId = null;
+    let outroUsuarioChatMotoristaId = null;
     let corridaPendenteAtual = null;
     let filaPedidosPendentes = [];
     let corridaAtiva = null;
@@ -314,6 +379,193 @@
     let abaAtual = 'radar';
     let mapaPreviaInstancia = null;
     let assuntoAtualSuporteMotorista = 'Suporte Geral';
+
+    function escaparHtml(texto) {
+      return String(texto || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function pararRealtimeChatMotorista() {
+      if (canalChatMotoristaAtivo) {
+        supabaseClient.removeChannel(canalChatMotoristaAtivo);
+        canalChatMotoristaAtivo = null;
+      }
+    }
+
+    async function buscarHistoricoMensagensCorridaEContato(corridaId, outroUsuarioId) {
+      let lista = [];
+
+      if (corridaId) {
+        const { data: daCorrida, error } = await supabaseClient
+          .from('mensagens_chat')
+          .select('*')
+          .eq('corrida_id', corridaId)
+          .order('criado_em', { ascending: true });
+        if (!error && Array.isArray(daCorrida)) {
+          lista = lista.concat(daCorrida);
+        }
+      }
+
+      if (outroUsuarioId && motoristaLogado?.id) {
+        const { data: anteriores, error: errAnt } = await supabaseClient
+          .from('mensagens_chat')
+          .select('*')
+          .in('remetente_id', [String(motoristaLogado.id), String(outroUsuarioId)])
+          .order('criado_em', { ascending: true })
+          .limit(100);
+
+        if (!errAnt && Array.isArray(anteriores)) {
+          lista = lista.concat(anteriores);
+        }
+      }
+
+      const mapaUnico = new Map();
+      lista.forEach((item, idx) => {
+        const chave = item.id !== undefined && item.id !== null
+          ? String(item.id)
+          : `${item.corrida_id || ''}_${item.remetente_id || ''}_${item.criado_em || idx}_${item.mensagem || ''}`;
+        mapaUnico.set(chave, item);
+      });
+
+      return Array.from(mapaUnico.values()).sort((a, b) => {
+        const tA = new Date(a.criado_em || 0).getTime();
+        const tB = new Date(b.criado_em || 0).getTime();
+        return tA - tB;
+      });
+    }
+
+    async function carregarMensagensCorridaMotorista(corridaId = corridaChatMotoristaId, outroUsuarioId = outroUsuarioChatMotoristaId) {
+      const container = document.getElementById('chat-mot-mensagens');
+      if (!container || (!corridaId && !outroUsuarioId)) return;
+
+      const msgs = await buscarHistoricoMensagensCorridaEContato(corridaId, outroUsuarioId);
+
+      if (!msgs || msgs.length === 0) {
+        container.innerHTML = '<p class="text-slate-500 text-center py-4">Nenhuma mensagem no histórico ainda.</p>';
+        return;
+      }
+
+      const meuId = String(motoristaLogado?.id || '');
+      container.innerHTML = msgs.map(m => {
+        const ehMinha = meuId && String(m.remetente_id) === meuId;
+        const nomeExibido = m.remetente_nome || (ehMinha ? (motoristaLogado?.nome || 'Você') : 'Passageiro');
+        const horaStr = new Date(m.criado_em || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const ehCorridaAtual = corridaId && String(m.corrida_id) === String(corridaId);
+
+        return `
+          <div class="flex flex-col ${ehMinha ? 'items-end' : 'items-start'}">
+            <div class="max-w-[85%] rounded-2xl px-3 py-2 border ${ehMinha ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-50' : 'bg-slate-900 border-slate-800 text-slate-200'} space-y-0.5">
+              <div class="flex items-center justify-between gap-3 text-[9px] text-slate-400">
+                <span class="font-bold ${ehMinha ? 'text-emerald-400' : 'text-amber-400'}">${escaparHtml(nomeExibido)}</span>
+                <span>${ehCorridaAtual ? 'Atual • ' : 'Histórico • '}${horaStr}</span>
+              </div>
+              <p class="whitespace-pre-line break-words">${escaparHtml(m.mensagem)}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function iniciarRealtimeChatMotorista(corridaId) {
+      pararRealtimeChatMotorista();
+      if (!corridaId) return;
+
+      canalChatMotoristaAtivo = supabaseClient
+        .channel(`mensagens_chat_mot_${corridaId}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'mensagens_chat',
+          filter: `corrida_id=eq.${corridaId}`
+        }, () => {
+          carregarMensagensCorridaMotorista(corridaId, outroUsuarioChatMotoristaId);
+        })
+        .subscribe();
+    }
+
+    async function abrirChatCorridaMotorista(corridaId, nomePassageiro = 'Passageiro', passageiroId = null) {
+      if (!corridaId && !passageiroId) return;
+      corridaChatMotoristaId = corridaId;
+      outroUsuarioChatMotoristaId = passageiroId;
+
+      document.getElementById('chat-mot-titulo').innerText = `Chat • ${nomePassageiro}`;
+      document.getElementById('chat-mot-subtitulo').innerText = corridaId
+        ? `Corrida #${String(corridaId).slice(0, 8)} • Histórico incluído`
+        : 'Histórico de conversas';
+      document.getElementById('modal-chat-corrida-motorista').classList.remove('hidden');
+
+      await carregarMensagensCorridaMotorista(corridaId, passageiroId);
+      if (corridaId) iniciarRealtimeChatMotorista(corridaId);
+      document.getElementById('chat-mot-input')?.focus();
+    }
+
+    function fecharChatCorridaMotorista() {
+      pararRealtimeChatMotorista();
+      corridaChatMotoristaId = null;
+      outroUsuarioChatMotoristaId = null;
+      document.getElementById('modal-chat-corrida-motorista').classList.add('hidden');
+    }
+
+    async function enviarMensagemCorridaMotorista(e) {
+      if (e) e.preventDefault();
+      const inputEl = document.getElementById('chat-mot-input');
+      const texto = (inputEl?.value || '').trim();
+      if (!texto || !corridaChatMotoristaId || !motoristaLogado?.id) return;
+
+      inputEl.value = '';
+      inputEl.focus();
+
+      const payload = {
+        corrida_id: corridaChatMotoristaId,
+        remetente_id: motoristaLogado.id,
+        remetente_nome: motoristaLogado.nome || 'Motorista',
+        mensagem: texto
+      };
+
+      const { error } = await supabaseClient
+        .from('mensagens_chat')
+        .insert([payload]);
+
+      if (error) {
+        mostrarToastAdmin('Erro ao enviar mensagem: ' + error.message, 'erro');
+        return;
+      }
+
+      await carregarMensagensCorridaMotorista(corridaChatMotoristaId, outroUsuarioChatMotoristaId);
+    }
+
+    function abrirChatViagemMotorista() {
+      if (!corridaAtiva) {
+        mostrarToastAdmin('Nenhuma corrida ativa no momento.', 'aviso');
+        return;
+      }
+      const nomePass = primeiroNome(corridaAtiva.passageiro?.nome || 'Passageiro');
+      abrirChatCorridaMotorista(corridaAtiva.id, nomePass, corridaAtiva.passageiro_id || null);
+    }
+
+    function iniciarChamadaVozMotorista() {
+      if (!corridaAtiva) {
+        mostrarToastAdmin('Nenhuma corrida ativa para iniciar chamada.', 'aviso');
+        return;
+      }
+      const nomePass = primeiroNome(corridaAtiva.passageiro?.nome || 'Passageiro');
+      if (typeof window.iniciarChamadaP2P === 'function') {
+        window.iniciarChamadaP2P({
+          corridaId: corridaAtiva.id,
+          outroUsuarioId: corridaAtiva.passageiro_id || null,
+          outroNome: nomePass,
+          papelLocal: 'motorista'
+        });
+      } else {
+        mostrarToastAdmin(`Chamada de voz P2P com ${nomePass} pronta para conexão.`, 'sucesso');
+      }
+    }
 
     function primeiroNome(nomeCompleto) {
       if (!nomeCompleto) return 'Passageiro';
@@ -377,7 +629,7 @@
       const conteudo = document.getElementById('conteudo-gaveta-notificacao');
       const seta = document.getElementById('icone-seta-gaveta');
       if (gavetaAberta) {
-        conteudo.style.maxHeight = '340px';
+        conteudo.style.maxHeight = '380px';
         seta.className = "fa-solid fa-chevron-down text-emerald-400 text-xs transition-transform duration-300";
       } else {
         conteudo.style.maxHeight = '0px';
@@ -1402,6 +1654,7 @@
     function limparCorridaAtivaLocal() {
       if (timerEspera3mId) clearInterval(timerEspera3mId);
       if (canalCorridaAtiva) supabaseClient.removeChannel(canalCorridaAtiva);
+      fecharChatCorridaMotorista();
       corridaAtiva = null;
       paradaFinalizada = false;
 
@@ -1482,6 +1735,7 @@
     }
 
     async function sairConta() {
+      pararRealtimeChatMotorista();
       await pararRastreamentoGPS();
       clearInterval(intervaloPresencaApp);
       clearInterval(intervaloValidacaoSessao);

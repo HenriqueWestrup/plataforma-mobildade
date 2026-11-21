@@ -96,6 +96,45 @@
     </div>
   </main>
 
+  <!-- MODAL DE CHAT DA CORRIDA (mensagens_chat) -->
+  <div id="modal-chat-corrida" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-md rounded-3xl p-4 space-y-3 shadow-2xl max-h-[88vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3 shrink-0">
+        <div>
+          <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
+            <i class="fa-solid fa-comments text-emerald-400"></i>
+            <span id="chat-corrida-titulo">Chat da Corrida</span>
+          </h3>
+          <p id="chat-corrida-subtitulo" class="text-[10px] text-slate-400">Conversa com o motorista</p>
+        </div>
+        <button type="button" onclick="fecharChatCorrida()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <div id="chat-corrida-mensagens" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 overflow-y-auto text-[11px] flex-1 min-h-[180px] max-h-72">
+        <p class="text-slate-500 text-center py-4">Nenhuma mensagem na corrida ainda.</p>
+      </div>
+
+      <form id="form-chat-corrida" onsubmit="enviarMensagemCorrida(event)" class="flex gap-2 pt-1 border-t border-slate-800 shrink-0">
+        <input
+          type="text"
+          id="chat-corrida-input"
+          autocomplete="off"
+          placeholder="Digite uma mensagem..."
+          class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white text-xs outline-none focus:border-emerald-500"
+        />
+        <button
+          type="submit"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5"
+        >
+          <i class="fa-solid fa-paper-plane"></i>
+          <span>Enviar</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL DE SUPORTE E MENSAGENS -->
   <div id="modal-suporte-passageiro" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-md rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] flex flex-col">
@@ -199,8 +238,132 @@
     let intervaloHeartbeat = null;
     let canalRealtimePassageiro = null;
     let canalRealtimeSuporte = null;
+    let canalChatCorridaAtivo = null;
+    let corridaChatAtualId = null;
     let assuntoAtualSuporte = 'Suporte Geral';
     let aguardandoTrocaSenhaObrigatoria = false;
+
+    function escaparHtmlChat(texto) {
+      return String(texto || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function pararRealtimeChatCorrida() {
+      if (canalChatCorridaAtivo) {
+        supabaseClient.removeChannel(canalChatCorridaAtivo);
+        canalChatCorridaAtivo = null;
+      }
+    }
+
+    function iniciarRealtimeChatCorrida(corridaId) {
+      pararRealtimeChatCorrida();
+      if (!corridaId) return;
+
+      canalChatCorridaAtivo = supabaseClient
+        .channel(`mensagens_chat_corrida_${corridaId}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'mensagens_chat',
+          filter: `corrida_id=eq.${corridaId}`
+        }, () => {
+          carregarMensagensCorrida(corridaId);
+        })
+        .subscribe();
+    }
+
+    async function carregarMensagensCorrida(corridaId = corridaChatAtualId) {
+      const container = document.getElementById('chat-corrida-mensagens');
+      if (!container || !corridaId) return;
+
+      const { data: msgs, error } = await supabaseClient
+        .from('mensagens_chat')
+        .select('*')
+        .eq('corrida_id', corridaId)
+        .order('criado_em', { ascending: true });
+
+      if (error) {
+        container.innerHTML = `<p class="text-red-400 text-center py-4">Erro ao carregar mensagens: ${escaparHtmlChat(error.message)}</p>`;
+        return;
+      }
+
+      if (!msgs || msgs.length === 0) {
+        container.innerHTML = '<p class="text-slate-500 text-center py-4">Nenhuma mensagem na corrida ainda.</p>';
+        return;
+      }
+
+      const meuId = usuarioLogado?.id;
+      container.innerHTML = msgs.map(m => {
+        const ehMinha = meuId && m.remetente_id === meuId;
+        const nomeExibido = m.remetente_nome || (ehMinha ? (usuarioLogado?.nome || 'Você') : 'Motorista');
+        const horaStr = new Date(m.criado_em || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        return `
+          <div class="flex flex-col ${ehMinha ? 'items-end' : 'items-start'}">
+            <div class="max-w-[85%] rounded-2xl px-3 py-2 border ${ehMinha ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-50' : 'bg-slate-900 border-slate-800 text-slate-200'} space-y-0.5">
+              <div class="flex items-center justify-between gap-3 text-[9px] text-slate-400">
+                <span class="font-bold ${ehMinha ? 'text-emerald-400' : 'text-amber-400'}">${escaparHtmlChat(nomeExibido)}</span>
+                <span>${horaStr}</span>
+              </div>
+              <p class="whitespace-pre-line break-words">${escaparHtmlChat(m.mensagem)}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function abrirChatCorrida(corridaId, nomeOutroParticipante = 'Motorista') {
+      if (!corridaId) return;
+      corridaChatAtualId = corridaId;
+
+      document.getElementById('chat-corrida-titulo').innerText = `Chat • ${nomeOutroParticipante}`;
+      document.getElementById('chat-corrida-subtitulo').innerText = `Corrida #${String(corridaId).slice(0, 8)}`;
+      document.getElementById('modal-chat-corrida').classList.remove('hidden');
+
+      await carregarMensagensCorrida(corridaId);
+      iniciarRealtimeChatCorrida(corridaId);
+      document.getElementById('chat-corrida-input')?.focus();
+    }
+
+    function fecharChatCorrida() {
+      pararRealtimeChatCorrida();
+      corridaChatAtualId = null;
+      document.getElementById('modal-chat-corrida').classList.add('hidden');
+    }
+
+    async function enviarMensagemCorrida(e) {
+      if (e) e.preventDefault();
+      const inputEl = document.getElementById('chat-corrida-input');
+      const texto = (inputEl?.value || '').trim();
+      if (!texto || !corridaChatAtualId || !usuarioLogado?.id) return;
+
+      inputEl.value = '';
+      inputEl.focus();
+
+      const payload = {
+        corrida_id: corridaChatAtualId,
+        remetente_id: usuarioLogado.id,
+        remetente_nome: usuarioLogado.nome || 'Passageiro',
+        mensagem: texto
+      };
+
+      const { error } = await supabaseClient
+        .from('mensagens_chat')
+        .insert([payload]);
+
+      if (error) {
+        alert('Erro ao enviar mensagem: ' + error.message);
+        return;
+      }
+
+      await carregarMensagensCorrida(corridaChatAtualId);
+    }
 
     function tocarSomAlertaPassageiro() {
       try {
@@ -668,6 +831,7 @@
     }
 
     async function sairConta() {
+      pararRealtimeChatCorrida();
       if (usuarioLogado && usuarioLogado.id) {
         try {
           await supabaseClient

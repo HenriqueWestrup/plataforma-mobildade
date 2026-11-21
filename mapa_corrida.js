@@ -15,6 +15,7 @@ async function verificarCorridaAtivaPassageiro() {
     if (data && data.length > 0) {
       const corrida = data[0];
       corridaAtualId = corrida.id;
+      corridaAtivaDados = corrida;
 
       if (corrida.status === 'procurando') {
         document.getElementById('painel-solicitacao').classList.add('hidden');
@@ -165,6 +166,7 @@ async function chamarMotorista() {
     atualizarEstadoBotaoChamar('pronto');
   } else {
     corridaAtualId = data.id;
+    corridaAtivaDados = data;
     document.getElementById('painel-solicitacao').classList.add('hidden');
     document.getElementById('painel-espera-corrida').classList.remove('hidden');
 
@@ -183,14 +185,16 @@ function iniciarEscutaPassageiroRealtime() {
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'corridas', filter: `id=eq.${corridaAtualId}` }, async payload => {
       if (payload.new) {
         const corridaAtualizada = payload.new;
+        corridaAtivaDados = { ...(corridaAtivaDados || {}), ...corridaAtualizada };
 
         if (['aceito', 'a_caminho', 'no_local', 'em_andamento'].includes(corridaAtualizada.status)) {
-          let motoristaInfo = { nome: 'Motorista', foto_url: '', nota: '5.0' };
+          let motoristaInfo = corridaAtivaDados.motorista || { nome: 'Motorista', foto_url: '', nota: '5.0' };
           if (corridaAtualizada.motorista_id) {
             const { data: mot } = await supabaseMapa.from('usuarios').select('nome, foto_url, nota').eq('id', corridaAtualizada.motorista_id).single();
             if (mot) motoristaInfo = mot;
           }
           corridaAtualizada.motorista = motoristaInfo;
+          corridaAtivaDados = corridaAtualizada;
           exibirPainelMotoristaEncontrado(corridaAtualizada);
         } else if (corridaAtualizada.status === 'concluido') {
           exibirPainelAvaliacaoPassageiro(corridaAtualizada);
@@ -221,6 +225,8 @@ async function exibirPainelMotoristaEncontrado(corrida) {
     const { data: mot } = await supabaseMapa.from('usuarios').select('nome, foto_url, nota').eq('id', corrida.motorista_id).single();
     if (mot) motorista = mot;
   }
+
+  corridaAtivaDados = { ...(corridaAtivaDados || {}), ...corrida, motorista };
 
   const nomeMotorista = primeiroNome(motorista?.nome || 'Motorista Parceiro');
   const fotoMotorista = motorista?.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeMotorista)}`;
@@ -361,7 +367,9 @@ async function passageiroConcluirAvaliacao() {
 function resetarPainelCompletoPassageiro() {
   if (timerIntervalId) clearInterval(timerIntervalId);
   if (canalPassageiroRealtime && supabaseMapa) supabaseMapa.removeChannel(canalPassageiroRealtime);
+  if (typeof window.fecharChatCorrida === 'function') window.fecharChatCorrida();
   corridaAtualId = null;
+  corridaAtivaDados = null;
   ultimaNotificacaoProximidade = false;
   coordsDestino = null;
   coordsParadas = {};

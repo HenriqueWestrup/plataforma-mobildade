@@ -101,6 +101,29 @@
       <p><strong>Destino:</strong> <span id="pass-ativa-destino" class="text-white">-</span></p>
     </div>
 
+    <!-- AÇÕES DE COMUNICAÇÃO NA BARRA/CARD DA VIAGEM (CHAT + CHAMADA DE VOZ P2P) -->
+    <div id="acoes-comunicacao-viagem" class="grid grid-cols-2 gap-2">
+      <button
+        type="button"
+        id="btn-chat-viagem-passageiro"
+        onclick="abrirChatViagemPassageiro()"
+        class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/50 font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 shadow"
+      >
+        <i class="fa-solid fa-comments"></i>
+        <span>Chat</span>
+      </button>
+
+      <button
+        type="button"
+        id="btn-chamada-voz-passageiro"
+        onclick="iniciarChamadaVozPassageiro()"
+        class="bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/50 font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 shadow"
+      >
+        <i class="fa-solid fa-phone"></i>
+        <span id="label-chamada-voz-passageiro">Chamada de Voz</span>
+      </button>
+    </div>
+
     <button id="btn-cancelar-passageiro-ativo" onclick="cancelarCorridaPassageiroAtiva()" class="w-full bg-red-950/50 hover:bg-red-900/50 text-red-400 border border-red-800 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
       <i class="fa-solid fa-xmark"></i> Cancelar Corrida
     </button>
@@ -171,6 +194,7 @@
   var timerIntervalId = null;
   var modalTimeoutId = null;
   var corridaAtualId = null;
+  var corridaAtivaDados = null;
   var canalPassageiroRealtime = null;
   var passageiroNotaSelecionada = 5;
   var ultimaNotificacaoProximidade = false;
@@ -181,6 +205,45 @@
   function primeiroNome(nomeCompleto) {
     if (!nomeCompleto) return 'Motorista';
     return nomeCompleto.trim().split(' ')[0];
+  }
+
+  function abrirChatViagemPassageiro() {
+    const idCorrida = corridaAtualId || corridaAtivaDados?.id;
+    const nomeMot = primeiroNome(corridaAtivaDados?.motorista?.nome || document.getElementById('passageiro-motorista-nome')?.innerText || 'Motorista');
+    const outroId = corridaAtivaDados?.motorista_id || null;
+
+    if (!idCorrida) {
+      mostrarModal('Aviso', 'Nenhuma corrida ativa para abrir o chat.', 'cancelar', 2500);
+      return;
+    }
+
+    if (typeof window.abrirChatCorrida === 'function') {
+      window.abrirChatCorrida(idCorrida, nomeMot, outroId);
+    } else {
+      mostrarModal('Chat', 'Modal de chat não encontrado nesta página.', 'cancelar', 2500);
+    }
+  }
+
+  function iniciarChamadaVozPassageiro() {
+    const idCorrida = corridaAtualId || corridaAtivaDados?.id;
+    const nomeMot = primeiroNome(corridaAtivaDados?.motorista?.nome || document.getElementById('passageiro-motorista-nome')?.innerText || 'Motorista');
+    const outroId = corridaAtivaDados?.motorista_id || null;
+
+    if (!idCorrida) {
+      mostrarModal('Aviso', 'Nenhuma corrida ativa para iniciar chamada.', 'cancelar', 2500);
+      return;
+    }
+
+    if (typeof window.iniciarChamadaP2P === 'function') {
+      window.iniciarChamadaP2P({
+        corridaId: idCorrida,
+        outroUsuarioId: outroId,
+        outroNome: nomeMot,
+        papelLocal: 'passageiro'
+      });
+    } else {
+      mostrarModal('Chamada de Voz P2P', `Ligação P2P com ${nomeMot} será conectada na próxima etapa.`, 'sucesso', 3000);
+    }
   }
 
   function atualizarEstadoBotaoChamar(estado, textoCustomizado = '') {
