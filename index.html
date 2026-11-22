@@ -319,6 +319,8 @@
 
     let usuarioLogado = null;
     let intervaloHeartbeat = null;
+    let intervaloValidacaoSessaoPassageiro = null;
+    let desconectandoSessao = false;
     let canalRealtimePassageiro = null;
     let canalRealtimeSuporte = null;
     let canalChatCorridaAtivo = null;
@@ -345,6 +347,40 @@
         { urls: 'stun:stun1.l.google.com:19302' }
       ]
     };
+
+    function forcarDesconexaoPorNovoLogin() {
+      if (desconectandoSessao) return;
+      desconectandoSessao = true;
+
+      if (intervaloHeartbeat) clearInterval(intervaloHeartbeat);
+      if (intervaloValidacaoSessaoPassageiro) clearInterval(intervaloValidacaoSessaoPassageiro);
+      if (canalRealtimePassageiro) supabaseClient.removeChannel(canalRealtimePassageiro);
+      if (canalRealtimeSuporte) supabaseClient.removeChannel(canalRealtimeSuporte);
+      if (typeof encerrarChamadaP2P === 'function') encerrarChamadaP2P(false);
+      if (typeof pararRealtimeChatCorrida === 'function') pararRealtimeChatCorrida();
+
+      alert('Sua conta foi conectada em outro aparelho. Este dispositivo será desconectado.');
+      localStorage.clear();
+      window.location.href = 'auth.html';
+    }
+
+    async function validarSessaoUnicaPassageiro() {
+      if (!usuarioLogado?.id || desconectandoSessao) return;
+      const tokenLocal = localStorage.getItem('session_token');
+      if (!tokenLocal) return;
+
+      try {
+        const { data } = await supabaseClient
+          .from('usuarios')
+          .select('session_token')
+          .eq('id', usuarioLogado.id)
+          .single();
+
+        if (data && data.session_token && data.session_token !== tokenLocal) {
+          forcarDesconexaoPorNovoLogin();
+        }
+      } catch (e) {}
+    }
 
     function escaparHtmlChat(texto) {
       return String(texto || '')
@@ -1018,9 +1054,13 @@
       }
 
       await verificarDadosUsuarioAtualizados();
+      if (desconectandoSessao) return;
+
       iniciarEscutaRealtimeStatus();
       iniciarEscutaSuporteRealtime();
       atualizarContadorNotificacoes();
+
+      intervaloValidacaoSessaoPassageiro = setInterval(validarSessaoUnicaPassageiro, 7000);
 
       document.getElementById('menu-nome').innerText = usuarioLogado.nome || 'Passageiro';
       document.getElementById('menu-foto').src = usuarioLogado.foto_url || 'https://ui-avatars.com/api/?name=Passageiro';
@@ -1033,6 +1073,12 @@
       try {
         const { data } = await supabaseClient.from('usuarios').select('*').eq('id', usuarioLogado.id).single();
         if (data) {
+          const tokenLocal = localStorage.getItem('session_token');
+          if (tokenLocal && data.session_token && data.session_token !== tokenLocal) {
+            forcarDesconexaoPorNovoLogin();
+            return;
+          }
+
           usuarioLogado = data;
           localStorage.setItem('passageiro_logado', JSON.stringify(usuarioLogado));
           if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
@@ -1051,6 +1097,12 @@
         .channel(`public:usuarios_passageiro:${usuarioLogado.id}`)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'usuarios', filter: `id=eq.${usuarioLogado.id}` }, payload => {
           if (payload.new) {
+            const tokenLocal = localStorage.getItem('session_token');
+            if (tokenLocal && payload.new.session_token && payload.new.session_token !== tokenLocal) {
+              forcarDesconexaoPorNovoLogin();
+              return;
+            }
+
             usuarioLogado = payload.new;
             localStorage.setItem('passageiro_logado', JSON.stringify(usuarioLogado));
             if (usuarioLogado.status === 'bloqueado' || usuarioLogado.status === 'pendente') {
@@ -1330,6 +1382,7 @@
     }
 
     async function sairConta() {
+      if (intervaloValidacaoSessaoPassageiro) clearInterval(intervaloValidacaoSessaoPassageiro);
       await encerrarChamadaP2P(true);
       pararRealtimeChatCorrida();
       if (usuarioLogado && usuarioLogado.id) {

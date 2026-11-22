@@ -394,6 +394,7 @@
     let intervaloVerificacaoPedidos = null;
     let intervaloOscilacaoTexto = null;
     let intervaloPresencaApp = null;
+    let desconectandoSessaoMotorista = false;
     let canalCorridaAtiva = null;
     let canalRealtimeMotorista = null;
     let canalRealtimeSuporteMotorista = null;
@@ -438,6 +439,33 @@
         { urls: 'stun:stun1.l.google.com:19302' }
       ]
     };
+
+    function desconectarPorNovoLoginMotorista() {
+      if (desconectandoSessaoMotorista) return;
+      desconectandoSessaoMotorista = true;
+
+      if (intervaloPresencaApp) clearInterval(intervaloPresencaApp);
+      if (intervaloValidacaoSessao) clearInterval(intervaloValidacaoSessao);
+      if (intervaloVerificacaoPedidos) clearInterval(intervaloVerificacaoPedidos);
+      if (intervaloOscilacaoTexto) clearInterval(intervaloOscilacaoTexto);
+      if (watchIdGeoloc !== null) {
+        navigator.geolocation.clearWatch(watchIdGeoloc);
+        watchIdGeoloc = null;
+      }
+      if (canalRealtimeMotorista) supabaseClient.removeChannel(canalRealtimeMotorista);
+      if (canalRealtimeSuporteMotorista) supabaseClient.removeChannel(canalRealtimeSuporteMotorista);
+      if (canalCorridaAtiva) supabaseClient.removeChannel(canalCorridaAtiva);
+      pararBadgeChatMotorista();
+      pararRealtimeChatMotorista();
+      limparMidiaMot();
+
+      mostrarToastAdmin("Sua conta foi acessada em outro aparelho.", "erro");
+      localStorage.removeItem('motorista_logado');
+      localStorage.removeItem('passageiro_logado');
+      localStorage.removeItem('session_token');
+      localStorage.removeItem('motorista_online');
+      setTimeout(() => (window.location.href = 'auth-motorista.html'), 1500);
+    }
 
     function escaparHtml(texto) {
       return String(texto || '')
@@ -1168,7 +1196,7 @@
     }
 
     async function atualizarPresencaNoApp(estaOnlineNoApp) {
-      if (!motoristaLogado || !motoristaLogado.id) return;
+      if (!motoristaLogado || !motoristaLogado.id || desconectandoSessaoMotorista) return;
       try {
         const agoraIso = new Date().toISOString();
         await supabaseClient
@@ -1188,12 +1216,13 @@
       atualizarPresencaNoApp(true);
 
       intervaloPresencaApp = setInterval(() => {
-        if (!document.hidden) {
+        if (!document.hidden && !desconectandoSessaoMotorista) {
           atualizarPresencaNoApp(true);
         }
       }, 15000);
 
       document.addEventListener('visibilitychange', () => {
+        if (desconectandoSessaoMotorista) return;
         if (!document.hidden) {
           atualizarPresencaNoApp(true);
         } else {
@@ -1202,11 +1231,11 @@
       });
 
       window.addEventListener('pagehide', () => {
-        atualizarPresencaNoApp(false);
+        if (!desconectandoSessaoMotorista) atualizarPresencaNoApp(false);
       });
 
       window.addEventListener('beforeunload', () => {
-        atualizarPresencaNoApp(false);
+        if (!desconectandoSessaoMotorista) atualizarPresencaNoApp(false);
       });
     }
 
@@ -1221,8 +1250,10 @@
       document.getElementById('menu-nome').innerText = motoristaLogado.nome || 'Motorista';
       document.getElementById('menu-foto').src = motoristaLogado.foto_url || 'https://ui-avatars.com/api/?name=Motorista';
 
-      iniciarHeartbeatPresencaApp();
       await verificarDadosMotoristaAtualizados();
+      if (desconectandoSessaoMotorista) return;
+
+      iniciarHeartbeatPresencaApp();
       iniciarEscutaRealtimeMotorista();
       iniciarEscutaSuporteRealtimeMotorista();
 
@@ -1253,6 +1284,12 @@
       try {
         const { data } = await supabaseClient.from('usuarios').select('*').eq('id', motoristaLogado.id).single();
         if (data) {
+          const tokenLocal = localStorage.getItem('session_token');
+          if (tokenLocal && data.session_token && data.session_token !== tokenLocal) {
+            desconectarPorNovoLoginMotorista();
+            return;
+          }
+
           motoristaLogado = data;
           if (motoristaLogado.status === 'bloqueado' || motoristaLogado.status === 'pendente') {
             document.getElementById('banner-bloqueio').classList.remove('hidden');
@@ -1270,6 +1307,12 @@
         .channel(`public:usuarios_motorista:${motoristaLogado.id}`)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'usuarios', filter: `id=eq.${motoristaLogado.id}` }, payload => {
           if (payload.new) {
+            const tokenLocal = localStorage.getItem('session_token');
+            if (tokenLocal && payload.new.session_token && payload.new.session_token !== tokenLocal) {
+              desconectarPorNovoLoginMotorista();
+              return;
+            }
+
             motoristaLogado = payload.new;
             if (motoristaLogado.status === 'bloqueado' || motoristaLogado.status === 'pendente') {
               document.getElementById('banner-bloqueio').classList.remove('hidden');
@@ -1512,15 +1555,19 @@
     }
 
     async function validarSessaoUnica() {
+      if (!motoristaLogado?.id || desconectandoSessaoMotorista) return;
       const tokenLocal = localStorage.getItem('session_token');
+      if (!tokenLocal) return;
+
       try {
-        const { data } = await supabaseClient.from('usuarios').select('session_token, status').eq('id', motoristaLogado.id).single();
-        if (data) {
-          if (data.session_token && data.session_token !== tokenLocal) {
-            mostrarToastAdmin("Sua conta foi acessada em outro aparelho.", "erro");
-            localStorage.clear();
-            setTimeout(() => window.location.href = 'auth-motorista.html', 2500);
-          }
+        const { data } = await supabaseClient
+          .from('usuarios')
+          .select('session_token, status')
+          .eq('id', motoristaLogado.id)
+          .single();
+
+        if (data && data.session_token && data.session_token !== tokenLocal) {
+          desconectarPorNovoLoginMotorista();
         }
       } catch (e) {}
     }
@@ -1618,6 +1665,7 @@
 
       watchIdGeoloc = navigator.geolocation.watchPosition(
         async (position) => {
+          if (desconectandoSessaoMotorista) return;
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
           ultimaPosicaoGPS = { lat, lng };
@@ -2175,14 +2223,24 @@
     }
 
     async function sairConta() {
+      desconectandoSessaoMotorista = true;
       pararBadgeChatMotorista();
       pararRealtimeChatMotorista();
       limparMidiaMot();
       await pararRastreamentoGPS();
       clearInterval(intervaloPresencaApp);
       clearInterval(intervaloValidacaoSessao);
-      await atualizarPresencaNoApp(false);
-      localStorage.clear();
+      await supabaseClient
+        .from('usuarios')
+        .update({
+          online: false,
+          ultimo_acesso: new Date().toISOString()
+        })
+        .eq('id', motoristaLogado?.id);
+      localStorage.removeItem('motorista_logado');
+      localStorage.removeItem('passageiro_logado');
+      localStorage.removeItem('session_token');
+      localStorage.removeItem('motorista_online');
       window.location.href = 'auth-motorista.html';
     }
 

@@ -1,4 +1,33 @@
 // mapa_corrida.js
+var enviandoAvaliacaoPassageiro = false;
+
+function obterIdsCorridasAvaliadas() {
+  try {
+    const raw = localStorage.getItem('corridas_avaliadas_passageiro');
+    const lista = raw ? JSON.parse(raw) : [];
+    return Array.isArray(lista) ? lista.map(String) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function marcarCorridaComoAvaliadaLocal(id) {
+  if (id === undefined || id === null) return;
+  const idStr = String(id);
+  const lista = obterIdsCorridasAvaliadas();
+  if (!lista.includes(idStr)) {
+    lista.push(idStr);
+    localStorage.setItem('corridas_avaliadas_passageiro', JSON.stringify(lista));
+  }
+}
+
+function corridaJaFoiAvaliada(corrida) {
+  if (!corrida) return true;
+  const jaTemNotaNoBanco = corrida.avaliacao_passageiro !== null && corrida.avaliacao_passageiro !== undefined;
+  const jaAvaliadaLocal = obterIdsCorridasAvaliadas().includes(String(corrida.id));
+  return jaTemNotaNoBanco || jaAvaliadaLocal;
+}
+
 async function verificarCorridaAtivaPassageiro() {
   const dadosUsuario = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
   if (!dadosUsuario.id || !supabaseMapa) return;
@@ -14,6 +43,18 @@ async function verificarCorridaAtivaPassageiro() {
 
     if (data && data.length > 0) {
       const corrida = data[0];
+
+      if (corrida.status === 'concluido') {
+        if (corridaJaFoiAvaliada(corrida)) {
+          return;
+        }
+        corridaAtualId = corrida.id;
+        corridaAtivaDados = corrida;
+        exibirPainelAvaliacaoPassageiro(corrida);
+        iniciarEscutaPassageiroRealtime();
+        return;
+      }
+
       corridaAtualId = corrida.id;
       corridaAtivaDados = corrida;
 
@@ -21,8 +62,6 @@ async function verificarCorridaAtivaPassageiro() {
         document.getElementById('painel-solicitacao').classList.add('hidden');
         document.getElementById('painel-espera-corrida').classList.remove('hidden');
         iniciarTimerEsperaCorrida();
-      } else if (corrida.status === 'concluido') {
-        exibirPainelAvaliacaoPassageiro(corrida);
       } else {
         exibirPainelMotoristaEncontrado(corrida);
       }
@@ -197,7 +236,11 @@ function iniciarEscutaPassageiroRealtime() {
           corridaAtivaDados = corridaAtualizada;
           exibirPainelMotoristaEncontrado(corridaAtualizada);
         } else if (corridaAtualizada.status === 'concluido') {
-          exibirPainelAvaliacaoPassageiro(corridaAtualizada);
+          if (!corridaJaFoiAvaliada(corridaAtualizada)) {
+            exibirPainelAvaliacaoPassageiro(corridaAtualizada);
+          } else {
+            resetarPainelCompletoPassageiro();
+          }
         } else if (corridaAtualizada.status === 'cancelado' || corridaAtualizada.status === 'expirado') {
           tocarSom('cancelar');
           const msgAviso = corridaAtualizada.encerrado_por_admin
@@ -288,6 +331,8 @@ async function cancelarCorridaPassageiroAtiva() {
 }
 
 function exibirPainelAvaliacaoPassageiro(corrida) {
+  if (corridaJaFoiAvaliada(corrida)) return;
+
   document.getElementById('painel-motorista-encontrado').classList.add('hidden');
   document.getElementById('painel-espera-corrida').classList.add('hidden');
   document.getElementById('painel-solicitacao').classList.add('hidden');
@@ -331,7 +376,12 @@ function passageiroSelecionarEstrela(nota) {
 }
 
 async function passageiroConcluirAvaliacao() {
-  if (!corridaAtualId || !supabaseMapa) return;
+  if (!corridaAtualId || !supabaseMapa || enviandoAvaliacaoPassageiro) return;
+
+  if (obterIdsCorridasAvaliadas().includes(String(corridaAtualId))) {
+    resetarPainelCompletoPassageiro();
+    return;
+  }
 
   const motivo = document.getElementById('passageiro-input-motivo-negativo').value.trim();
   if (passageiroNotaSelecionada < 5 && !motivo) {
@@ -339,27 +389,44 @@ async function passageiroConcluirAvaliacao() {
     return;
   }
 
+  enviandoAvaliacaoPassageiro = true;
+  const idParaAvaliar = corridaAtualId;
+
   try {
-    await supabaseMapa.from('corridas').update({
-      avaliacao_passageiro: passageiroNotaSelecionada,
-      motivo_avaliacao_passageiro: motivo || null
-    }).eq('id', corridaAtualId);
+    const { error } = await supabaseMapa
+      .from('corridas')
+      .update({
+        avaliacao_passageiro: passageiroNotaSelecionada,
+        motivo_avaliacao_passageiro: motivo || null
+      })
+      .eq('id', idParaAvaliar)
+      .is('avaliacao_passageiro', null);
+
+    if (error) {
+      enviandoAvaliacaoPassageiro = false;
+      mostrarModal('Erro', 'Erro ao enviar avaliação.', 'cancelar', 3000);
+      return;
+    }
+
+    marcarCorridaComoAvaliadaLocal(idParaAvaliar);
 
     if (passageiroNotaSelecionada < 5) {
       const dadosUsuario = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
       if (dadosUsuario.id) {
         await supabaseMapa.from('mensagens_suporte_app').insert([{
           usuario_id: String(dadosUsuario.id),
-          mensagem: `[Relato de Nota Baixa - Corrida #${corridaAtualId}] Nota: ${passageiroNotaSelecionada} estrelas. Motivo: ${motivo}`,
+          mensagem: `[Relato de Nota Baixa - Corrida #${idParaAvaliar}] Nota: ${passageiroNotaSelecionada} estrelas. Motivo: ${motivo}`,
           remetente: 'passageiro',
           lido: false
         }]);
       }
     }
 
+    enviandoAvaliacaoPassageiro = false;
     mostrarModal('Obrigado', 'Avaliação enviada com sucesso!', 'sucesso', 3000);
     resetarPainelCompletoPassageiro();
   } catch (e) {
+    enviandoAvaliacaoPassageiro = false;
     mostrarModal('Erro', 'Erro ao enviar avaliação.', 'cancelar', 3000);
   }
 }
@@ -368,6 +435,7 @@ function resetarPainelCompletoPassageiro() {
   if (timerIntervalId) clearInterval(timerIntervalId);
   if (canalPassageiroRealtime && supabaseMapa) supabaseMapa.removeChannel(canalPassageiroRealtime);
   if (typeof window.fecharChatCorrida === 'function') window.fecharChatCorrida();
+  if (typeof window.encerrarChamadaP2P === 'function') window.encerrarChamadaP2P(false);
   corridaAtualId = null;
   corridaAtivaDados = null;
   ultimaNotificacaoProximidade = false;
