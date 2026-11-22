@@ -12,34 +12,34 @@
 
   <!-- ABAS SUPERIORES DA PÁGINA DE SUPORTE COM BADGES DE CONTAGEM -->
   <div class="bg-slate-900 border-b border-slate-800 p-3 grid grid-cols-2 gap-2 shrink-0 relative">
-    <span class="absolute top-1 right-3 text-[9px] text-slate-500 font-mono">v8</span>
-    <button onclick="mudarAbaSup('chamados')" id="btn-aba-chamados" class="py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow flex items-center justify-center gap-2">
+    <span class="absolute top-1 right-3 text-[9px] text-slate-500 font-mono">v9</span>
+    <button type="button" onclick="mudarAbaSup('chamados')" id="btn-aba-chamados" class="py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow flex items-center justify-center gap-2">
       <span><i class="fa-solid fa-triangle-exclamation mr-1"></i> Chamados / Avaliações</span>
       <span id="badge-count-chamados" class="hidden bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold shadow">0</span>
     </button>
-    <button onclick="mudarAbaSup('mensagens')" id="btn-aba-mensagens" class="py-2.5 px-3 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center shadow flex items-center justify-center gap-2">
+    <button type="button" onclick="mudarAbaSup('mensagens')" id="btn-aba-mensagens" class="py-2.5 px-3 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center shadow flex items-center justify-center gap-2">
       <span><i class="fa-solid fa-comments mr-1"></i> Central de Mensagens</span>
       <span id="badge-count-mensagens" class="hidden bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold shadow">0</span>
     </button>
   </div>
 
   <main class="flex-1 overflow-y-auto p-4 space-y-3 pb-16">
-    
+
     <!-- SEÇÃO 1: CHAMADOS DE AVALIAÇÃO COM ABAS INTERNAS (MOTORISTAS X PASSAGEIROS) -->
     <div id="secao-chamados" class="space-y-3">
-      <div class="flex justify-between items-center bg-slate-900 p-3 rounded-2xl border border-slate-800">
+      <div class="flex justify-between items-center bg-slate-900 p-3 rounded-2xl border border-slate-800 gap-2">
         <span class="text-slate-400 text-[11px]">Gerenciamento de Alertas de Suporte e Avaliações</span>
-        <button onclick="limparNotificacoesSuporte()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition text-[11px]">
+        <button type="button" onclick="limparNotificacoesSuporte()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition text-[11px] shrink-0">
           <i class="fa-solid fa-broom"></i> Limpar Notificações Visuais
         </button>
       </div>
 
       <!-- SUB-ABAS DE FILTRAGEM (MOTORISTAS X PASSAGEIROS) -->
       <div class="flex gap-2 bg-slate-900 p-2 rounded-2xl border border-slate-800">
-        <button onclick="mudarSubAbaChamados('motoristas')" id="btn-subaba-motoristas" class="flex-1 py-2 rounded-xl font-bold bg-emerald-600 text-white text-center transition shadow text-[11px]">
+        <button type="button" onclick="mudarSubAbaChamados('motoristas')" id="btn-subaba-motoristas" class="flex-1 py-2 rounded-xl font-bold bg-emerald-600 text-white text-center transition shadow text-[11px]">
           <i class="fa-solid fa-car mr-1"></i> Reportes de Motoristas
         </button>
-        <button onclick="mudarSubAbaChamados('passageiros')" id="btn-subaba-passageiros" class="flex-1 py-2 rounded-xl font-bold bg-slate-800 text-slate-400 text-center transition shadow text-[11px]">
+        <button type="button" onclick="mudarSubAbaChamados('passageiros')" id="btn-subaba-passageiros" class="flex-1 py-2 rounded-xl font-bold bg-slate-800 text-slate-400 text-center transition shadow text-[11px]">
           <i class="fa-solid fa-user mr-1"></i> Reportes de Passageiros
         </button>
       </div>
@@ -72,7 +72,7 @@
           <h3 id="chat-central-nome" class="font-extrabold text-white text-sm">Usuário</h3>
           <p id="chat-central-id" class="text-[10px] text-slate-400 font-mono">ID: -</p>
         </div>
-        <button onclick="fecharChatCentral()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+        <button type="button" onclick="fecharChatCentral()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
 
       <div id="chat-central-historico" class="flex-1 bg-slate-950 p-3 rounded-2xl border border-slate-800 overflow-y-auto space-y-2.5 max-h-60 text-xs">
@@ -81,7 +81,7 @@
 
       <div class="space-y-2 pt-2 border-t border-slate-800 shrink-0">
         <textarea id="chat-central-input" rows="2" placeholder="Digite sua resposta para o usuário..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs outline-none focus:border-emerald-500"></textarea>
-        <button onclick="enviarRespostaChatCentral()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow transition">
+        <button type="button" onclick="enviarRespostaChatCentral()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow transition">
           Enviar Resposta
         </button>
       </div>
@@ -98,6 +98,19 @@
 
     function ehMensagemDeUsuario(remetente) {
       return String(remetente || '').toLowerCase() !== 'admin';
+    }
+
+    function atualizarBadgeElemento(elId, quantidade) {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      const qtd = Number(quantidade) || 0;
+      if (qtd > 0) {
+        el.innerText = qtd;
+        el.classList.remove('hidden');
+      } else {
+        el.innerText = '0';
+        el.classList.add('hidden');
+      }
     }
 
     function tocarSomAlertaAdmin() {
@@ -124,12 +137,12 @@
       document.getElementById('secao-chamados').classList.toggle('hidden', aba !== 'chamados');
       document.getElementById('secao-mensagens').classList.toggle('hidden', aba !== 'mensagens');
 
-      document.getElementById('btn-aba-chamados').className = aba === 'chamados' 
-        ? 'py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow flex items-center justify-center gap-2' 
+      document.getElementById('btn-aba-chamados').className = aba === 'chamados'
+        ? 'py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow flex items-center justify-center gap-2'
         : 'py-2.5 px-3 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center shadow flex items-center justify-center gap-2';
 
-      document.getElementById('btn-aba-mensagens').className = aba === 'mensagens' 
-        ? 'py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow flex items-center justify-center gap-2' 
+      document.getElementById('btn-aba-mensagens').className = aba === 'mensagens'
+        ? 'py-2.5 px-3 rounded-xl font-bold bg-emerald-600 text-white transition text-center shadow flex items-center justify-center gap-2'
         : 'py-2.5 px-3 rounded-xl font-bold bg-slate-800 text-slate-400 transition text-center shadow flex items-center justify-center gap-2';
 
       if (aba === 'mensagens') {
@@ -139,12 +152,12 @@
 
     function mudarSubAbaChamados(subaba) {
       subAbaChamadosAtual = subaba;
-      document.getElementById('btn-subaba-motoristas').className = subaba === 'motoristas' 
-        ? 'flex-1 py-2 rounded-xl font-bold bg-emerald-600 text-white text-center transition shadow text-[11px]' 
+      document.getElementById('btn-subaba-motoristas').className = subaba === 'motoristas'
+        ? 'flex-1 py-2 rounded-xl font-bold bg-emerald-600 text-white text-center transition shadow text-[11px]'
         : 'flex-1 py-2 rounded-xl font-bold bg-slate-800 text-slate-400 text-center transition shadow text-[11px]';
 
-      document.getElementById('btn-subaba-passageiros').className = subaba === 'passageiros' 
-        ? 'flex-1 py-2 rounded-xl font-bold bg-emerald-600 text-white text-center transition shadow text-[11px]' 
+      document.getElementById('btn-subaba-passageiros').className = subaba === 'passageiros'
+        ? 'flex-1 py-2 rounded-xl font-bold bg-emerald-600 text-white text-center transition shadow text-[11px]'
         : 'flex-1 py-2 rounded-xl font-bold bg-slate-800 text-slate-400 text-center transition shadow text-[11px]';
 
       renderizarChamadosSuporte();
@@ -163,19 +176,25 @@
       if (canalRealtimeAdminSuporte) supabaseClient.removeChannel(canalRealtimeAdminSuporte);
 
       canalRealtimeAdminSuporte = supabaseClient
-        .channel('admin_suporte_instantaneo_v8')
+        .channel('admin_suporte_instantaneo_v9')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens_suporte_app' }, payload => {
           if (payload.new && ehMensagemDeUsuario(payload.new.remetente)) {
             tocarSomAlertaAdmin();
           }
           carregarContadorMensagensNovas();
-          
+
           if (abaSupAtual === 'mensagens') {
             carregarMensagensSuporteCentral();
           }
 
           if (usuarioChatAtivoId && payload.new && String(payload.new.usuario_id) === String(usuarioChatAtivoId)) {
             carregarHistoricoChatCentral();
+          }
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'mensagens_suporte_app' }, () => {
+          carregarContadorMensagensNovas();
+          if (abaSupAtual === 'mensagens') {
+            carregarMensagensSuporteCentral();
           }
         })
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens_suporte' }, payload => {
@@ -186,8 +205,8 @@
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'corridas' }, payload => {
           if (payload.new && (
-              (payload.new.avaliacao_motorista && payload.new.avaliacao_motorista < 5) || 
-              (payload.new.avaliacao_passageiro && payload.new.avaliacao_passageiro < 5)
+            (payload.new.avaliacao_motorista && payload.new.avaliacao_motorista < 5) ||
+            (payload.new.avaliacao_passageiro && payload.new.avaliacao_passageiro < 5)
           )) {
             tocarSomAlertaAdmin();
             carregarChamadosSuporte();
@@ -267,7 +286,6 @@
         });
       }
 
-      // Ordenação rigorosa por ordem de chegada (mais recente primeiro)
       listaUnificada.sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em));
 
       suporteGlobal = listaUnificada;
@@ -276,25 +294,28 @@
 
     function renderizarChamadosSuporte() {
       const idsLidos = JSON.parse(localStorage.getItem('admin_suporte_lidos') || '[]');
-      
-      let filtrados = suporteGlobal.filter(s => {
+      const dataLimpeza = localStorage.getItem('admin_suporte_limpo_em');
+
+      const filtrados = suporteGlobal.filter(s => {
         if (subAbaChamadosAtual === 'motoristas') {
           return s.tipo_reporte.startsWith('motorista');
-        } else {
-          return s.tipo_reporte.startsWith('passageiro');
         }
+        return s.tipo_reporte.startsWith('passageiro');
       });
 
-      let visiveis = filtrados.filter(s => !idsLidos.includes(String(s.id_unico)));
+      const naoLidos = suporteGlobal.filter(s => {
+        if (idsLidos.includes(String(s.id_unico))) return false;
+        if (dataLimpeza && new Date(s.criado_em) <= new Date(dataLimpeza)) return false;
+        return true;
+      });
 
-      const totalNaoLidosGeral = suporteGlobal.filter(s => !idsLidos.includes(String(s.id_unico))).length;
-      const badgeChamados = document.getElementById('badge-count-chamados');
-      if (totalNaoLidosGeral > 0) {
-        badgeChamados.innerText = totalNaoLidosGeral;
-        badgeChamados.classList.remove('hidden');
-      } else {
-        badgeChamados.classList.add('hidden');
-      }
+      const visiveis = filtrados.filter(s => {
+        if (idsLidos.includes(String(s.id_unico))) return false;
+        if (dataLimpeza && new Date(s.criado_em) <= new Date(dataLimpeza)) return false;
+        return true;
+      });
+
+      atualizarBadgeElemento('badge-count-chamados', naoLidos.length);
 
       const containerChamados = document.getElementById('lista-admin-suporte');
       if (visiveis.length === 0) {
@@ -303,7 +324,7 @@
       }
 
       containerChamados.innerHTML = visiveis.map(s => {
-        const descRelacao = s.tipo_reporte.includes('avalia_') 
+        const descRelacao = s.tipo_reporte.includes('avalia_')
           ? `Reporte feito por <u>${s.autor_nome}</u> para <u>${s.alvo_nome}</u>`
           : `Mensagem de suporte enviada por <u>${s.autor_nome}</u>`;
 
@@ -323,7 +344,7 @@
                 <span class="text-[9px] text-slate-400">Ref #${s.id_referencia}</span>
               </div>
             </div>
-            
+
             <div class="text-[11px] space-y-1 text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
               <p class="text-emerald-400 font-bold mb-1">
                 <i class="fa-solid fa-arrow-right-arrow-left"></i> ${descRelacao}
@@ -334,11 +355,11 @@
             </div>
 
             <div class="flex flex-col gap-2 pt-1">
-              <button onclick="abrirChatCentralComUsuario('${s.autor_id}', '${s.autor_nome}')" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5">
+              <button type="button" onclick="abrirChatCentralComUsuario('${s.autor_id}', '${s.autor_nome}')" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5">
                 <i class="fa-solid fa-comments"></i> Abrir Chat com (${s.autor_nome})
               </button>
               <div class="flex gap-2">
-                <button onclick="abrirModalEdicao('${s.autor_id}')" class="flex-1 bg-sky-600/25 hover:bg-sky-600/35 text-sky-300 border border-sky-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-user"></i> Ver Usuário</button>
+                <button type="button" onclick="abrirModalEdicao('${s.autor_id}')" class="flex-1 bg-sky-600/25 hover:bg-sky-600/35 text-sky-300 border border-sky-500/30 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-user"></i> Ver Usuário</button>
               </div>
             </div>
           </div>
@@ -348,21 +369,21 @@
 
     async function carregarContadorMensagensNovas() {
       try {
-        const { data } = await supabaseClient
+        const { data, error } = await supabaseClient
           .from('mensagens_suporte_app')
-          .select('id, lido, remetente')
+          .select('id, usuario_id, lido, remetente')
           .eq('lido', false);
 
-        const total = (data || []).filter(m => ehMensagemDeUsuario(m.remetente)).length;
-        
-        const badgeMensagens = document.getElementById('badge-count-mensagens');
-        if (total > 0) {
-          badgeMensagens.innerText = total;
-          badgeMensagens.classList.remove('hidden');
-        } else {
-          badgeMensagens.classList.add('hidden');
+        if (error) {
+          atualizarBadgeElemento('badge-count-mensagens', 0);
+          return;
         }
-      } catch (e) {}
+
+        const total = (data || []).filter(m => m.usuario_id && ehMensagemDeUsuario(m.remetente)).length;
+        atualizarBadgeElemento('badge-count-mensagens', total);
+      } catch (e) {
+        atualizarBadgeElemento('badge-count-mensagens', 0);
+      }
     }
 
     async function carregarMensagensSuporteCentral() {
@@ -370,7 +391,6 @@
       container.innerHTML = '<p class="text-slate-400 text-center py-4 animate-pulse">Carregando conversas...</p>';
 
       try {
-        // Exibe estritamente conversas reais da tabela mensagens_suporte_app (motoristas e passageiros)
         const { data: msgs, error } = await supabaseClient
           .from('mensagens_suporte_app')
           .select('*')
@@ -378,14 +398,17 @@
 
         if (error || !msgs || msgs.length === 0) {
           container.innerHTML = '<p class="text-slate-500 text-center py-4">Nenhuma mensagem de suporte registrada.</p>';
+          atualizarBadgeElemento('badge-count-mensagens', 0);
           return;
         }
 
         const agrupado = {};
         for (const m of msgs) {
+          if (!m.usuario_id) continue;
+          const uid = String(m.usuario_id);
           const ehDoUsuario = ehMensagemDeUsuario(m.remetente);
-          if (!agrupado[m.usuario_id]) {
-            agrupado[m.usuario_id] = {
+          if (!agrupado[uid]) {
+            agrupado[uid] = {
               ult_msg: m.mensagem,
               data: m.criado_em,
               remetente: m.remetente,
@@ -393,15 +416,21 @@
               qtd_nao_lidas: (!m.lido && ehDoUsuario) ? 1 : 0
             };
           } else if (!m.lido && ehDoUsuario) {
-            agrupado[m.usuario_id].nao_lido = true;
-            agrupado[m.usuario_id].qtd_nao_lidas += 1;
+            agrupado[uid].nao_lido = true;
+            agrupado[uid].qtd_nao_lidas += 1;
           }
         }
 
         const idsUsuarios = Object.keys(agrupado);
+        if (idsUsuarios.length === 0) {
+          container.innerHTML = '<p class="text-slate-500 text-center py-4">Nenhuma mensagem de suporte registrada.</p>';
+          atualizarBadgeElemento('badge-count-mensagens', 0);
+          return;
+        }
+
         const { data: usuarios } = await supabaseClient.from('usuarios').select('id, nome, telefone, foto_url, tipo').in('id', idsUsuarios);
         const mapaUsuarios = {};
-        (usuarios || []).forEach(u => mapaUsuarios[u.id] = u);
+        (usuarios || []).forEach(u => mapaUsuarios[String(u.id)] = u);
 
         let html = '';
         for (const uid of idsUsuarios) {
@@ -409,7 +438,7 @@
           const userObj = mapaUsuarios[uid] || { nome: 'Usuário Desconhecido', telefone: '-', tipo: '' };
           const perfilLabel = (userObj.tipo === 'motorista' || info.remetente === 'motorista') ? 'Motorista' : 'Passageiro';
           const dataHoraStr = new Date(info.data || Date.now()).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-          
+
           html += `
             <div onclick="abrirChatCentralComUsuario('${uid}', \`${userObj.nome}\`)" class="bg-slate-900 hover:bg-slate-800/80 p-3.5 rounded-2xl border ${info.nao_lido ? 'border-emerald-500/60 bg-emerald-950/20' : 'border-slate-800'} flex items-center gap-3 cursor-pointer transition shadow">
               <img src="${userObj.foto_url || 'https://ui-avatars.com/api/?name=Usuario'}" class="w-11 h-11 rounded-full object-cover border border-slate-700">
@@ -456,9 +485,9 @@
         .eq('usuario_id', usuarioId)
         .neq('remetente', 'admin');
 
-      carregarContadorMensagensNovas();
+      await carregarContadorMensagensNovas();
       if (abaSupAtual === 'mensagens') {
-        carregarMensagensSuporteCentral();
+        await carregarMensagensSuporteCentral();
       }
     }
 
@@ -467,7 +496,6 @@
       if (!container || !usuarioChatAtivoId) return;
 
       try {
-        // Exibe estritamente o histórico do chat de suporte app. Avaliações de corridas não aparecem aqui.
         const { data: msgs } = await supabaseClient
           .from('mensagens_suporte_app')
           .select('*')
@@ -531,6 +559,7 @@
     function limparNotificacoesSuporte() {
       const idsAtuais = suporteGlobal.map(s => String(s.id_unico));
       localStorage.setItem('admin_suporte_lidos', JSON.stringify(idsAtuais));
+      localStorage.setItem('admin_suporte_limpo_em', new Date().toISOString());
       renderizarChamadosSuporte();
     }
 
