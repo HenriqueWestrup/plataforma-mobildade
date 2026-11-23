@@ -47,7 +47,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.10</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.11</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -144,7 +144,7 @@
     </div>
   </div>
 
-  <!-- MODAL CENTRALIZADO DE CHAMADA DE VOZ P2P -->
+  <!-- MODAL CENTRALIZADO DE CHAMADA DE VOZ P2P (SEM FOTO NEM AVALIAÇÃO NA TELA DE CHAMADA) -->
   <div id="modal-chamada-voz" class="fixed inset-0 bg-black/85 backdrop-blur-md z-[70] hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-sky-500/40 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl text-center m-auto">
       <div class="w-14 h-14 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-400 flex items-center justify-center mx-auto text-2xl">
@@ -273,6 +273,7 @@
     let desconectandoSessao = false;
     let canalRealtimePassageiro = null;
     let canalRealtimeSuporte = null;
+    let canalRealtimeCorridasPassageiro = null;
     let canalChatCorridaAtivo = null;
     let corridaChatAtualId = null;
     let outroParticipanteChatId = null;
@@ -290,6 +291,22 @@
     let chamadaEmAndamento = false;
     let timeoutChamadaSemResposta = null;
 
+    const STATUS_FINALIZADOS_PASSAGEIRO = ['concluido', 'concluida', 'finalizada'];
+    const STATUS_CANCELADOS_PASSAGEIRO = ['cancelado', 'cancelada', 'expirado', 'expirada'];
+    const STATUS_ATIVOS_PASSAGEIRO = [
+      'pendente',
+      'procurando',
+      'aceita',
+      'aceito',
+      'a_caminho',
+      'no_local',
+      'em_andamento',
+      'em_curso',
+      'em_viagem',
+      'iniciada',
+      'viagem_iniciada'
+    ];
+
     const CONFIG_RTC_P2P = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -297,8 +314,256 @@
       ]
     };
 
+    function obterPrimeiroNomeApenas(nomeCompleto, fallback = 'Usuário') {
+      const limpo = String(nomeCompleto || '').trim();
+      if (!limpo) return fallback;
+      const partes = limpo.split(/\s+/);
+      return partes[0] || fallback;
+    }
+
+    function normalizarStatusIndex(status) {
+      return String(status || '').trim().toLowerCase().replace(/\s+/g, '_');
+    }
+
     function avatarPadraoUrl(nome = 'Passageiro') {
-      return `https://ui-avatars.com/api/?name=${encodeURIComponent(nome || 'Passageiro')}`;
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(obterPrimeiroNomeApenas(nome, 'Passageiro'))}`;
+    }
+
+    function atualizarPainelMotoristaComDados(corrida, motoristaInfo) {
+      if (!motoristaInfo) return;
+      const nomeEl = document.getElementById('passageiro-motorista-nome');
+      const fotoEl = document.getElementById('passageiro-motorista-foto');
+      const notaEl = document.getElementById('passageiro-motorista-nota');
+
+      const primeiroNomeMot = obterPrimeiroNomeApenas(motoristaInfo.nome, 'Motorista');
+      const rawNota = Number(motoristaInfo.avaliacao ?? motoristaInfo.nota ?? 5);
+      const notaFormatada = Number.isFinite(rawNota) ? rawNota.toFixed(1) : '5.0';
+      const fotoUrl = String(motoristaInfo.foto_url || '').trim() ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(primeiroNomeMot)}&background=059669&color=ffffff`;
+
+      if (nomeEl) nomeEl.innerText = primeiroNomeMot;
+      if (fotoEl) {
+        fotoEl.onerror = function () {
+          this.onerror = null;
+          this.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(primeiroNomeMot)}&background=059669&color=ffffff`;
+        };
+        fotoEl.src = fotoUrl;
+      }
+      if (notaEl) notaEl.innerText = notaFormatada;
+    }
+
+    async function enriquecerCorridaComMotorista(corrida) {
+      if (!corrida) return corrida;
+      const motoristaId = corrida.motorista_id || corrida.motorista?.id || null;
+      let dadosMot = corrida.motorista && typeof corrida.motorista === 'object'
+        ? { ...corrida.motorista }
+        : {};
+
+      if (motoristaId) {
+        try {
+          const { data: motRow } = await supabaseClient
+            .from('usuarios')
+            .select('id, nome, foto_url, avaliacao, nota')
+            .eq('id', motoristaId)
+            .maybeSingle();
+          if (motRow) {
+            dadosMot = {
+              ...dadosMot,
+              id: motRow.id || motoristaId,
+              nome: motRow.nome || dadosMot.nome || 'Motorista',
+              foto_url: motRow.foto_url || dadosMot.foto_url || '',
+              avaliacao: motRow.avaliacao ?? motRow.nota ?? dadosMot.avaliacao ?? dadosMot.nota ?? 5.0,
+              nota: motRow.nota ?? motRow.avaliacao ?? dadosMot.nota ?? dadosMot.avaliacao ?? 5.0
+            };
+          }
+        } catch (e) {}
+      }
+
+      const primeiroNomeMot = obterPrimeiroNomeApenas(dadosMot.nome, 'Motorista');
+      const rawNota = Number(dadosMot.avaliacao ?? dadosMot.nota ?? 5);
+      const notaFormatada = Number.isFinite(rawNota) ? rawNota.toFixed(1) : '5.0';
+      const fotoFinal = String(dadosMot.foto_url || '').trim() ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(primeiroNomeMot)}&background=059669&color=ffffff`;
+
+      return {
+        ...corrida,
+        motorista: {
+          ...dadosMot,
+          id: dadosMot.id || motoristaId || null,
+          nome: primeiroNomeMot,
+          foto_url: fotoFinal,
+          avaliacao: notaFormatada,
+          nota: notaFormatada
+        }
+      };
+    }
+
+    function corridaJaAvaliadaNoIndex(corrida) {
+      if (!corrida) return true;
+      if (corrida.avaliacao_passageiro !== null && corrida.avaliacao_passageiro !== undefined) return true;
+      try {
+        const raw = localStorage.getItem('corridas_avaliadas_passageiro');
+        const lista = raw ? JSON.parse(raw) : [];
+        return Array.isArray(lista) && lista.map(String).includes(String(corrida.id));
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function exibirAvaliacaoPassageiroInstantanea(corrida) {
+      if (!corrida || corridaJaAvaliadaNoIndex(corrida)) return;
+
+      window.corridaAtualId = corrida.id;
+      window.corridaAtivaDados = corrida;
+      try {
+        localStorage.removeItem('mobiurb_corrida_ativa_passageiro');
+        window.corridaAtivaPassageiro = null;
+      } catch (e) {}
+
+      if (typeof exibirPainelAvaliacaoPassageiro === 'function') {
+        await exibirPainelAvaliacaoPassageiro(corrida);
+        return;
+      }
+
+      document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
+      document.getElementById('painel-espera-corrida')?.classList.add('hidden');
+      document.getElementById('painel-solicitacao')?.classList.add('hidden');
+
+      const valorNum = Number(corrida.valor ?? corrida.valor_total ?? 15.0);
+      const valorExibido = Number.isFinite(valorNum) ? valorNum : 15.0;
+      const valorEl = document.getElementById('passageiro-valor-final');
+      if (valorEl) {
+        valorEl.innerText = `R$ ${valorExibido.toFixed(2).replace('.', ',')}`;
+      }
+      if (typeof passageiroSelecionarEstrela === 'function') {
+        passageiroSelecionarEstrela(5);
+      }
+      const motivoEl = document.getElementById('passageiro-input-motivo-negativo');
+      if (motivoEl) motivoEl.value = '';
+
+      const painelAvaliacao = document.getElementById('painel-avaliacao-passageiro');
+      if (painelAvaliacao) {
+        painelAvaliacao.classList.remove('hidden');
+        painelAvaliacao.style.display = '';
+      }
+    }
+
+    async function processarAtualizacaoCorridaRealtime(corridaRaw) {
+      if (!corridaRaw || !corridaRaw.id) return;
+      const corridaCompleta = await enriquecerCorridaComMotorista(corridaRaw);
+      const statusNorm = normalizarStatusIndex(corridaCompleta.status);
+
+      if (STATUS_FINALIZADOS_PASSAGEIRO.includes(statusNorm)) {
+        if (!document.getElementById('painel-avaliacao-passageiro')) {
+          await carregarModuloMapa();
+        }
+        if (!corridaJaAvaliadaNoIndex(corridaCompleta)) {
+          await exibirAvaliacaoPassageiroInstantanea(corridaCompleta);
+        } else if (typeof resetarPainelCompletoPassageiro === 'function') {
+          resetarPainelCompletoPassageiro(true);
+        }
+        return;
+      }
+
+      if (STATUS_CANCELADOS_PASSAGEIRO.includes(statusNorm)) {
+        try {
+          localStorage.removeItem('mobiurb_corrida_ativa_passageiro');
+          window.corridaAtivaPassageiro = null;
+          window.corridaAtualId = null;
+          window.corridaAtivaDados = null;
+        } catch (e) {}
+        if (typeof resetarPainelCompletoPassageiro === 'function') {
+          resetarPainelCompletoPassageiro(true);
+        }
+        return;
+      }
+
+      if (STATUS_ATIVOS_PASSAGEIRO.includes(statusNorm)) {
+        window.corridaAtualId = corridaCompleta.id;
+        window.corridaAtivaDados = corridaCompleta;
+        window.corridaAtivaPassageiro = corridaCompleta;
+        try {
+          localStorage.setItem('mobiurb_corrida_ativa_passageiro', JSON.stringify({
+            passageiro_id: corridaCompleta.passageiro_id || obterMeuIdSessao() || null,
+            corrida: corridaCompleta
+          }));
+        } catch (e) {}
+
+        registrarCanalChamadaCorrida(corridaCompleta.id);
+        if (corridaCompleta.motorista_id) {
+          outroParticipanteChatId = corridaCompleta.motorista_id;
+          outroParticipanteChatNome = obterPrimeiroNomeApenas(corridaCompleta.motorista?.nome, 'Motorista');
+        }
+
+        if (document.getElementById('painel-motorista-encontrado')) {
+          if (typeof exibirPainelMotoristaEncontrado === 'function') {
+            await exibirPainelMotoristaEncontrado(corridaCompleta);
+          } else {
+            atualizarPainelMotoristaComDados(corridaCompleta, corridaCompleta.motorista);
+          }
+        }
+      }
+    }
+
+    function iniciarEscutaCorridasPassageiroRealtime() {
+      const meuId = obterMeuIdSessao();
+      if (!meuId) return;
+
+      if (canalRealtimeCorridasPassageiro) {
+        supabaseClient.removeChannel(canalRealtimeCorridasPassageiro);
+        canalRealtimeCorridasPassageiro = null;
+      }
+
+      canalRealtimeCorridasPassageiro = supabaseClient
+        .channel(`corridas_passageiro_realtime_${meuId}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'corridas',
+          filter: `passageiro_id=eq.${meuId}`
+        }, async (payload) => {
+          const registro = payload.new || payload.record || null;
+          if (registro && registro.id) {
+            await processarAtualizacaoCorridaRealtime(registro);
+          }
+        })
+        .subscribe();
+    }
+
+    async function sincronizarEstadoCorridaAoEntrar() {
+      const meuId = obterMeuIdSessao();
+      if (!meuId) return;
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('corridas')
+          .select('*')
+          .eq('passageiro_id', meuId)
+          .in('status', [
+            ...STATUS_ATIVOS_PASSAGEIRO,
+            ...STATUS_FINALIZADOS_PASSAGEIRO
+          ])
+          .order('id', { ascending: false })
+          .limit(1);
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          await processarAtualizacaoCorridaRealtime(data[0]);
+        }
+      } catch (e) {}
+    }
+
+    function vincularCorridaComunicacaoPassageiro(corrida) {
+      if (!corrida || !corrida.id) return;
+      window.corridaAtualId = corrida.id;
+      window.corridaAtivaDados = corrida;
+      registrarCanalChamadaCorrida(corrida.id);
+      if (corrida.motorista_id) {
+        outroParticipanteChatId = corrida.motorista_id;
+      }
+      if (corrida.motorista?.nome) {
+        outroParticipanteChatNome = obterPrimeiroNomeApenas(corrida.motorista.nome, 'Motorista');
+      }
+      atualizarPainelMotoristaComDados(corrida, corrida.motorista);
     }
 
     function forcarDesconexaoPorNovoLogin() {
@@ -309,6 +574,7 @@
       if (intervaloValidacaoSessaoPassageiro) clearInterval(intervaloValidacaoSessaoPassageiro);
       if (canalRealtimePassageiro) supabaseClient.removeChannel(canalRealtimePassageiro);
       if (canalRealtimeSuporte) supabaseClient.removeChannel(canalRealtimeSuporte);
+      if (canalRealtimeCorridasPassageiro) supabaseClient.removeChannel(canalRealtimeCorridasPassageiro);
       if (typeof encerrarChamadaP2P === 'function') encerrarChamadaP2P(false);
       if (typeof pararRealtimeChatCorrida === 'function') pararRealtimeChatCorrida();
 
@@ -354,10 +620,10 @@
     }
 
     function obterMeuNomeSessao() {
-      if (usuarioLogado?.nome) return usuarioLogado.nome;
+      if (usuarioLogado?.nome) return obterPrimeiroNomeApenas(usuarioLogado.nome, 'Passageiro');
       try {
         const pass = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
-        if (pass?.nome) return pass.nome;
+        if (pass?.nome) return obterPrimeiroNomeApenas(pass.nome, 'Passageiro');
       } catch (e) {}
       return 'Passageiro';
     }
@@ -546,7 +812,8 @@
 
           if (payload.evento === 'chamando') {
             chamadaRecebidaPendente = payload;
-            document.getElementById('chamada-nome-contato').innerText = payload.remetenteNome || 'Contato';
+            const nomeChamada = obterPrimeiroNomeApenas(payload.remetenteNome, 'Contato');
+            document.getElementById('chamada-nome-contato').innerText = nomeChamada;
             document.getElementById('chamada-acoes-recebida').classList.remove('hidden');
             document.getElementById('chamada-acoes-ativa').classList.add('hidden');
             ocultarAvisoRedeChamada();
@@ -612,7 +879,10 @@
         return;
       }
 
-      const nomeAlvo = outroNome || window.corridaAtivaDados?.motorista?.nome || outroParticipanteChatNome || 'Motorista';
+      const nomeAlvo = obterPrimeiroNomeApenas(
+        outroNome || window.corridaAtivaDados?.motorista?.nome || outroParticipanteChatNome,
+        'Motorista'
+      );
       const idOutroAlvo = outroUsuarioId || window.corridaAtivaDados?.motorista_id || outroParticipanteChatId || null;
 
       registrarCanalChamadaCorrida(idCorridaAlvo);
@@ -704,47 +974,96 @@
       }
     }
 
-    function iniciarRealtimeChatCorrida(corridaId) {
+    function iniciarRealtimeChatCorrida(corridaId, outroId = null) {
       pararRealtimeChatCorrida();
-      if (!corridaId) return;
+      if (!corridaId && !outroId) return;
 
       canalChatCorridaAtivo = supabaseClient
-        .channel(`mensagens_chat_corrida_${corridaId}`)
+        .channel(`mensagens_chat_hist_${corridaId || 'contato'}_${outroId || 'geral'}`)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
-          table: 'mensagens_chat',
-          filter: `corrida_id=eq.${corridaId}`
-        }, () => {
-          carregarMensagensCorrida(corridaId, outroParticipanteChatId);
+          table: 'mensagens_chat'
+        }, (payload) => {
+          const novaMsg = payload?.new;
+          if (!novaMsg) return;
+          const meuId = obterMeuIdSessao();
+          const mesmaCorrida = corridaId && String(novaMsg.corrida_id) === String(corridaId);
+          const entreMesmoPar = outroId && meuId && (
+            (String(novaMsg.remetente_id) === meuId && String(novaMsg.destinatario_id || outroId) === String(outroId)) ||
+            (String(novaMsg.remetente_id) === String(outroId) && (!novaMsg.destinatario_id || String(novaMsg.destinatario_id) === meuId))
+          );
+          if (mesmaCorrida || entreMesmoPar) {
+            carregarMensagensCorrida(corridaId, outroId);
+          }
         })
         .subscribe();
     }
 
-    async function buscarHistoricoChat(corridaId, outroId) {
-      let lista = [];
-      if (corridaId) {
-        const { data: daCorrida } = await supabaseClient
-          .from('mensagens_chat')
-          .select('*')
-          .eq('corrida_id', corridaId)
-          .order('criado_em', { ascending: true });
-        if (Array.isArray(daCorrida)) lista = lista.concat(daCorrida);
+    function ehConteudoSuporteOuAvaliacao(mensagemObj) {
+      const texto = String(mensagemObj?.mensagem || '').trim().toLowerCase();
+      const remetente = String(mensagemObj?.remetente || '').trim().toLowerCase();
+      if (remetente === 'admin' || remetente === 'suporte') return true;
+      if (texto.startsWith('[relato de nota baixa')) return true;
+      if (texto.startsWith('[assunto:') || texto.startsWith('[suporte')) return true;
+      return false;
+    }
+
+    async function buscarHistoricoChatComMotorista(corridaId, outroId) {
+      const meuId = obterMeuIdSessao();
+      let idsCorridasComMotorista = [];
+
+      if (meuId && outroId) {
+        try {
+          const { data: corridasPar } = await supabaseClient
+            .from('corridas')
+            .select('id')
+            .eq('passageiro_id', meuId)
+            .eq('motorista_id', outroId);
+          if (Array.isArray(corridasPar)) {
+            idsCorridasComMotorista = corridasPar.map(c => c.id).filter(Boolean);
+          }
+        } catch (e) {}
       }
 
-      const meuId = obterMeuIdSessao();
-      if (outroId && meuId) {
-        const { data: anteriores } = await supabaseClient
+      if (corridaId && !idsCorridasComMotorista.includes(corridaId)) {
+        idsCorridasComMotorista.push(corridaId);
+      }
+
+      let lista = [];
+
+      if (idsCorridasComMotorista.length > 0) {
+        const { data: porCorridas } = await supabaseClient
+          .from('mensagens_chat')
+          .select('*')
+          .in('corrida_id', idsCorridasComMotorista)
+          .order('criado_em', { ascending: true });
+        if (Array.isArray(porCorridas)) lista = lista.concat(porCorridas);
+      }
+
+      if (meuId && outroId) {
+        const { data: porRemetentes } = await supabaseClient
           .from('mensagens_chat')
           .select('*')
           .in('remetente_id', [meuId, String(outroId)])
           .order('criado_em', { ascending: true })
-          .limit(100);
-        if (Array.isArray(anteriores)) lista = lista.concat(anteriores);
+          .limit(150);
+        if (Array.isArray(porRemetentes)) {
+          const filtradasPar = porRemetentes.filter(m => {
+            const rem = String(m.remetente_id);
+            const dest = m.destinatario_id ? String(m.destinatario_id) : null;
+            const pertenceAoPar =
+              (rem === meuId && (!dest || dest === String(outroId))) ||
+              (rem === String(outroId) && (!dest || dest === meuId));
+            return pertenceAoPar || idsCorridasComMotorista.includes(m.corrida_id);
+          });
+          lista = lista.concat(filtradasPar);
+        }
       }
 
       const mapaUnico = new Map();
       lista.forEach((item, idx) => {
+        if (ehConteudoSuporteOuAvaliacao(item)) return;
         const chave = item.id !== undefined && item.id !== null
           ? String(item.id)
           : `${item.corrida_id || ''}_${item.remetente_id || ''}_${item.criado_em || idx}_${item.mensagem || ''}`;
@@ -761,7 +1080,7 @@
       if (!container || (!corridaId && !outroId)) return;
 
       try {
-        const msgs = await buscarHistoricoChat(corridaId, outroId);
+        const msgs = await buscarHistoricoChatComMotorista(corridaId, outroId);
 
         if (!msgs || msgs.length === 0) {
           container.innerHTML = '<p class="text-slate-500 text-center py-4">Nenhuma mensagem na conversa ainda.</p>';
@@ -769,18 +1088,23 @@
         }
 
         const meuId = obterMeuIdSessao();
+        const meuPrimeiroNome = obterMeuNomeSessao();
+        const outroPrimeiroNome = obterPrimeiroNomeApenas(outroParticipanteChatNome, 'Motorista');
+
         container.innerHTML = msgs.map(m => {
           const ehMinha = meuId && String(m.remetente_id) === meuId;
-          const nomeExibido = m.remetente_nome || (ehMinha ? obterMeuNomeSessao() : outroParticipanteChatNome);
+          const nomeExibido = ehMinha
+            ? obterPrimeiroNomeApenas(m.remetente_nome || meuPrimeiroNome, 'Você')
+            : obterPrimeiroNomeApenas(m.remetente_nome || outroPrimeiroNome, 'Motorista');
           const horaStr = new Date(m.criado_em || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-          const ehAtual = corridaId && String(m.corrida_id) === String(corridaId);
+          const ehCorridaAtual = corridaId && String(m.corrida_id) === String(corridaId);
 
           return `
             <div class="flex flex-col ${ehMinha ? 'items-end' : 'items-start'}">
               <div class="max-w-[85%] rounded-2xl px-3 py-2 border ${ehMinha ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-50' : 'bg-slate-900 border-slate-800 text-slate-200'} space-y-0.5">
                 <div class="flex items-center justify-between gap-3 text-[9px] text-slate-400">
                   <span class="font-bold ${ehMinha ? 'text-emerald-400' : 'text-amber-400'}">${escaparHtmlChat(nomeExibido)}</span>
-                  <span>${ehAtual ? '' : 'Histórico • '}${horaStr}</span>
+                  <span>${ehCorridaAtual ? '' : 'Viagem anterior • '}${horaStr}</span>
                 </div>
                 <p class="whitespace-pre-line break-words">${escaparHtmlChat(m.mensagem)}</p>
               </div>
@@ -798,13 +1122,16 @@
       const corridaRef = window.corridaAtivaDados || null;
       const idCorridaAlvo = corridaId || corridaRef?.id || window.corridaAtualId || null;
       const idOutroAlvo = outroId || corridaRef?.motorista_id || outroParticipanteChatId || null;
-      const nomeAlvo = nomeOutroParticipante || corridaRef?.motorista?.nome || outroParticipanteChatNome || 'Motorista';
+      const primeiroNomeAlvo = obterPrimeiroNomeApenas(
+        nomeOutroParticipante || corridaRef?.motorista?.nome || outroParticipanteChatNome,
+        'Motorista'
+      );
 
       if (!idCorridaAlvo && !idOutroAlvo) return;
 
       corridaChatAtualId = idCorridaAlvo;
       outroParticipanteChatId = idOutroAlvo;
-      outroParticipanteChatNome = nomeAlvo;
+      outroParticipanteChatNome = primeiroNomeAlvo;
 
       if (idCorridaAlvo) {
         registrarCanalChamadaCorrida(idCorridaAlvo);
@@ -813,14 +1140,14 @@
         window.zerarBadgeChatPassageiro();
       }
 
-      document.getElementById('chat-corrida-titulo').innerText = `Chat do Aplicativo • ${outroParticipanteChatNome}`;
+      document.getElementById('chat-corrida-titulo').innerText = `Chat do Aplicativo • ${primeiroNomeAlvo}`;
       document.getElementById('chat-corrida-subtitulo').innerText = idCorridaAlvo
-        ? `Corrida #${String(idCorridaAlvo).slice(0, 8)}`
+        ? `Corrida #${String(idCorridaAlvo).slice(0, 8)} • Histórico mantido`
         : 'Histórico de conversas';
       document.getElementById('modal-chat-corrida').classList.remove('hidden');
 
       await carregarMensagensCorrida(idCorridaAlvo, idOutroAlvo);
-      if (idCorridaAlvo) iniciarRealtimeChatCorrida(idCorridaAlvo);
+      iniciarRealtimeChatCorrida(idCorridaAlvo, idOutroAlvo);
       document.getElementById('chat-corrida-input')?.focus();
     }
 
@@ -835,17 +1162,21 @@
       const inputEl = document.getElementById('chat-corrida-input');
       const texto = (inputEl?.value || '').trim();
       const meuId = obterMeuIdSessao();
-      if (!texto || !corridaChatAtualId || !meuId) return;
+      const idCorridaEnvio = corridaChatAtualId || window.corridaAtualId || window.corridaAtivaDados?.id || null;
+      if (!texto || !meuId || (!idCorridaEnvio && !outroParticipanteChatId)) return;
 
       inputEl.value = '';
       inputEl.focus();
 
       const payload = {
-        corrida_id: corridaChatAtualId,
+        corrida_id: idCorridaEnvio,
         remetente_id: meuId,
         remetente_nome: obterMeuNomeSessao(),
         mensagem: texto
       };
+      if (outroParticipanteChatId) {
+        payload.destinatario_id = String(outroParticipanteChatId);
+      }
 
       const { error } = await supabaseClient
         .from('mensagens_chat')
@@ -856,7 +1187,7 @@
         return;
       }
 
-      await carregarMensagensCorrida(corridaChatAtualId, outroParticipanteChatId);
+      await carregarMensagensCorrida(idCorridaEnvio, outroParticipanteChatId);
     }
 
     window.abrirChatCorrida = abrirChatCorrida;
@@ -864,6 +1195,7 @@
     window.iniciarChamadaP2P = iniciarChamadaP2P;
     window.encerrarChamadaP2P = encerrarChamadaP2P;
     window.registrarCanalChamadaCorrida = registrarCanalChamadaCorrida;
+    window.vincularCorridaComunicacaoPassageiro = vincularCorridaComunicacaoPassageiro;
 
     function tocarSomAlertaPassageiro() {
       try {
@@ -1023,6 +1355,7 @@
 
       iniciarEscutaRealtimeStatus();
       iniciarEscutaSuporteRealtime();
+      iniciarEscutaCorridasPassageiroRealtime();
       atualizarContadorNotificacoes();
 
       intervaloValidacaoSessaoPassageiro = setInterval(validarSessaoUnicaPassageiro, 7000);
@@ -1031,6 +1364,7 @@
       document.getElementById('menu-foto').src = usuarioLogado.foto_url || avatarPadraoUrl(usuarioLogado.nome || 'Passageiro');
 
       await carregarModuloMapa();
+      await sincronizarEstadoCorridaAoEntrar();
       verificarExigenciaTrocaSenha(usuarioLogado);
     }
 
@@ -1161,7 +1495,7 @@
           return;
         }
 
-        const primeiroNomeUsuario = (usuarioLogado.nome || 'Usuário').split(' ')[0];
+        const primeiroNomeUsuario = obterPrimeiroNomeApenas(usuarioLogado.nome, 'Usuário');
 
         container.innerHTML = msgs.map(m => {
           const isAdmin = m.remetente === 'admin';
@@ -1271,6 +1605,7 @@
         mainApp.innerHTML = htmlMapa;
 
         injetarScriptsDoModulo(mainApp);
+        setTimeout(() => sincronizarEstadoCorridaAoEntrar(), 120);
       } catch (error) {
         mainApp.innerHTML = '<div class="flex-1 flex justify-center items-center text-red-400">Erro ao carregar o módulo do mapa.</div>';
       }
@@ -1326,6 +1661,7 @@
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
           atualizarPresenca(true);
+          sincronizarEstadoCorridaAoEntrar();
           if (typeof window.verificarCorridaAtivaPassageiro === 'function') {
             window.verificarCorridaAtivaPassageiro();
           }
@@ -1344,6 +1680,10 @@
 
     async function sairConta() {
       if (intervaloValidacaoSessaoPassageiro) clearInterval(intervaloValidacaoSessaoPassageiro);
+      if (canalRealtimeCorridasPassageiro) {
+        supabaseClient.removeChannel(canalRealtimeCorridasPassageiro);
+        canalRealtimeCorridasPassageiro = null;
+      }
       await encerrarChamadaP2P(true);
       pararRealtimeChatCorrida();
       if (usuarioLogado && usuarioLogado.id) {
