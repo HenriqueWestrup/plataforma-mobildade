@@ -13,7 +13,7 @@
 
   <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-5 relative">
 
-    <span class="absolute top-2 right-3 text-[9px] text-slate-500 font-mono">v14</span>
+    <span class="absolute top-2 right-3 text-[9px] text-slate-500 font-mono">v15</span>
 
     <div class="text-center space-y-1">
       <div class="inline-block bg-amber-600/20 border border-amber-500/30 text-amber-400 p-3 rounded-2xl mb-1">
@@ -63,7 +63,7 @@
         <div>
           <div class="flex items-center gap-2">
             <h2 class="text-sm font-extrabold text-white">Cadastro de Motorista</h2>
-            <span class="text-[9px] text-slate-500 font-mono">v14</span>
+            <span class="text-[9px] text-slate-500 font-mono">v15</span>
           </div>
           <p id="subtitulo-etapa-mot" class="text-[10px] text-slate-400">Etapa 1 de 4 • Dados pessoais</p>
         </div>
@@ -337,6 +337,38 @@
       return String(valor || '').replace(/\D/g, '');
     }
 
+    function gerarTokenSessaoUnica() {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return window.crypto.randomUUID();
+      }
+      return `sess_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+    }
+
+    async function iniciarSessaoMotoristaEAbrirApp(dadosMotorista) {
+      const novoToken = gerarTokenSessaoUnica();
+      const motoristaComSessao = {
+        ...dadosMotorista,
+        tipo: 'motorista',
+        session_token: novoToken
+      };
+
+      try {
+        await supabaseClient
+          .from('usuarios')
+          .update({
+            session_token: novoToken,
+            online: true,
+            ultimo_acesso: new Date().toISOString()
+          })
+          .eq('id', dadosMotorista.id);
+      } catch (_) {}
+
+      localStorage.removeItem('passageiro_logado');
+      localStorage.setItem('session_token', novoToken);
+      localStorage.setItem('motorista_logado', JSON.stringify(motoristaComSessao));
+      window.location.href = 'motorista.html';
+    }
+
     async function buscarUsuarioPorTelefoneESenha(telefoneInput, senhaInput) {
       const telLimpo = telefoneInput.trim();
       const digitos = apenasDigitos(telLimpo);
@@ -377,7 +409,6 @@
       if (!usuario) return false;
       const tipo = String(usuario.tipo || '').toLowerCase();
       if (tipo === 'motorista' || tipo === 'ambos') return true;
-      // Caso já tenha dados de veículo e documento preenchidos na conta unificada
       const temVeiculo = Boolean(usuario.veiculo_placa || usuario.veiculo_modelo);
       const temDoc = Boolean(usuario.documento_identificacao_url || usuario.cnh);
       return tipo !== 'passageiro' && (temVeiculo || temDoc);
@@ -1104,7 +1135,9 @@
         limparRascunhoMotorista(true);
         pararCamera();
         fecharModalCadastroMotorista();
-        mostrarErro('Cadastro enviado com sucesso! Seu perfil está em análise pela administração.', true);
+
+        // Libera o acesso direto ao aplicativo; o status 'em_analise' exibe a notificação no painel
+        await iniciarSessaoMotoristaEAbrirApp(novoMotorista);
       } catch (err) {
         mostrarErroModal(err.message || 'Erro ao realizar cadastro.');
         btn.innerText = 'Concluir Cadastro';
@@ -1139,17 +1172,8 @@
           throw new Error('Esta conta é de passageiro e não tem acesso de motorista.');
         }
 
-        if (data.status === 'em_analise' || data.status_aprovacao === 'pendente') {
-          mostrarErro('Seu perfil de motorista está em análise. Aguarde a liberação da administração para acessar o aplicativo.', true);
-          btn.innerText = 'Entrar como Motorista';
-          btn.disabled = false;
-          return;
-        }
-
-        localStorage.removeItem('passageiro_logado');
-        data.tipo = 'motorista';
-        localStorage.setItem('motorista_logado', JSON.stringify(data));
-        window.location.href = 'motorista.html';
+        // Mesmo com status 'em_analise' ou 'pendente', entra no app e recebe a notificação lá dentro
+        await iniciarSessaoMotoristaEAbrirApp(data);
       } catch (err) {
         mostrarErro(err.message || 'Erro ao realizar login.');
         btn.innerText = 'Entrar como Motorista';
