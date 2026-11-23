@@ -101,6 +101,7 @@
       <p><strong>Destino:</strong> <span id="pass-ativa-destino" class="text-white">-</span></p>
     </div>
 
+    <!-- AÇÕES DE COMUNICAÇÃO (REDIRECIONADAS PARA OS MODAIS CENTRALIZADOS DO INDEX) -->
     <div id="acoes-comunicacao-viagem" class="grid grid-cols-2 gap-2">
       <button
         type="button"
@@ -202,34 +203,6 @@
   var valorCalculadoAtual = 0;
   var timerBuscaDebounced = {};
 
-  var STATUS_ATIVOS_MAPA_LISTA = [
-    'pendente',
-    'procurando',
-    'aceita',
-    'aceito',
-    'a_caminho',
-    'no_local',
-    'em_andamento',
-    'em_curso',
-    'em_viagem',
-    'iniciada',
-    'viagem_iniciada'
-  ];
-
-  var STATUS_FINALIZADOS_MAPA_LISTA = [
-    'concluido',
-    'concluida',
-    'finalizada',
-    'cancelado',
-    'cancelada',
-    'expirado',
-    'expirada'
-  ];
-
-  function normalizarStatusLocal(status) {
-    return String(status || '').trim().toLowerCase().replace(/\s+/g, '_');
-  }
-
   function primeiroNome(nomeCompleto) {
     if (!nomeCompleto) return 'Motorista';
     return nomeCompleto.trim().split(' ')[0];
@@ -262,11 +235,7 @@
       const raw = localStorage.getItem('mobiurb_corrida_ativa_passageiro');
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      const corrida = parsed && parsed.corrida ? parsed.corrida : null;
-      if (!corrida || !corrida.id) return null;
-      const st = normalizarStatusLocal(corrida.status);
-      if (STATUS_FINALIZADOS_MAPA_LISTA.includes(st)) return null;
-      return corrida;
+      return parsed && parsed.corrida ? parsed.corrida : null;
     } catch (_) {
       return null;
     }
@@ -274,8 +243,7 @@
 
   function salvarCacheCorridaNoMapa(corrida) {
     try {
-      const st = normalizarStatusLocal(corrida?.status);
-      if (!corrida || !corrida.id || STATUS_FINALIZADOS_MAPA_LISTA.includes(st)) {
+      if (!corrida || !corrida.id) {
         localStorage.removeItem('mobiurb_corrida_ativa_passageiro');
         window.corridaAtivaPassageiro = null;
         return;
@@ -290,23 +258,10 @@
     } catch (_) {}
   }
 
-  function temCorridaAtivaEmMemoriaOuCache() {
-    const cache = obterCacheCorridaLocal();
-    const ativa = corridaAtivaDados || window.corridaAtivaPassageiro || cache;
-    if (!ativa || !ativa.id) return false;
-    const st = normalizarStatusLocal(ativa.status);
-    return !STATUS_FINALIZADOS_MAPA_LISTA.includes(st);
-  }
-
   function exibirPainelCorridaEmTelaNoMapa(corrida) {
     if (!corrida || !corrida.id) return;
 
-    const statusNorm = normalizarStatusLocal(corrida.status);
-    if (STATUS_FINALIZADOS_MAPA_LISTA.includes(statusNorm)) {
-      salvarCacheCorridaNoMapa(null);
-      return;
-    }
-
+    const statusNorm = String(corrida.status || '').trim().toLowerCase().replace(/\s+/g, '_');
     corridaAtualId = corrida.id;
     corridaAtivaDados = corrida;
     window.corridaAtualId = corrida.id;
@@ -317,42 +272,18 @@
       window.vincularCorridaComunicacaoPassageiro(corrida);
     }
 
-    const painelSol = document.getElementById('painel-solicitacao');
-    const painelAval = document.getElementById('painel-avaliacao-passageiro');
-    if (painelSol) {
-      painelSol.classList.add('hidden');
-      painelSol.style.display = 'none';
-    }
-    if (painelAval) {
-      painelAval.classList.add('hidden');
-      painelAval.style.display = 'none';
-    }
+    document.getElementById('painel-solicitacao')?.classList.add('hidden');
+    document.getElementById('painel-avaliacao-passageiro')?.classList.add('hidden');
 
     if (['procurando', 'pendente'].includes(statusNorm)) {
-      const painelMot = document.getElementById('painel-motorista-encontrado');
-      const painelEsp = document.getElementById('painel-espera-corrida');
-      if (painelMot) {
-        painelMot.classList.add('hidden');
-        painelMot.style.display = 'none';
-      }
-      if (painelEsp) {
-        painelEsp.classList.remove('hidden');
-        painelEsp.style.display = '';
-      }
+      document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
+      document.getElementById('painel-espera-corrida')?.classList.remove('hidden');
       if (typeof iniciarTimerEsperaCorrida === 'function') {
         iniciarTimerEsperaCorrida();
       }
     } else {
-      const painelEsp = document.getElementById('painel-espera-corrida');
-      const painelMot = document.getElementById('painel-motorista-encontrado');
-      if (painelEsp) {
-        painelEsp.classList.add('hidden');
-        painelEsp.style.display = 'none';
-      }
-      if (painelMot) {
-        painelMot.classList.remove('hidden');
-        painelMot.style.display = '';
-      }
+      document.getElementById('painel-espera-corrida')?.classList.add('hidden');
+      document.getElementById('painel-motorista-encontrado')?.classList.remove('hidden');
 
       const nomeMot = primeiroNome(corrida.motorista?.nome || window.estadoViagemPassageiro?.motoristaNome || 'Motorista');
       const nomeEl = document.getElementById('passageiro-motorista-nome');
@@ -433,35 +364,40 @@
         .from('corridas')
         .select('*')
         .eq('passageiro_id', pass.id)
+        .in('status', [
+          'pendente',
+          'procurando',
+          'aceita',
+          'aceito',
+          'a_caminho',
+          'no_local',
+          'em_andamento',
+          'em_curso',
+          'em_viagem',
+          'iniciada',
+          'viagem_iniciada'
+        ])
         .order('id', { ascending: false })
-        .limit(5);
+        .limit(1);
 
       if (!error && Array.isArray(data) && data.length > 0) {
-        const corridaAtiva = data.find((c) => {
-          const st = normalizarStatusLocal(c.status);
-          return STATUS_ATIVOS_MAPA_LISTA.includes(st);
-        });
-
-        if (corridaAtiva) {
-          if (corridaAtiva.motorista_id) {
-            const { data: motRow } = await cliente
-              .from('usuarios')
-              .select('*')
-              .eq('id', corridaAtiva.motorista_id)
-              .maybeSingle();
-            if (motRow) {
-              corridaAtiva.motorista = motRow;
-            }
+        const corridaBanco = data[0];
+        if (corridaBanco.motorista_id) {
+          const { data: motRow } = await cliente
+            .from('usuarios')
+            .select('*')
+            .eq('id', corridaBanco.motorista_id)
+            .maybeSingle();
+          if (motRow) {
+            corridaBanco.motorista = motRow;
           }
-          exibirPainelCorridaEmTelaNoMapa(corridaAtiva);
-          return corridaAtiva;
         }
+        exibirPainelCorridaEmTelaNoMapa(corridaBanco);
+        return corridaBanco;
+      }
 
-        const ultimaCorrida = data[0];
-        const stUltima = normalizarStatusLocal(ultimaCorrida?.status);
-        if (['cancelado', 'cancelada', 'expirado', 'expirada'].includes(stUltima)) {
-          salvarCacheCorridaNoMapa(null);
-        }
+      if (!error && (!data || data.length === 0)) {
+        salvarCacheCorridaNoMapa(null);
       }
     } catch (_) {}
 
@@ -546,14 +482,15 @@
 
   if (window.__intervaloSyncMapaPassageiro) {
     clearInterval(window.__intervaloSyncMapaPassageiro);
-    window.__intervaloSyncMapaPassageiro = null;
   }
+  window.__intervaloSyncMapaPassageiro = setInterval(() => {
+    const idAtivo = corridaAtualId || corridaAtivaDados?.id || window.corridaAtivaPassageiro?.id;
+    if (!idAtivo && !document.hidden) {
+      consultarCorridaAtivaDiretoNoBanco();
+    }
+  }, 3000);
 
   function atualizarEstadoBotaoChamar(estado, textoCustomizado = '') {
-    if (estado === 'bloqueado' && temCorridaAtivaEmMemoriaOuCache()) {
-      return;
-    }
-
     const btn = document.getElementById('btn-chamar-motorista');
     if (!btn) return;
 
@@ -671,7 +608,7 @@
 
   function usarMinhaLocalizacao(forcarPreenchimento = true) {
     const inputOrigem = document.getElementById('origem-corrida');
-    if (forcarPreenchimento && inputOrigem && !temCorridaAtivaEmMemoriaOuCache()) {
+    if (forcarPreenchimento && inputOrigem) {
       inputOrigem.placeholder = 'Localizando via GPS...';
     }
 
@@ -682,7 +619,7 @@
           const lng = pos.coords.longitude;
           coordsOrigem = { lat, lng };
 
-          if (mapaLeaflet && !temCorridaAtivaEmMemoriaOuCache()) {
+          if (mapaLeaflet) {
             mapaLeaflet.setView([lat, lng], 16);
             if (marcadorOrigem) mapaLeaflet.removeLayer(marcadorOrigem);
             marcadorOrigem = L.marker([lat, lng]).addTo(mapaLeaflet).bindPopup('Local de Embarque').openPopup();
@@ -699,7 +636,7 @@
             inputOrigem.placeholder = 'Local de embarque';
           }
 
-          if (!temCorridaAtivaEmMemoriaOuCache() && typeof verificarECalcularSePronto === 'function') {
+          if (typeof verificarECalcularSePronto === 'function') {
             verificarECalcularSePronto();
           }
         },
@@ -746,7 +683,7 @@
     const containerMapa = document.getElementById('map');
     if (!containerMapa) return;
 
-    const corridaPrevia = await consultarCorridaAtivaDiretoNoBanco();
+    await consultarCorridaAtivaDiretoNoBanco();
 
     if (mapaLeaflet && mapaLeaflet.getContainer && mapaLeaflet.getContainer() !== containerMapa) {
       try { mapaLeaflet.remove(); } catch (_) {}
@@ -769,22 +706,19 @@
       }).addTo(mapaLeaflet);
 
       setTimeout(() => mapaLeaflet && mapaLeaflet.invalidateSize(), 300);
-
-      if (!corridaPrevia && !temCorridaAtivaEmMemoriaOuCache()) {
-        atualizarEstadoBotaoChamar('bloqueado');
-      }
+      atualizarEstadoBotaoChamar('bloqueado');
 
       if (typeof carregarRegrasMapa === 'function') {
         await carregarRegrasMapa(supabaseMapa);
       }
 
-      usarMinhaLocalizacao(!corridaPrevia && !temCorridaAtivaEmMemoriaOuCache());
+      usarMinhaLocalizacao(true);
       if (typeof iniciarRadarMotoristasOnline === 'function') iniciarRadarMotoristasOnline();
     } else {
       mapaLeaflet.invalidateSize();
     }
 
-    await aplicarEstadoCorridaAtivaNoMapa(corridaPrevia);
+    await aplicarEstadoCorridaAtivaNoMapa();
   }
 
   carregarScriptsMapa(() => {
