@@ -261,8 +261,6 @@
   var corridaAtualId = null;
   var corridaAtivaDados = null;
   var canalPassageiroRealtime = null;
-  var canalCorridaAtivaPassageiro = null;
-  var corridaEscutadaRealtimeId = null;
   var passageiroNotaSelecionada = 5;
   var ultimaNotificacaoProximidade = false;
   var calculoRotaPronto = false;
@@ -298,12 +296,6 @@
   function primeiroNome(nomeCompleto) {
     if (!nomeCompleto) return 'Motorista';
     return nomeCompleto.trim().split(' ')[0];
-  }
-
-  function formatarValorReal(valor) {
-    const numero = Number(valor);
-    const finalValor = Number.isFinite(numero) && numero > 0 ? numero : 15.0;
-    return `R$ ${finalValor.toFixed(2).replace('.', ',')}`;
   }
 
   function obterPassageiroAtual() {
@@ -356,265 +348,10 @@
     } catch (_) {}
   }
 
-  async function enriquecerDadosMotoristaNaCorrida(corrida) {
-    if (!corrida) return corrida;
-
-    let motObj = (corrida.motorista && typeof corrida.motorista === 'object') ? { ...corrida.motorista } : {};
-    const motoristaId = corrida.motorista_id || motObj.id || null;
-    const cliente = supabaseMapa || window.supabaseClient || null;
-
-    const precisaBuscarNoBanco = motoristaId && cliente && (
-      !motObj.nome ||
-      (!motObj.foto_url && !motObj.avatar_url && !motObj.foto) ||
-      (motObj.avaliacao === undefined && motObj.nota === undefined)
-    );
-
-    if (precisaBuscarNoBanco) {
-      try {
-        const { data: motRow } = await cliente
-          .from('usuarios')
-          .select('*')
-          .eq('id', motoristaId)
-          .maybeSingle();
-
-        if (motRow) {
-          motObj = {
-            ...motObj,
-            id: motRow.id || motoristaId,
-            nome: motRow.nome || motObj.nome || 'Motorista',
-            foto_url: motRow.foto_url || motRow.avatar_url || motRow.foto || motObj.foto_url || '',
-            avaliacao: motRow.avaliacao ?? motRow.nota ?? motObj.avaliacao ?? motObj.nota ?? '5.0',
-            nota: motRow.nota ?? motRow.avaliacao ?? motObj.nota ?? motObj.avaliacao ?? '5.0'
-          };
-        }
-      } catch (_) {}
-    }
-
-    if (!motObj.nome) {
-      motObj.nome = 'Motorista';
-    }
-    const nomeBase = primeiroNome(motObj.nome);
-    if (!motObj.foto_url) {
-      motObj.foto_url = `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeBase)}&background=059669&color=ffffff`;
-    }
-    if (motObj.avaliacao === undefined && motObj.nota === undefined) {
-      motObj.avaliacao = '5.0';
-      motObj.nota = '5.0';
-    } else if (motObj.nota === undefined) {
-      motObj.nota = motObj.avaliacao;
-    } else if (motObj.avaliacao === undefined) {
-      motObj.avaliacao = motObj.nota;
-    }
-
-    corrida.motorista = motObj;
-    return corrida;
-  }
-
-  function atualizarEstrelasAvaliacaoPassageiro(nota) {
-    passageiroNotaSelecionada = nota;
-    const estrelas = document.querySelectorAll('#passageiro-container-estrelas i');
-    const feedback = document.getElementById('passageiro-texto-feedback');
-    const blocoJust = document.getElementById('passageiro-bloco-justificativa');
-
-    estrelas.forEach((star, idx) => {
-      if (idx < nota) {
-        star.classList.remove('text-slate-600');
-        star.classList.add('text-amber-400');
-      } else {
-        star.classList.remove('text-amber-400');
-        star.classList.add('text-slate-600');
-      }
-    });
-
-    if (feedback) {
-      if (nota === 5) feedback.innerText = 'Excelente (5 estrelas)';
-      else if (nota === 4) feedback.innerText = 'Bom (4 estrelas)';
-      else if (nota === 3) feedback.innerText = 'Regular (3 estrelas)';
-      else feedback.innerText = 'Ruim / Muito Ruim';
-    }
-
-    if (blocoJust) {
-      if (nota < 5) blocoJust.classList.remove('hidden');
-      else blocoJust.classList.add('hidden');
-    }
-  }
-
-  if (typeof window.passageiroSelecionarEstrela !== 'function') {
-    window.passageiroSelecionarEstrela = function (nota) {
-      atualizarEstrelasAvaliacaoPassageiro(nota);
-    };
-  }
-
-  function exibirPainelAvaliacaoComValor(corrida) {
+  function exibirPainelCorridaEmTelaNoMapa(corrida) {
     if (!corrida || !corrida.id) return;
-
-    corridaAtualId = corrida.id;
-    corridaAtivaDados = corrida;
-    window.corridaAtualId = corrida.id;
-    window.corridaAtivaDados = corrida;
-    salvarCacheCorridaNoMapa(corrida);
-
-    if (timerIntervalId) {
-      clearInterval(timerIntervalId);
-      timerIntervalId = null;
-    }
-
-    document.getElementById('painel-solicitacao')?.classList.add('hidden');
-    document.getElementById('painel-espera-corrida')?.classList.add('hidden');
-    document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
-
-    const valorEl = document.getElementById('passageiro-valor-final');
-    const valorCorrida = corrida.valor ?? corrida.valor_total ?? corrida.preco ?? valorCalculadoAtual ?? 15.0;
-    if (valorEl) {
-      valorEl.innerText = formatarValorReal(valorCorrida);
-    }
-
-    atualizarEstrelasAvaliacaoPassageiro(passageiroNotaSelecionada || 5);
-    const motivoInput = document.getElementById('passageiro-input-motivo-negativo');
-    if (motivoInput && !motivoInput.value) {
-      motivoInput.value = '';
-    }
-
-    document.getElementById('painel-avaliacao-passageiro')?.classList.remove('hidden');
-  }
-
-  function retornarParaTelaSolicitacaoLimpa() {
-    if (timerIntervalId) {
-      clearInterval(timerIntervalId);
-      timerIntervalId = null;
-    }
-    if (canalCorridaAtivaPassageiro) {
-      try { supabaseMapa?.removeChannel(canalCorridaAtivaPassageiro); } catch (_) {}
-      canalCorridaAtivaPassageiro = null;
-      corridaEscutadaRealtimeId = null;
-    }
-
-    corridaAtualId = null;
-    corridaAtivaDados = null;
-    window.corridaAtualId = null;
-    window.corridaAtivaDados = null;
-    salvarCacheCorridaNoMapa(null);
-
-    document.getElementById('painel-espera-corrida')?.classList.add('hidden');
-    document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
-    document.getElementById('painel-avaliacao-passageiro')?.classList.add('hidden');
-    document.getElementById('painel-solicitacao')?.classList.remove('hidden');
-  }
-
-  if (typeof window.passageiroConcluirAvaliacao !== 'function') {
-    window.passageiroConcluirAvaliacao = async function () {
-      const corridaAlvo = corridaAtivaDados || window.corridaAtivaDados || obterCacheCorridaLocal();
-      const idAlvo = corridaAlvo?.id || corridaAtualId;
-      const cliente = supabaseMapa || window.supabaseClient || null;
-      const nota = passageiroNotaSelecionada || 5;
-      const motivo = (document.getElementById('passageiro-input-motivo-negativo')?.value || '').trim();
-
-      if (nota < 5 && !motivo) {
-        mostrarModal('Atenção', 'Por favor, informe o motivo da avaliação baixa.', 'cancelar', 3000);
-        return;
-      }
-
-      if (idAlvo && cliente) {
-        try {
-          await cliente
-            .from('corridas')
-            .update({
-              avaliacao_passageiro: nota,
-              motivo_avaliacao_passageiro: motivo || null
-            })
-            .eq('id', idAlvo);
-
-          const motoristaId = corridaAlvo?.motorista_id;
-          if (motoristaId) {
-            const { data: hist } = await cliente
-              .from('corridas')
-              .select('avaliacao_passageiro')
-              .eq('motorista_id', motoristaId)
-              .eq('status', 'concluido')
-              .not('avaliacao_passageiro', 'is', null)
-              .limit(500);
-
-            if (Array.isArray(hist) && hist.length > 0) {
-              const soma = hist.reduce((acc, item) => acc + Number(item.avaliacao_passageiro || 0), 0);
-              const media = Math.round((soma / hist.length) * 100) / 100;
-              await cliente.from('usuarios').update({ nota: media, avaliacao: media }).eq('id', motoristaId);
-            }
-          }
-        } catch (_) {}
-      }
-
-      retornarParaTelaSolicitacaoLimpa();
-      mostrarModal('Obrigado', 'Avaliação enviada e viagem encerrada.', 'sucesso', 2500);
-    };
-  }
-
-  function iniciarEscutaTempoRealDaCorridaPassageiro(corridaId) {
-    const cliente = supabaseMapa || window.supabaseClient || null;
-    if (!cliente || !corridaId) return;
-    if (canalCorridaAtivaPassageiro && String(corridaEscutadaRealtimeId) === String(corridaId)) return;
-
-    if (canalCorridaAtivaPassageiro) {
-      try { cliente.removeChannel(canalCorridaAtivaPassageiro); } catch (_) {}
-      canalCorridaAtivaPassageiro = null;
-    }
-
-    corridaEscutadaRealtimeId = String(corridaId);
-
-    canalCorridaAtivaPassageiro = cliente
-      .channel(`pass_corrida_sync_${corridaId}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'corridas',
-        filter: `id=eq.${corridaId}`
-      }, async (payload) => {
-        const atualizada = payload?.new;
-        if (!atualizada) return;
-
-        const statusNorm = String(atualizada.status || '').trim().toLowerCase().replace(/\s+/g, '_');
-        if (['concluido', 'concluida', 'finalizada', 'finalizado'].includes(statusNorm)) {
-          const jaAvaliou = atualizada.avaliacao_passageiro !== null && atualizada.avaliacao_passageiro !== undefined;
-          if (!jaAvaliou) {
-            const enriquecida = await enriquecerDadosMotoristaNaCorrida({
-              ...(corridaAtivaDados || {}),
-              ...atualizada
-            });
-            exibirPainelAvaliacaoComValor(enriquecida);
-          } else {
-            retornarParaTelaSolicitacaoLimpa();
-          }
-        } else if (['cancelado', 'cancelada'].includes(statusNorm)) {
-          retornarParaTelaSolicitacaoLimpa();
-          mostrarModal('Corrida Cancelada', 'A corrida foi cancelada.', 'cancelar', 3000);
-        } else {
-          const enriquecida = await enriquecerDadosMotoristaNaCorrida({
-            ...(corridaAtivaDados || {}),
-            ...atualizada
-          });
-          exibirPainelCorridaEmTelaNoMapa(enriquecida);
-        }
-      })
-      .subscribe();
-  }
-
-  async function exibirPainelCorridaEmTelaNoMapa(corrida) {
-    if (!corrida || !corrida.id) return;
-
-    await enriquecerDadosMotoristaNaCorrida(corrida);
 
     const statusNorm = String(corrida.status || '').trim().toLowerCase().replace(/\s+/g, '_');
-    const concluida = ['concluido', 'concluida', 'finalizada', 'finalizado'].includes(statusNorm);
-    const jaAvaliou = corrida.avaliacao_passageiro !== null && corrida.avaliacao_passageiro !== undefined;
-
-    if (concluida) {
-      if (!jaAvaliou) {
-        exibirPainelAvaliacaoComValor(corrida);
-      } else {
-        retornarParaTelaSolicitacaoLimpa();
-      }
-      return;
-    }
-
     corridaAtualId = corrida.id;
     corridaAtivaDados = corrida;
     window.corridaAtualId = corrida.id;
@@ -634,11 +371,7 @@
       document.getElementById('painel-espera-corrida')?.classList.add('hidden');
       document.getElementById('painel-motorista-encontrado')?.classList.remove('hidden');
 
-      const nomeCompletoMot = corrida.motorista?.nome || 'Motorista';
-      const nomeMot = primeiroNome(nomeCompletoMot);
-      const fotoUrlMot = corrida.motorista?.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeMot)}&background=059669&color=ffffff`;
-      const notaMot = corrida.motorista?.avaliacao ?? corrida.motorista?.nota ?? '5.0';
-
+      const nomeMot = primeiroNome(corrida.motorista?.nome || 'Motorista');
       const nomeEl = document.getElementById('passageiro-motorista-nome');
       const fotoEl = document.getElementById('passageiro-motorista-foto');
       const notaEl = document.getElementById('passageiro-motorista-nota');
@@ -652,12 +385,9 @@
 
       if (nomeEl) nomeEl.innerText = nomeMot;
       if (fotoEl) {
-        fotoEl.src = fotoUrlMot;
-        fotoEl.onerror = () => {
-          fotoEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeMot)}&background=059669&color=ffffff`;
-        };
+        fotoEl.src = corrida.motorista?.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeMot)}&background=059669&color=ffffff`;
       }
-      if (notaEl) notaEl.innerText = String(notaMot);
+      if (notaEl) notaEl.innerText = corrida.motorista?.avaliacao || corrida.motorista?.nota || '5.0';
       if (origemEl) origemEl.innerText = corrida.origem || corrida.origem_endereco || '-';
       if (destinoEl) destinoEl.innerText = corrida.destino || corrida.destino_endereco || '-';
 
@@ -691,7 +421,6 @@
 
     garantirCanalChamadaP2P(corrida.id);
     registrarEscutaContadorChatPassageiro(corrida.id);
-    iniciarEscutaTempoRealDaCorridaPassageiro(corrida.id);
   }
 
   async function consultarCorridaAtivaDiretoNoBanco() {
@@ -700,7 +429,7 @@
     const cliente = supabaseMapa || window.supabaseClient || null;
 
     if (cacheLocal && cacheLocal.id) {
-      await exibirPainelCorridaEmTelaNoMapa(cacheLocal);
+      exibirPainelCorridaEmTelaNoMapa(cacheLocal);
     }
 
     if (!pass?.id || !cliente) {
@@ -712,37 +441,40 @@
         .from('corridas')
         .select('*')
         .eq('passageiro_id', pass.id)
+        .in('status', [
+          'pendente',
+          'procurando',
+          'aceita',
+          'aceito',
+          'a_caminho',
+          'no_local',
+          'em_andamento',
+          'em_curso',
+          'em_viagem',
+          'iniciada',
+          'viagem_iniciada'
+        ])
         .order('id', { ascending: false })
-        .limit(3);
+        .limit(1);
 
       if (!error && Array.isArray(data) && data.length > 0) {
-        const corridaRelevante = data.find((c) => {
-          const st = String(c.status || '').trim().toLowerCase().replace(/\s+/g, '_');
-          if (['pendente', 'procurando', 'aceita', 'aceito', 'a_caminho', 'no_local', 'em_andamento', 'em_curso', 'em_viagem', 'iniciada', 'viagem_iniciada'].includes(st)) {
-            return true;
-          }
-          if (['concluido', 'concluida', 'finalizada', 'finalizado'].includes(st)) {
-            return c.avaliacao_passageiro === null || c.avaliacao_passageiro === undefined;
-          }
-          return false;
-        });
-
-        if (corridaRelevante) {
-          await exibirPainelCorridaEmTelaNoMapa(corridaRelevante);
-          return corridaRelevante;
-        }
-
-        const corridaAtualCache = cacheLocal?.id ? data.find((c) => String(c.id) === String(cacheLocal.id)) : null;
-        if (corridaAtualCache) {
-          const stCache = String(corridaAtualCache.status || '').trim().toLowerCase().replace(/\s+/g, '_');
-          if (['concluido', 'concluida', 'finalizada', 'finalizado'].includes(stCache) && (corridaAtualCache.avaliacao_passageiro === null || corridaAtualCache.avaliacao_passageiro === undefined)) {
-            await exibirPainelAvaliacaoComValor(await enriquecerDadosMotoristaNaCorrida(corridaAtualCache));
-            return corridaAtualCache;
+        const corridaBanco = data[0];
+        if (corridaBanco.motorista_id) {
+          const { data: motRow } = await cliente
+            .from('usuarios')
+            .select('id, nome, foto_url, avaliacao, nota')
+            .eq('id', corridaBanco.motorista_id)
+            .maybeSingle();
+          if (motRow) {
+            corridaBanco.motorista = motRow;
           }
         }
+        exibirPainelCorridaEmTelaNoMapa(corridaBanco);
+        return corridaBanco;
+      }
 
-        retornarParaTelaSolicitacaoLimpa();
-        return null;
+      if (!error && (!data || data.length === 0)) {
+        salvarCacheCorridaNoMapa(null);
       }
     } catch (_) {}
 
@@ -1230,19 +962,18 @@
     const corrida = corridaRecebida || corridaAtivaDados || window.corridaAtivaPassageiro || obterCacheCorridaLocal() || null;
 
     if (corrida && corrida.id) {
-      await exibirPainelCorridaEmTelaNoMapa(corrida);
+      exibirPainelCorridaEmTelaNoMapa(corrida);
     }
 
     if (typeof window.verificarCorridaAtivaPassageiro === 'function') {
       await window.verificarCorridaAtivaPassageiro();
-      const posVerif = corridaAtivaDados || window.corridaAtivaPassageiro || obterCacheCorridaLocal() || null;
-      if (posVerif && posVerif.id) {
-        await exibirPainelCorridaEmTelaNoMapa(posVerif);
-      } else {
-        await consultarCorridaAtivaDiretoNoBanco();
-      }
     } else {
       await consultarCorridaAtivaDiretoNoBanco();
+    }
+
+    const corridaFinal = corridaAtivaDados || window.corridaAtivaPassageiro || obterCacheCorridaLocal() || null;
+    if (corridaFinal && corridaFinal.id) {
+      exibirPainelCorridaEmTelaNoMapa(corridaFinal);
     }
   }
 
@@ -1260,11 +991,9 @@
   }
   window.__intervaloSyncMapaPassageiro = setInterval(() => {
     const idAtivo = corridaAtualId || corridaAtivaDados?.id || window.corridaAtivaPassageiro?.id;
-    if (idAtivo && !document.hidden) {
+    if (idAtivo) {
       garantirCanalChamadaP2P(idAtivo);
       registrarEscutaContadorChatPassageiro(idAtivo);
-      iniciarEscutaTempoRealDaCorridaPassageiro(idAtivo);
-      consultarCorridaAtivaDiretoNoBanco();
     } else if (!document.hidden) {
       consultarCorridaAtivaDiretoNoBanco();
     }
