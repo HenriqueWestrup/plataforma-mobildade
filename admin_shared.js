@@ -1,4 +1,4 @@
-// admin_shared.js (v21)
+// admin_shared.js (v22)
 const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -67,15 +67,80 @@ function salvarRegrasOperacaoLocalAdmin(novasRegras) {
 function normalizarStatusConta(status) {
   const s = String(status || '').toLowerCase().trim();
   if (s === 'em_analise' || s === 'pendente') return 'pendente';
-  if (s === 'bloqueado') return 'bloqueado';
+  if (s === 'bloqueado' || s === 'bloqueada' || s === 'suspenso' || s === 'suspensa') return 'bloqueado';
   if (s === 'aprovado' || s === 'ativo') return 'aprovado';
   return 'aprovado';
+}
+
+function resolverStatusEfetivoUsuario(user) {
+  if (!user) return 'aprovado';
+  const s = String(user.status || '').toLowerCase().trim();
+  const ap = String(user.status_aprovacao || '').toLowerCase().trim();
+  if (user.banido === true || s === 'bloqueado' || s === 'bloqueada' || s === 'suspenso' || s === 'suspensa' || ap === 'bloqueado') {
+    return 'bloqueado';
+  }
+  if (s === 'em_analise' || s === 'pendente' || ap === 'pendente' || ap === 'em_analise') {
+    return 'pendente';
+  }
+  return 'aprovado';
+}
+
+function montarPayloadStatusConta(statusAlvo, dadosExtras = {}) {
+  const st = normalizarStatusConta(statusAlvo);
+  const liberado = st === 'aprovado';
+  const statusAprovacaoAlvo = liberado ? 'aprovado' : (st === 'bloqueado' ? 'bloqueado' : 'pendente');
+
+  const completo = {
+    ...dadosExtras,
+    status: st,
+    status_aprovacao: statusAprovacaoAlvo,
+    banido: st === 'bloqueado',
+    conta_suspensa: !liberado,
+    pode_ligar: liberado
+  };
+
+  const baseSemFlagsExtras = {
+    ...dadosExtras,
+    status: st,
+    status_aprovacao: statusAprovacaoAlvo,
+    banido: st === 'bloqueado'
+  };
+
+  if (!liberado) {
+    completo.online = false;
+    baseSemFlagsExtras.online = false;
+  }
+
+  return { st, completo, baseSemFlagsExtras };
+}
+
+async function aplicarAtualizacaoUsuarioResiliente(idUsuario, payloadCompleto, payloadFallback = null) {
+  let { data, error } = await supabaseClient
+    .from('usuarios')
+    .update(payloadCompleto)
+    .eq('id', idUsuario)
+    .select('*')
+    .maybeSingle();
+
+  if (error && payloadFallback) {
+    const retry = await supabaseClient
+      .from('usuarios')
+      .update(payloadFallback)
+      .eq('id', idUsuario)
+      .select('*')
+      .maybeSingle();
+    data = retry.data;
+    error = retry.error;
+  }
+
+  return { data, error };
 }
 
 function ehPerfilMotoristaAdmin(user) {
   if (!user) return false;
   return Boolean(
     user.tipo === 'motorista' ||
+    user.tipo === 'ambos' ||
     user.veiculo_modelo ||
     user.veiculo_placa ||
     user.veiculo2_modelo ||
@@ -148,17 +213,17 @@ function filtrarUsuariosPorSetorAdmin(lista, setor) {
 
   let filtrados = [];
   if (setorLimpo === 'todos') {
-    filtrados = arr.filter(u => normalizarStatusConta(u.status) === 'aprovado');
+    filtrados = arr.filter(u => resolverStatusEfetivoUsuario(u) === 'aprovado');
   } else if (setorLimpo === 'online') {
-    filtrados = arr.filter(u => usuarioEstaAtivoNoAppAdmin(u) && normalizarStatusConta(u.status) === 'aprovado');
+    filtrados = arr.filter(u => usuarioEstaAtivoNoAppAdmin(u) && resolverStatusEfetivoUsuario(u) === 'aprovado');
   } else if (setorLimpo === 'analise' || setorLimpo === 'pendente') {
-    filtrados = arr.filter(u => normalizarStatusConta(u.status) === 'pendente');
+    filtrados = arr.filter(u => resolverStatusEfetivoUsuario(u) === 'pendente');
   } else if (setorLimpo === 'bloqueados' || setorLimpo === 'bloqueado') {
-    filtrados = arr.filter(u => normalizarStatusConta(u.status) === 'bloqueado');
+    filtrados = arr.filter(u => resolverStatusEfetivoUsuario(u) === 'bloqueado');
   } else if (setorLimpo === 'segundo_carro') {
     filtrados = arr.filter(u => ehPerfilMotoristaAdmin(u) && temSegundoVeiculoPendenteAdmin(u));
   } else {
-    filtrados = arr.filter(u => normalizarStatusConta(u.status) === normalizarStatusConta(setorLimpo));
+    filtrados = arr.filter(u => resolverStatusEfetivoUsuario(u) === normalizarStatusConta(setorLimpo));
   }
 
   const inputBuscaMot = document.getElementById('busca-motoristas');
@@ -280,16 +345,6 @@ function irParaRegrasAdmin() {
   window.location.href = 'admin.html#secao-regras-operacao';
 }
 
-function atualizarBotoesAcaoRapidaModal(user) {
-  const btnDerrubar = document.getElementById('btn-modal-derrubar-online');
-  if (!btnDerrubar || !user) return;
-  const estaOnline = usuarioEstaAtivoNoAppAdmin(user);
-  btnDerrubar.disabled = !estaOnline;
-  btnDerrubar.className = estaOnline
-    ? "bg-amber-600/20 hover:bg-amber-600/35 text-amber-300 border border-amber-500/40 px-3 py-2 rounded-xl font-bold text-[11px] transition flex items-center gap-1.5"
-    : "bg-slate-800/60 text-slate-500 border border-slate-800 px-3 py-2 rounded-xl font-bold text-[11px] cursor-not-allowed flex items-center gap-1.5";
-}
-
 async function derrubarOnlineUsuarioAdmin(idUsuario, nomeUsuario = 'Usuário') {
   if (!idUsuario) return;
   if (!confirm(`Deseja derrubar o status ONLINE de ${nomeUsuario}? Isso vai remover o status fantasma/online no banco.`)) return;
@@ -315,14 +370,6 @@ async function derrubarOnlineUsuarioAdmin(idUsuario, nomeUsuario = 'Usuário') {
     if (error) {
       alert("Erro ao derrubar status online: " + error.message);
       return;
-    }
-
-    if (usuarioModalAtual && String(usuarioModalAtual.id) === String(idUsuario)) {
-      usuarioModalAtual.online = false;
-      usuarioModalAtual.radar_ativo = false;
-      usuarioModalAtual.disponivel = false;
-      atualizarBotoesAcaoRapidaModal(usuarioModalAtual);
-      mostrarAlertaModal("Status ONLINE derrubado com sucesso!", "sucesso");
     }
 
     atualizarDadosGlobais();
@@ -426,7 +473,7 @@ function inicializarLayoutAdmin(paginaAtiva) {
           <i class="fa-solid fa-shield-halved text-base"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v21</span></h1>
+          <h1 class="text-sm font-extrabold text-white">Painel Administrativo <span class="text-[10px] text-slate-500 font-mono">v22</span></h1>
           <p class="text-[10px] text-slate-400">Gestão Avançada e Suporte</p>
         </div>
       </a>
@@ -488,12 +535,6 @@ function inicializarLayoutAdmin(paginaAtiva) {
             <span id="edit-id-display" class="font-mono text-emerald-400 font-bold select-all text-[11px]">-</span>
           </div>
           <div class="flex items-center gap-1.5 flex-wrap">
-            <button type="button" id="btn-modal-derrubar-online" onclick="derrubarOnlineUsuarioAdmin(usuarioModalAtual?.id, usuarioModalAtual?.nome)" title="Derrubar status online fantasma" class="bg-amber-600/20 hover:bg-amber-600/35 text-amber-300 border border-amber-500/40 px-2.5 py-1.5 rounded-xl font-bold text-[10px] transition flex items-center gap-1">
-              <i class="fa-solid fa-power-off"></i> Derrubar Online
-            </button>
-            <button type="button" id="btn-modal-encerrar-viagem" onclick="encerrarViagemTravadaAdmin(null, usuarioModalAtual?.id, 'cancelado')" title="Encerrar viagem travada" class="bg-red-600/20 hover:bg-red-600/35 text-red-300 border border-red-500/40 px-2.5 py-1.5 rounded-xl font-bold text-[10px] transition flex items-center gap-1">
-              <i class="fa-solid fa-ban"></i> Encerrar Viagem
-            </button>
             <span id="edit-tipo-badge" class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Usuário</span>
           </div>
         </div>
@@ -908,7 +949,7 @@ function alternarMenuRestricaoCardAdmin(idUsuario) {
 }
 
 function gerarCardAdmin(user) {
-  const statusNorm = normalizarStatusConta(user.status);
+  const statusNorm = resolverStatusEfetivoUsuario(user);
   const isBloqueado = statusNorm === 'bloqueado';
   const isPendente = statusNorm === 'pendente';
   const isMotorista = ehPerfilMotoristaAdmin(user);
@@ -1157,9 +1198,9 @@ async function decidirSegundoVeiculoAdmin(novoStatusV2) {
 function definirStatusModal(status) {
   const st = normalizarStatusConta(status);
   document.getElementById('edit-status-valor').value = st;
-  document.getElementById('btn-status-ativo').className = "py-2 rounded-xl font-bold " + (st === 'aprovado' ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
-  document.getElementById('btn-status-analise').className = "py-2 rounded-xl font-bold " + (st === 'pendente' ? "bg-amber-600/20 text-amber-400 border border-amber-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
-  document.getElementById('btn-status-bloqueado').className = "py-2 rounded-xl font-bold " + (st === 'bloqueado' ? "bg-red-600/20 text-red-400 border border-red-500/30" : "bg-slate-900 text-slate-400 border border-slate-800");
+  document.getElementById('btn-status-ativo').className = "py-2 rounded-xl font-bold transition " + (st === 'aprovado' ? "bg-emerald-600/25 text-emerald-300 border border-emerald-500/50" : "bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200");
+  document.getElementById('btn-status-analise').className = "py-2 rounded-xl font-bold transition " + (st === 'pendente' ? "bg-amber-600/25 text-amber-300 border border-amber-500/50" : "bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200");
+  document.getElementById('btn-status-bloqueado').className = "py-2 rounded-xl font-bold transition " + (st === 'bloqueado' ? "bg-red-600/25 text-red-300 border border-red-500/50" : "bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200");
 }
 
 function gerarSenhaTemporaria() {
@@ -1202,10 +1243,9 @@ async function abrirModalEdicao(id) {
 
   const isMotorista = ehPerfilMotoristaAdmin(user);
   document.getElementById('edit-tipo-badge').innerText = isMotorista ? "Motorista Parceiro" : "Passageiro";
-  atualizarBotoesAcaoRapidaModal(user);
 
   preencherAbaVeiculosMotorista(user);
-  definirStatusModal(user.status || 'aprovado');
+  definirStatusModal(resolverStatusEfetivoUsuario(user));
 
   const abrirEmV2 = isMotorista && temSegundoVeiculoPendenteAdmin(user);
   mudarAbaModal(abrirEmV2 ? 'veiculos' : 'dados');
@@ -1389,63 +1429,69 @@ async function salvarEdicaoUsuario(e) {
   const id = document.getElementById('edit-id').value;
   const senhaTemp = document.getElementById('edit-senha-temp').value;
   const statusEscolhido = normalizarStatusConta(document.getElementById('edit-status-valor').value);
-  const statusAnterior = usuarioModalAtual ? normalizarStatusConta(usuarioModalAtual.status) : statusEscolhido;
   const isMotorista = ehPerfilMotoristaAdmin(usuarioModalAtual);
 
-  const atualizacao = {
+  const dadosBase = {
     nome: document.getElementById('edit-nome').value,
     cpf: document.getElementById('edit-cpf').value,
     telefone: document.getElementById('edit-telefone').value,
-    endereco: document.getElementById('edit-endereco').value,
-    status: statusEscolhido
+    endereco: document.getElementById('edit-endereco').value
   };
 
   if (senhaTemp !== '') {
-    atualizacao.senha = senhaTemp;
-    atualizacao.senha_temporaria = true;
+    dadosBase.senha = senhaTemp;
+    dadosBase.senha_temporaria = true;
   }
 
   if (isMotorista) {
-    atualizacao.veiculo_marca = (document.getElementById('edit-v1-marca').value || '').trim() || null;
-    atualizacao.veiculo_modelo = (document.getElementById('edit-v1-modelo').value || '').trim() || null;
-    atualizacao.veiculo_cor = (document.getElementById('edit-v1-cor').value || '').trim() || null;
-    atualizacao.veiculo_ano = (document.getElementById('edit-v1-ano').value || '').trim() || null;
-    atualizacao.veiculo_placa = ((document.getElementById('edit-v1-placa').value || '').trim()).toUpperCase() || null;
+    dadosBase.veiculo_marca = (document.getElementById('edit-v1-marca').value || '').trim() || null;
+    dadosBase.veiculo_modelo = (document.getElementById('edit-v1-modelo').value || '').trim() || null;
+    dadosBase.veiculo_cor = (document.getElementById('edit-v1-cor').value || '').trim() || null;
+    dadosBase.veiculo_ano = (document.getElementById('edit-v1-ano').value || '').trim() || null;
+    dadosBase.veiculo_placa = ((document.getElementById('edit-v1-placa').value || '').trim()).toUpperCase() || null;
 
     if (temSegundoVeiculoCadastrado(usuarioModalAtual)) {
-      atualizacao.veiculo2_marca = (document.getElementById('edit-v2-marca').value || '').trim() || null;
-      atualizacao.veiculo2_modelo = (document.getElementById('edit-v2-modelo').value || '').trim() || null;
-      atualizacao.veiculo2_cor = (document.getElementById('edit-v2-cor').value || '').trim() || null;
-      atualizacao.veiculo2_ano = (document.getElementById('edit-v2-ano').value || '').trim() || null;
-      atualizacao.veiculo2_placa = ((document.getElementById('edit-v2-placa').value || '').trim()).toUpperCase() || null;
+      dadosBase.veiculo2_marca = (document.getElementById('edit-v2-marca').value || '').trim() || null;
+      dadosBase.veiculo2_modelo = (document.getElementById('edit-v2-modelo').value || '').trim() || null;
+      dadosBase.veiculo2_cor = (document.getElementById('edit-v2-cor').value || '').trim() || null;
+      dadosBase.veiculo2_ano = (document.getElementById('edit-v2-ano').value || '').trim() || null;
+      dadosBase.veiculo2_placa = ((document.getElementById('edit-v2-placa').value || '').trim()).toUpperCase() || null;
     }
   }
 
-  let { error } = await supabaseClient.from('usuarios').update(atualizacao).eq('id', id);
-
-  if (!error && statusEscolhido !== statusAnterior) {
-    const statusAprovacaoAlvo = statusEscolhido === 'aprovado' ? 'aprovado' : (statusEscolhido === 'bloqueado' ? 'bloqueado' : 'pendente');
-    await supabaseClient.from('usuarios').update({ status_aprovacao: statusAprovacaoAlvo }).eq('id', id);
-  }
+  const { completo, baseSemFlagsExtras } = montarPayloadStatusConta(statusEscolhido, dadosBase);
+  const { data: atualizado, error } = await aplicarAtualizacaoUsuarioResiliente(id, completo, baseSemFlagsExtras);
 
   if (error) {
     mostrarAlertaModal("Erro: " + error.message, "erro");
   } else {
+    if (usuarioModalAtual) {
+      usuarioModalAtual = { ...usuarioModalAtual, ...(atualizado || completo) };
+    }
+    const idxCache = listaUsuariosCache.findIndex(u => String(u.id) === String(id));
+    if (idxCache !== -1) {
+      listaUsuariosCache[idxCache] = { ...listaUsuariosCache[idxCache], ...(atualizado || completo) };
+    }
     mostrarAlertaModal("Atualizado com sucesso!", "sucesso");
     setTimeout(() => {
       fecharModalEdicao();
       atualizarDadosGlobais();
-    }, 1000);
+    }, 800);
   }
 }
 
 async function mudarStatusConta(id, novoStatus) {
-  const st = normalizarStatusConta(novoStatus);
-  const { error } = await supabaseClient.from('usuarios').update({ status: st }).eq('id', id);
-  if (!error) {
-    const statusAprovacaoAlvo = st === 'aprovado' ? 'aprovado' : (st === 'bloqueado' ? 'bloqueado' : 'pendente');
-    await supabaseClient.from('usuarios').update({ status_aprovacao: statusAprovacaoAlvo }).eq('id', id);
+  const { completo, baseSemFlagsExtras } = montarPayloadStatusConta(novoStatus);
+  const { data: atualizado, error } = await aplicarAtualizacaoUsuarioResiliente(id, completo, baseSemFlagsExtras);
+
+  if (error) {
+    alert("Erro ao atualizar status: " + error.message);
+    return;
   }
-  if (error) alert("Erro ao atualizar status: " + error.message);
-  else atualizarDadosGlobais();
+
+  const idxCache = listaUsuariosCache.findIndex(u => String(u.id) === String(id));
+  if (idxCache !== -1) {
+    listaUsuariosCache[idxCache] = { ...listaUsuariosCache[idxCache], ...(atualizado || completo) };
+  }
+  atualizarDadosGlobais();
 }
