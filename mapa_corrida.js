@@ -392,7 +392,7 @@ function iniciarEscutaPassageiroRealtime() {
         const statusNorm = normalizarStatusCorrida(corridaAtualizada.status);
         corridaAtivaDados = { ...(corridaAtivaDados || {}), ...corridaAtualizada };
 
-        if (['aceito', 'aceita', 'a_caminho', 'no_local', 'em_andamento', 'em_curso', 'em_viagem', 'iniciada'].includes(statusNorm)) {
+        if (['aceito', 'aceita', 'a_caminho', 'no_local', 'em_andamento', 'em_curso', 'em_viagem', 'iniciada', 'viagem_iniciada'].includes(statusNorm)) {
           const motoristaInfo = await buscarDadosMotoristaAtual(corridaAtivaDados);
           corridaAtualizada.motorista = motoristaInfo;
           corridaAtivaDados = corridaAtualizada;

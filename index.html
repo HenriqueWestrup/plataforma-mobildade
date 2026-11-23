@@ -47,45 +47,8 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.12</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.13</span>
   </header>
-
-  <!-- BARRA FIXA DE COMUNICAÇÃO DA VIAGEM NO INDEX (INDEPENDENTE DO MAPA) -->
-  <div id="barra-comunicacao-index" class="hidden bg-slate-900/95 border-b border-emerald-500/40 px-3 py-2 flex items-center justify-between gap-2 shrink-0 z-30 shadow-lg">
-    <div class="flex items-center gap-2.5 min-w-0">
-      <img id="index-mot-foto" src="https://ui-avatars.com/api/?name=Motorista" class="w-9 h-9 rounded-full object-cover border border-emerald-500 shrink-0">
-      <div class="min-w-0">
-        <div class="flex items-center gap-1.5">
-          <p id="index-mot-nome" class="text-xs font-extrabold text-white truncate">Motorista</p>
-          <span class="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.2 rounded-full border border-amber-500/30 shrink-0">
-            <i class="fa-solid fa-star text-[9px]"></i> <span id="index-mot-nota">5.0</span>
-          </span>
-        </div>
-        <p id="index-mot-status" class="text-[10px] text-emerald-400 font-semibold truncate">Motorista a caminho</p>
-      </div>
-    </div>
-
-    <div class="flex items-center gap-2 shrink-0">
-      <button
-        type="button"
-        onclick="abrirChatViagemIndex()"
-        class="relative bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/50 font-bold px-3 py-2 rounded-xl text-[11px] flex items-center gap-1.5 transition shadow"
-      >
-        <i class="fa-solid fa-comments"></i>
-        <span>Chat</span>
-        <span id="badge-chat-index" class="hidden -top-1.5 -right-1.5 absolute min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center shadow animate-bounce">0</span>
-      </button>
-
-      <button
-        type="button"
-        onclick="iniciarChamadaViagemIndex()"
-        class="bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/50 font-bold px-3 py-2 rounded-xl text-[11px] flex items-center gap-1.5 transition shadow"
-      >
-        <i class="fa-solid fa-phone"></i>
-        <span>Ligar</span>
-      </button>
-    </div>
-  </div>
 
   <!-- GAVETA DO MENU LATERAL -->
   <div id="menu-lateral" class="fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
@@ -104,9 +67,9 @@
       <button type="button" onclick="carregarModuloMapa()" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <i class="fa-solid fa-house text-emerald-400 w-5"></i> Mapa / Início
       </button>
-      <a href="historico.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
+      <button type="button" onclick="carregarModuloHistorico()" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <i class="fa-solid fa-clock-rotate-left text-amber-400 w-5"></i> Histórico de Viagens
-      </a>
+      </button>
       <button type="button" onclick="carregarModuloPerfil()" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <i class="fa-solid fa-user text-sky-400 w-5"></i> Meu Perfil
       </button>
@@ -148,7 +111,7 @@
             <i class="fa-solid fa-comments text-emerald-400"></i>
             <span id="chat-corrida-titulo">Chat do Aplicativo</span>
           </h3>
-          <p id="chat-corrida-subtitulo" class="text-[10px] text-slate-400 truncate">Conversa e histórico</p>
+          <p id="chat-corrida-subtitulo" class="text-[10px] text-slate-400 truncate">Conversa da viagem</p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <button
@@ -167,7 +130,7 @@
       </div>
 
       <div id="chat-corrida-mensagens" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 overflow-y-auto text-[11px] flex-1 min-h-[200px] max-h-72">
-        <p class="text-slate-500 text-center py-4">Carregando histórico...</p>
+        <p class="text-slate-500 text-center py-4">Carregando mensagens...</p>
       </div>
 
       <form id="form-chat-corrida" onsubmit="enviarMensagemCorrida(event)" class="flex gap-2 pt-1 border-t border-slate-800 shrink-0">
@@ -483,11 +446,9 @@
     }
 
     function atualizarBarraComunicacaoIndex(corrida) {
-      const barra = document.getElementById('barra-comunicacao-index');
-      if (!barra) return;
-
       if (!corrida || !corrida.id) {
-        barra.classList.add('hidden');
+        window.estadoViagemPassageiro.corridaId = null;
+        window.estadoViagemPassageiro.motoristaId = null;
         return;
       }
 
@@ -495,7 +456,6 @@
       const motId = corrida.motorista_id || corrida.motorista?.id || null;
 
       if (!motId || STATUS_FINALIZADOS_PASSAGEIRO.includes(statusNorm) || STATUS_CANCELADOS_PASSAGEIRO.includes(statusNorm)) {
-        barra.classList.add('hidden');
         return;
       }
 
@@ -515,23 +475,10 @@
         status: statusNorm
       };
 
-      const imgEl = document.getElementById('index-mot-foto');
-      const nomeEl = document.getElementById('index-mot-nome');
-      const notaEl = document.getElementById('index-mot-nota');
-      const statusEl = document.getElementById('index-mot-status');
-
-      if (imgEl) {
-        imgEl.onerror = function () {
-          this.onerror = null;
-          this.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(primeiroNomeMot)}&background=059669&color=ffffff`;
-        };
-        imgEl.src = fotoUrl;
+      const statusPainelEl = document.getElementById('passageiro-status-viagem-texto');
+      if (statusPainelEl) {
+        statusPainelEl.innerText = textoStatusAmigavel(statusNorm);
       }
-      if (nomeEl) nomeEl.innerText = primeiroNomeMot;
-      if (notaEl) notaEl.innerText = notaFormatada;
-      if (statusEl) statusEl.innerText = textoStatusAmigavel(statusNorm);
-
-      barra.classList.remove('hidden');
     }
 
     async function enriquecerCorridaComMotorista(corrida) {
@@ -593,7 +540,6 @@
     async function exibirAvaliacaoPassageiroInstantanea(corrida) {
       if (!corrida || corridaJaAvaliadaNoIndex(corrida)) return;
 
-      document.getElementById('barra-comunicacao-index')?.classList.add('hidden');
       window.corridaAtualId = corrida.id;
       window.corridaAtivaDados = corrida;
       try {
@@ -635,7 +581,6 @@
       const statusNorm = normalizarStatusIndex(corridaCompleta.status);
 
       if (STATUS_FINALIZADOS_PASSAGEIRO.includes(statusNorm)) {
-        document.getElementById('barra-comunicacao-index')?.classList.add('hidden');
         if (!document.getElementById('painel-avaliacao-passageiro')) {
           await carregarModuloMapa();
         }
@@ -648,7 +593,6 @@
       }
 
       if (STATUS_CANCELADOS_PASSAGEIRO.includes(statusNorm)) {
-        document.getElementById('barra-comunicacao-index')?.classList.add('hidden');
         try {
           localStorage.removeItem('mobiurb_corrida_ativa_passageiro');
           window.corridaAtivaPassageiro = null;
@@ -1189,26 +1133,19 @@
 
     function iniciarRealtimeChatCorrida(corridaId, outroId = null) {
       pararRealtimeChatCorrida();
-      if (!corridaId && !outroId) return;
+      if (!corridaId) return;
 
       canalChatCorridaAtivo = supabaseClient
-        .channel(`mensagens_chat_hist_${corridaId || 'contato'}_${outroId || 'geral'}`)
+        .channel(`mensagens_chat_hist_${corridaId}`)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
-          table: 'mensagens_chat'
+          table: 'mensagens_chat',
+          filter: `corrida_id=eq.${corridaId}`
         }, (payload) => {
           const novaMsg = payload?.new;
-          if (!novaMsg) return;
-          const meuId = obterMeuIdSessao();
-          const mesmaCorrida = corridaId && String(novaMsg.corrida_id) === String(corridaId);
-          const entreMesmoPar = outroId && meuId && (
-            String(novaMsg.remetente_id) === meuId ||
-            String(novaMsg.remetente_id) === String(outroId)
-          );
-          if (mesmaCorrida || entreMesmoPar) {
-            carregarMensagensCorrida(corridaId, outroId);
-          }
+          if (!novaMsg || ehConteudoSuporteOuAvaliacao(novaMsg)) return;
+          carregarMensagensCorrida(corridaId, outroId);
         })
         .subscribe();
     }
@@ -1223,38 +1160,17 @@
     }
 
     async function buscarHistoricoChatComMotorista(corridaId, outroId) {
-      const meuId = obterMeuIdSessao();
-      let idsCorridasComMotorista = [];
+      if (!corridaId) return [];
 
-      if (meuId && outroId) {
-        try {
-          const { data: corridasPar } = await supabaseClient
-            .from('corridas')
-            .select('id')
-            .eq('passageiro_id', meuId)
-            .eq('motorista_id', outroId);
-          if (Array.isArray(corridasPar)) {
-            idsCorridasComMotorista = corridasPar.map(c => c.id).filter(Boolean);
-          }
-        } catch (e) {}
-      }
+      const { data: porCorrida } = await supabaseClient
+        .from('mensagens_chat')
+        .select('*')
+        .eq('corrida_id', corridaId)
+        .order('criado_em', { ascending: true });
 
-      if (corridaId && !idsCorridasComMotorista.includes(corridaId)) {
-        idsCorridasComMotorista.push(corridaId);
-      }
-
-      let lista = [];
-
-      if (idsCorridasComMotorista.length > 0) {
-        const { data: porCorridas } = await supabaseClient
-          .from('mensagens_chat')
-          .select('*')
-          .in('corrida_id', idsCorridasComMotorista)
-          .order('criado_em', { ascending: true });
-        if (Array.isArray(porCorridas)) lista = lista.concat(porCorridas);
-      }
-
+      const lista = Array.isArray(porCorrida) ? porCorrida : [];
       const mapaUnico = new Map();
+
       lista.forEach((item, idx) => {
         if (ehConteudoSuporteOuAvaliacao(item)) return;
         const chave = item.id !== undefined && item.id !== null
@@ -1270,13 +1186,13 @@
 
     async function carregarMensagensCorrida(corridaId = corridaChatAtualId, outroId = outroParticipanteChatId) {
       const container = document.getElementById('chat-corrida-mensagens');
-      if (!container || (!corridaId && !outroId)) return;
+      if (!container || !corridaId) return;
 
       try {
         const msgs = await buscarHistoricoChatComMotorista(corridaId, outroId);
 
         if (!msgs || msgs.length === 0) {
-          container.innerHTML = '<p class="text-slate-500 text-center py-4">Nenhuma mensagem na conversa ainda.</p>';
+          container.innerHTML = '<p class="text-slate-500 text-center py-4">Nenhuma mensagem nesta viagem ainda.</p>';
           return;
         }
 
@@ -1290,14 +1206,13 @@
             ? obterPrimeiroNomeApenas(m.remetente_nome || meuPrimeiroNome, 'Você')
             : obterPrimeiroNomeApenas(m.remetente_nome || outroPrimeiroNome, 'Motorista');
           const horaStr = new Date(m.criado_em || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-          const ehCorridaAtual = corridaId && String(m.corrida_id) === String(corridaId);
 
           return `
             <div class="flex flex-col ${ehMinha ? 'items-end' : 'items-start'}">
               <div class="max-w-[85%] rounded-2xl px-3 py-2 border ${ehMinha ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-50' : 'bg-slate-900 border-slate-800 text-slate-200'} space-y-0.5">
                 <div class="flex items-center justify-between gap-3 text-[9px] text-slate-400">
                   <span class="font-bold ${ehMinha ? 'text-emerald-400' : 'text-amber-400'}">${escaparHtmlChat(nomeExibido)}</span>
-                  <span>${ehCorridaAtual ? '' : 'Viagem anterior • '}${horaStr}</span>
+                  <span>${horaStr}</span>
                 </div>
                 <p class="whitespace-pre-line break-words">${escaparHtmlChat(m.mensagem)}</p>
               </div>
@@ -1307,7 +1222,7 @@
 
         container.scrollTop = container.scrollHeight;
       } catch (err) {
-        container.innerHTML = '<p class="text-amber-300 text-center py-4">Rede instável ao carregar histórico.</p>';
+        container.innerHTML = '<p class="text-amber-300 text-center py-4">Rede instável ao carregar mensagens.</p>';
       }
     }
 
@@ -1321,21 +1236,17 @@
         'Motorista'
       );
 
-      if (!idCorridaAlvo && !idOutroAlvo) return;
+      if (!idCorridaAlvo) return;
 
       corridaChatAtualId = idCorridaAlvo;
       outroParticipanteChatId = idOutroAlvo;
       outroParticipanteChatNome = primeiroNomeAlvo;
 
-      if (idCorridaAlvo) {
-        registrarCanalChamadaCorrida(idCorridaAlvo);
-      }
+      registrarCanalChamadaCorrida(idCorridaAlvo);
       atualizarBadgesChatUnificado(0);
 
-      document.getElementById('chat-corrida-titulo').innerText = `Chat do Aplicativo • ${primeiroNomeAlvo}`;
-      document.getElementById('chat-corrida-subtitulo').innerText = idCorridaAlvo
-        ? `Corrida #${String(idCorridaAlvo).slice(0, 8)} • Histórico mantido`
-        : 'Histórico de conversas';
+      document.getElementById('chat-corrida-titulo').innerText = `Chat • ${primeiroNomeAlvo}`;
+      document.getElementById('chat-corrida-subtitulo').innerText = `Corrida #${String(idCorridaAlvo).slice(0, 8)}`;
       document.getElementById('modal-chat-corrida').classList.remove('hidden');
 
       await carregarMensagensCorrida(idCorridaAlvo, idOutroAlvo);
@@ -1808,6 +1719,34 @@
         setTimeout(() => sincronizarEstadoCorridaAoEntrar(), 120);
       } catch (error) {
         mainApp.innerHTML = '<div class="flex-1 flex justify-center items-center text-red-400">Erro ao carregar o módulo do mapa.</div>';
+      }
+    }
+
+    async function carregarModuloHistorico() {
+      const menu = document.getElementById('menu-lateral');
+      if (menu && !menu.classList.contains('-translate-x-full')) {
+        menu.classList.add('-translate-x-full');
+      }
+
+      const mainApp = document.getElementById('main-app');
+      mainApp.classList.remove('overflow-hidden');
+      mainApp.classList.add('overflow-y-auto');
+
+      const tituloTopo = document.getElementById('titulo-topo-passageiro');
+      if (tituloTopo) tituloTopo.innerText = 'Histórico de Viagens';
+
+      try {
+        const response = await fetch('historico.html');
+        if (!response.ok) throw new Error('Falha ao carregar histórico');
+        const htmlHist = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlHist, 'text/html');
+        const corpo = doc.body ? doc.body.innerHTML : htmlHist;
+        mainApp.innerHTML = `<div class="p-3 space-y-3">${corpo}</div>`;
+
+        injetarScriptsDoModulo(mainApp);
+      } catch (error) {
+        window.location.href = 'historico.html';
       }
     }
 
