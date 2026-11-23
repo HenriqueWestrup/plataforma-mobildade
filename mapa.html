@@ -195,7 +195,7 @@
     </div>
   </div>
 
-  <!-- MODAL FALLBACK DE CHAT (USADO SE NÃO HOUVER MODAL EXTERNO NA PÁGINA PAI) -->
+  <!-- MODAL FALLBACK DE CHAT -->
   <div id="modal-chat-fallback-pass" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-md rounded-3xl p-4 space-y-3 shadow-2xl max-h-[85vh] flex flex-col">
       <div class="flex justify-between items-center border-b border-slate-800 pb-2.5">
@@ -267,14 +267,12 @@
   var valorCalculadoAtual = 0;
   var timerBuscaDebounced = {};
 
-  // --- CONTADOR DE MENSAGENS DO CHAT (SEM ABRIR MODAL À FORÇA) ---
   var naoLidasChatPassageiro = 0;
   var canalContadorChatPass = null;
   var corridaContadorChatId = null;
   var toastMsgPassTimeout = null;
   var modalFallbackPassAberto = false;
 
-  // --- ESTADO DA CHAMADA DE VOZ WEBRTC P2P ---
   var p2pCanal = null;
   var p2pCanalCorridaId = null;
   var p2pCanalInscrito = false;
@@ -461,7 +459,6 @@
     }
   }
 
-  // --- FUNÇÕES WEBRTC P2P ---
   function atualizarUiChamadaPass(estado, statusTexto) {
     const modal = document.getElementById('modal-chamada-p2p-pass');
     const nomeEl = document.getElementById('p2p-pass-nome');
@@ -798,115 +795,19 @@
     });
   }
 
-  function renderizarPainelCorridaImediato(corrida) {
-    if (!corrida || !corrida.id) return false;
-    const status = String(corrida.status || '').toLowerCase();
-    const ativos = ['pendente', 'procurando', 'aceita', 'aceito', 'a_caminho', 'no_local', 'em_andamento', 'em_curso'];
-    if (!ativos.includes(status)) return false;
-
-    corridaAtualId = corrida.id;
-    corridaAtivaDados = corrida;
-
-    const painelSolicitacao = document.getElementById('painel-solicitacao');
-    const painelEspera = document.getElementById('painel-espera-corrida');
-    const painelMotorista = document.getElementById('painel-motorista-encontrado');
-    const btnCancelarAtivo = document.getElementById('btn-cancelar-passageiro-ativo');
-    const blocoEmbarque = document.getElementById('bloco-embarque-container');
-
-    if (status === 'pendente' || status === 'procurando') {
-      painelSolicitacao?.classList.add('hidden');
-      painelMotorista?.classList.add('hidden');
-      painelEspera?.classList.remove('hidden');
-      return true;
-    }
-
-    painelSolicitacao?.classList.add('hidden');
-    painelEspera?.classList.add('hidden');
-    painelMotorista?.classList.remove('hidden');
-
-    const viagemIniciada = status === 'em_andamento' || status === 'em_curso';
-    const mapaStatusTexto = {
-      aceita: 'Motorista a caminho',
-      aceito: 'Motorista a caminho',
-      a_caminho: 'Motorista a caminho',
-      no_local: 'Motorista no local de embarque',
-      em_andamento: 'Viagem em andamento',
-      em_curso: 'Viagem em andamento'
-    };
-
-    const statusEl = document.getElementById('passageiro-status-viagem-texto');
-    if (statusEl) {
-      statusEl.innerText = mapaStatusTexto[status] || 'Viagem em andamento';
-    }
-
-    if (viagemIniciada) {
-      btnCancelarAtivo?.classList.add('hidden');
-      if (blocoEmbarque) blocoEmbarque.style.display = 'none';
-    } else {
-      btnCancelarAtivo?.classList.remove('hidden');
-      if (blocoEmbarque) blocoEmbarque.style.display = 'block';
-    }
-
-    const origemEl = document.getElementById('pass-ativa-origem');
-    const destinoEl = document.getElementById('pass-ativa-destino');
-    const paradaContainer = document.getElementById('bloco-parada-ativa-container');
-    const paradaEl = document.getElementById('pass-ativa-parada');
-
-    if (origemEl) origemEl.innerText = corrida.origem_endereco || corrida.origem || '-';
-    if (destinoEl) destinoEl.innerText = corrida.destino_endereco || corrida.destino || '-';
-
-    if (paradaContainer && paradaEl) {
-      const paradaTexto = corrida.parada_endereco || corrida.parada || '';
-      if (paradaTexto) {
-        paradaEl.innerText = paradaTexto;
-        paradaContainer.classList.remove('hidden');
-      } else {
-        paradaContainer.classList.add('hidden');
-      }
-    }
-
-    const motoristaInfo = corrida.motorista || null;
-    if (motoristaInfo) {
-      const nomeEl = document.getElementById('passageiro-motorista-nome');
-      const fotoEl = document.getElementById('passageiro-motorista-foto');
-      const notaEl = document.getElementById('passageiro-motorista-nota');
-      if (nomeEl) nomeEl.innerText = primeiroNome(motoristaInfo.nome || 'Motorista');
-      if (fotoEl) fotoEl.src = motoristaInfo.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(motoristaInfo.nome || 'Motorista')}`;
-      if (notaEl) notaEl.innerText = Number(motoristaInfo.nota || motoristaInfo.avaliacao || 5).toFixed(1);
-    }
-
-    return true;
-  }
-
-  // --- RESTAURAÇÃO E SINCRONIZAÇÃO DA CORRIDA ATIVA ---
   async function aplicarEstadoCorridaAtivaNoMapa(corridaRecebida = null) {
     let corrida = corridaRecebida || corridaAtivaDados || window.corridaAtivaPassageiro || obterCacheCorridaLocal() || null;
 
     if (corrida && corrida.id) {
-      renderizarPainelCorridaImediato(corrida);
+      corridaAtualId = corrida.id;
+      corridaAtivaDados = corrida;
       garantirCanalChamadaP2P(corrida.id);
       registrarEscutaContadorChatPassageiro(corrida.id);
     }
 
-    if (!corrida && typeof window.buscarCorridaAtivaPassageiro === 'function') {
-      const passAtual = obterPassageiroAtual();
-      corrida = await window.buscarCorridaAtivaPassageiro(passAtual?.id, true);
-    }
-
-    if (!corrida && supabaseMapa) {
-      const passAtual = obterPassageiroAtual();
-      if (passAtual?.id) {
-        const { data } = await supabaseMapa
-          .from('corridas')
-          .select('*, motorista:motorista_id(nome, foto_url, nota)')
-          .eq('passageiro_id', passAtual.id)
-          .in('status', ['pendente', 'procurando', 'aceita', 'aceito', 'a_caminho', 'no_local', 'em_andamento', 'em_curso'])
-          .order('id', { ascending: false })
-          .limit(1);
-        if (Array.isArray(data) && data.length > 0) {
-          corrida = data[0];
-        }
-      }
+    if (typeof verificarCorridaAtivaPassageiro === 'function') {
+      await verificarCorridaAtivaPassageiro();
+      return;
     }
 
     if (!corrida || !corrida.id) {
@@ -915,33 +816,6 @@
       document.getElementById('painel-espera-corrida')?.classList.add('hidden');
       document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
       document.getElementById('painel-solicitacao')?.classList.remove('hidden');
-      return;
-    }
-
-    corridaAtualId = corrida.id;
-    corridaAtivaDados = corrida;
-    window.corridaAtivaPassageiro = corrida;
-    garantirCanalChamadaP2P(corrida.id);
-    registrarEscutaContadorChatPassageiro(corrida.id);
-
-    renderizarPainelCorridaImediato(corrida);
-
-    if (!corrida.motorista && corrida.motorista_id && supabaseMapa) {
-      try {
-        const { data: motData } = await supabaseMapa
-          .from('usuarios')
-          .select('id, nome, foto_url, avaliacao, nota')
-          .eq('id', corrida.motorista_id)
-          .single();
-        if (motData) {
-          corridaAtivaDados = { ...corridaAtivaDados, motorista: motData };
-          renderizarPainelCorridaImediato(corridaAtivaDados);
-        }
-      } catch (_) {}
-    }
-
-    if (typeof verificarCorridaAtivaPassageiro === 'function') {
-      verificarCorridaAtivaPassageiro();
     }
   }
 
@@ -963,7 +837,7 @@
       garantirCanalChamadaP2P(idAtivo);
       registrarEscutaContadorChatPassageiro(idAtivo);
     }
-  }, 2000);
+  }, 3000);
 
   function atualizarEstadoBotaoChamar(estado, textoCustomizado = '') {
     const btn = document.getElementById('btn-chamar-motorista');
@@ -1152,9 +1026,6 @@
   async function inicializarMapa() {
     const containerMapa = document.getElementById('map');
     if (!containerMapa) return;
-
-    // Restaura imediatamente do cache/memória antes de aguardar rede ou regras
-    await aplicarEstadoCorridaAtivaNoMapa();
 
     if (mapaLeaflet && mapaLeaflet.getContainer && mapaLeaflet.getContainer() !== containerMapa) {
       try { mapaLeaflet.remove(); } catch (_) {}

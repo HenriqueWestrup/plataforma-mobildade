@@ -280,6 +280,15 @@
       'iniciada',
       'viagem_iniciada'
     ];
+    const STATUS_ENCERRADOS_PASSAGEIRO = [
+      'concluido',
+      'concluida',
+      'finalizada',
+      'cancelado',
+      'cancelada',
+      'expirado',
+      'expirada'
+    ];
     const CHAVE_CORRIDA_ATIVA_PASSAGEIRO = 'mobiurb_corrida_ativa_passageiro';
 
     let usuarioLogado = null;
@@ -324,28 +333,50 @@
 
     async function enriquecerCorridaComMotorista(corrida) {
       if (!corrida || !corrida.id) return corrida;
-      if (corrida.motorista && corrida.motorista.nome) return corrida;
-      if (!corrida.motorista_id) return corrida;
 
-      try {
-        const { data: mot } = await supabaseClient
-          .from('usuarios')
-          .select('id, nome, foto_url, avaliacao')
-          .eq('id', corrida.motorista_id)
-          .maybeSingle();
+      const motoristaId = corrida.motorista_id || corrida.motorista?.id || null;
+      let base = corrida.motorista && typeof corrida.motorista === 'object'
+        ? { ...corrida.motorista }
+        : {};
 
-        if (mot) {
-          return {
-            ...corrida,
-            motorista: {
-              id: mot.id,
-              nome: mot.nome || 'Motorista',
-              foto_url: mot.foto_url || avatarPadraoUrl(mot.nome || 'Motorista'),
-              avaliacao: mot.avaliacao ?? 5.0
-            }
-          };
-        }
-      } catch (e) {}
+      if (motoristaId) {
+        try {
+          const { data: mot } = await supabaseClient
+            .from('usuarios')
+            .select('id, nome, foto_url, avaliacao, nota')
+            .eq('id', motoristaId)
+            .maybeSingle();
+
+          if (mot) {
+            const notaValor = mot.avaliacao ?? mot.nota ?? base.avaliacao ?? base.nota ?? 5.0;
+            base = {
+              ...base,
+              id: mot.id || motoristaId,
+              nome: mot.nome || base.nome || 'Motorista Parceiro',
+              foto_url: mot.foto_url || base.foto_url || avatarPadraoUrl(mot.nome || base.nome || 'Motorista'),
+              avaliacao: notaValor,
+              nota: notaValor
+            };
+          }
+        } catch (e) {}
+      }
+
+      if (base.nome || motoristaId) {
+        const nomeFinal = base.nome || 'Motorista Parceiro';
+        const notaFinal = base.avaliacao ?? base.nota ?? 5.0;
+        return {
+          ...corrida,
+          motorista_id: motoristaId,
+          motorista: {
+            id: base.id || motoristaId,
+            nome: nomeFinal,
+            foto_url: base.foto_url || avatarPadraoUrl(nomeFinal),
+            avaliacao: notaFinal,
+            nota: notaFinal
+          }
+        };
+      }
+
       return corrida;
     }
 
@@ -387,7 +418,10 @@
       if (!idAlvo) return null;
 
       if (!forcarBanco && corridaAtivaPassageiro && String(corridaAtivaPassageiro.passageiro_id) === String(idAlvo)) {
-        return corridaAtivaPassageiro;
+        const stMem = normalizarStatusCorrida(corridaAtivaPassageiro.status);
+        if (STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(stMem)) {
+          return corridaAtivaPassageiro;
+        }
       }
 
       try {
@@ -395,24 +429,25 @@
           .from('corridas')
           .select('*')
           .eq('passageiro_id', idAlvo)
-          .in('status', STATUS_CORRIDA_ATIVA_PASSAGEIRO)
           .order('id', { ascending: false })
-          .limit(1);
+          .limit(5);
 
         if (!error && Array.isArray(data) && data.length > 0) {
-          let corridaCompleta = data[0];
-          corridaCompleta = await enriquecerCorridaComMotorista(corridaCompleta);
-          corridaAtivaPassageiro = corridaCompleta;
-          window.corridaAtivaPassageiro = corridaAtivaPassageiro;
-          if (corridaCompleta.motorista_id) {
-            outroParticipanteChatId = corridaCompleta.motorista_id;
+          const ativa = data.find(item => STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(normalizarStatusCorrida(item.status)));
+          if (ativa) {
+            const corridaCompleta = await enriquecerCorridaComMotorista(ativa);
+            corridaAtivaPassageiro = corridaCompleta;
+            window.corridaAtivaPassageiro = corridaAtivaPassageiro;
+            if (corridaCompleta.motorista_id) {
+              outroParticipanteChatId = corridaCompleta.motorista_id;
+            }
+            if (corridaCompleta.motorista?.nome) {
+              outroParticipanteChatNome = corridaCompleta.motorista.nome;
+            }
+            salvarCorridaAtivaCache(corridaAtivaPassageiro);
+            registrarCanalChamadaCorrida(corridaAtivaPassageiro.id);
+            return corridaAtivaPassageiro;
           }
-          if (corridaCompleta.motorista?.nome) {
-            outroParticipanteChatNome = corridaCompleta.motorista.nome;
-          }
-          salvarCorridaAtivaCache(corridaAtivaPassageiro);
-          registrarCanalChamadaCorrida(corridaAtivaPassageiro.id);
-          return corridaAtivaPassageiro;
         }
 
         corridaAtivaPassageiro = null;
@@ -424,8 +459,9 @@
         if (cache) {
           corridaAtivaPassageiro = cache;
           window.corridaAtivaPassageiro = corridaAtivaPassageiro;
+          return corridaAtivaPassageiro;
         }
-        return corridaAtivaPassageiro;
+        return null;
       }
     }
 
@@ -460,7 +496,7 @@
             salvarCorridaAtivaCache(corridaAtivaPassageiro);
             registrarCanalChamadaCorrida(corridaAtivaPassageiro.id);
             notificarCorridaAtivaParaModulos(corridaAtivaPassageiro);
-          } else {
+          } else if (STATUS_ENCERRADOS_PASSAGEIRO.includes(st) || payload.eventType === 'DELETE') {
             const ativaAtual = await buscarCorridaAtivaPassageiro(usuarioLogado.id, true);
             notificarCorridaAtivaParaModulos(ativaAtual);
           }
