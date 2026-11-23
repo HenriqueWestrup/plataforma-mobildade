@@ -86,7 +86,7 @@
     </div>
   </div>
 
-  <!-- CONTEÚDO PRINCIPAL -->
+  <!-- CONTEÚDO PRINCIPAL (EXCLUSIVO PARA OS MÓDULOS DO PASSAGEIRO) -->
   <main id="main-app" class="flex-1 overflow-hidden relative flex flex-col bg-slate-950 text-slate-100">
     <div id="map-loader" class="flex-1 flex flex-col justify-center items-center text-slate-500 gap-3">
       <i class="fa-solid fa-map-location-dot text-4xl animate-pulse"></i>
@@ -267,37 +267,11 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const STATUS_CORRIDA_ATIVA_PASSAGEIRO = [
-      'pendente',
-      'procurando',
-      'aceita',
-      'aceito',
-      'a_caminho',
-      'no_local',
-      'em_andamento',
-      'em_curso',
-      'em_viagem',
-      'iniciada',
-      'viagem_iniciada'
-    ];
-    const STATUS_ENCERRADOS_PASSAGEIRO = [
-      'concluido',
-      'concluida',
-      'finalizada',
-      'cancelado',
-      'cancelada',
-      'expirado',
-      'expirada'
-    ];
-    const CHAVE_CORRIDA_ATIVA_PASSAGEIRO = 'mobiurb_corrida_ativa_passageiro';
-
     let usuarioLogado = null;
-    let corridaAtivaPassageiro = null;
     let intervaloHeartbeat = null;
     let intervaloValidacaoSessaoPassageiro = null;
     let desconectandoSessao = false;
     let canalRealtimePassageiro = null;
-    let canalRealtimeCorridasPassageiro = null;
     let canalRealtimeSuporte = null;
     let canalChatCorridaAtivo = null;
     let corridaChatAtualId = null;
@@ -323,189 +297,9 @@
       ]
     };
 
-    function normalizarStatusCorrida(status) {
-      return String(status || '').trim().toLowerCase().replace(/\s+/g, '_');
-    }
-
     function avatarPadraoUrl(nome = 'Passageiro') {
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(nome || 'Passageiro')}`;
     }
-
-    async function enriquecerCorridaComMotorista(corrida) {
-      if (!corrida || !corrida.id) return corrida;
-
-      const motoristaId = corrida.motorista_id || corrida.motorista?.id || null;
-      let base = corrida.motorista && typeof corrida.motorista === 'object'
-        ? { ...corrida.motorista }
-        : {};
-
-      if (motoristaId) {
-        try {
-          const { data: mot } = await supabaseClient
-            .from('usuarios')
-            .select('id, nome, foto_url, avaliacao, nota')
-            .eq('id', motoristaId)
-            .maybeSingle();
-
-          if (mot) {
-            const notaValor = mot.avaliacao ?? mot.nota ?? base.avaliacao ?? base.nota ?? 5.0;
-            base = {
-              ...base,
-              id: mot.id || motoristaId,
-              nome: mot.nome || base.nome || 'Motorista Parceiro',
-              foto_url: mot.foto_url || base.foto_url || avatarPadraoUrl(mot.nome || base.nome || 'Motorista'),
-              avaliacao: notaValor,
-              nota: notaValor
-            };
-          }
-        } catch (e) {}
-      }
-
-      if (base.nome || motoristaId) {
-        const nomeFinal = base.nome || 'Motorista Parceiro';
-        const notaFinal = base.avaliacao ?? base.nota ?? 5.0;
-        return {
-          ...corrida,
-          motorista_id: motoristaId,
-          motorista: {
-            id: base.id || motoristaId,
-            nome: nomeFinal,
-            foto_url: base.foto_url || avatarPadraoUrl(nomeFinal),
-            avaliacao: notaFinal,
-            nota: notaFinal
-          }
-        };
-      }
-
-      return corrida;
-    }
-
-    function salvarCorridaAtivaCache(corrida) {
-      try {
-        const st = normalizarStatusCorrida(corrida?.status);
-        if (!corrida || !corrida.id || !STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(st)) {
-          localStorage.removeItem(CHAVE_CORRIDA_ATIVA_PASSAGEIRO);
-          return;
-        }
-        localStorage.setItem(CHAVE_CORRIDA_ATIVA_PASSAGEIRO, JSON.stringify({
-          passageiro_id: usuarioLogado?.id || corrida.passageiro_id || null,
-          corrida
-        }));
-      } catch (e) {}
-    }
-
-    function lerCorridaAtivaCache(passageiroId) {
-      try {
-        const bruto = localStorage.getItem(CHAVE_CORRIDA_ATIVA_PASSAGEIRO);
-        if (!bruto) return null;
-        const parsed = JSON.parse(bruto);
-        if (!parsed?.corrida || !parsed.corrida.id) return null;
-        if (passageiroId && parsed.passageiro_id && String(parsed.passageiro_id) !== String(passageiroId)) {
-          return null;
-        }
-        const st = normalizarStatusCorrida(parsed.corrida.status);
-        if (!STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(st)) {
-          return null;
-        }
-        return parsed.corrida;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    async function buscarCorridaAtivaPassageiro(passageiroId = usuarioLogado?.id, forcarBanco = true) {
-      const idAlvo = passageiroId || usuarioLogado?.id;
-      if (!idAlvo) return null;
-
-      if (!forcarBanco && corridaAtivaPassageiro && String(corridaAtivaPassageiro.passageiro_id) === String(idAlvo)) {
-        const stMem = normalizarStatusCorrida(corridaAtivaPassageiro.status);
-        if (STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(stMem)) {
-          return corridaAtivaPassageiro;
-        }
-      }
-
-      try {
-        const { data, error } = await supabaseClient
-          .from('corridas')
-          .select('*')
-          .eq('passageiro_id', idAlvo)
-          .order('id', { ascending: false })
-          .limit(5);
-
-        if (!error && Array.isArray(data) && data.length > 0) {
-          const ativa = data.find(item => STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(normalizarStatusCorrida(item.status)));
-          if (ativa) {
-            const corridaCompleta = await enriquecerCorridaComMotorista(ativa);
-            corridaAtivaPassageiro = corridaCompleta;
-            window.corridaAtivaPassageiro = corridaAtivaPassageiro;
-            if (corridaCompleta.motorista_id) {
-              outroParticipanteChatId = corridaCompleta.motorista_id;
-            }
-            if (corridaCompleta.motorista?.nome) {
-              outroParticipanteChatNome = corridaCompleta.motorista.nome;
-            }
-            salvarCorridaAtivaCache(corridaAtivaPassageiro);
-            registrarCanalChamadaCorrida(corridaAtivaPassageiro.id);
-            return corridaAtivaPassageiro;
-          }
-        }
-
-        corridaAtivaPassageiro = null;
-        window.corridaAtivaPassageiro = null;
-        salvarCorridaAtivaCache(null);
-        return null;
-      } catch (e) {
-        const cache = lerCorridaAtivaCache(idAlvo);
-        if (cache) {
-          corridaAtivaPassageiro = cache;
-          window.corridaAtivaPassageiro = corridaAtivaPassageiro;
-          return corridaAtivaPassageiro;
-        }
-        return null;
-      }
-    }
-
-    function notificarCorridaAtivaParaModulos(corrida) {
-      window.corridaAtivaPassageiro = corrida || null;
-      try {
-        window.dispatchEvent(new CustomEvent('corridaAtivaAtualizada', {
-          detail: { corrida: corrida || null }
-        }));
-      } catch (e) {}
-    }
-
-    function iniciarEscutaRealtimeCorridasPassageiro() {
-      if (!usuarioLogado?.id) return;
-      if (canalRealtimeCorridasPassageiro) {
-        supabaseClient.removeChannel(canalRealtimeCorridasPassageiro);
-      }
-
-      canalRealtimeCorridasPassageiro = supabaseClient
-        .channel(`public:corridas_passageiro:${usuarioLogado.id}`)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'corridas',
-          filter: `passageiro_id=eq.${usuarioLogado.id}`
-        }, async (payload) => {
-          const registro = payload.new || payload.old;
-          const st = normalizarStatusCorrida(registro?.status);
-          if (registro && STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(st) && payload.eventType !== 'DELETE') {
-            const completa = await enriquecerCorridaComMotorista(payload.new);
-            corridaAtivaPassageiro = completa;
-            salvarCorridaAtivaCache(corridaAtivaPassageiro);
-            registrarCanalChamadaCorrida(corridaAtivaPassageiro.id);
-            notificarCorridaAtivaParaModulos(corridaAtivaPassageiro);
-          } else if (STATUS_ENCERRADOS_PASSAGEIRO.includes(st) || payload.eventType === 'DELETE') {
-            const ativaAtual = await buscarCorridaAtivaPassageiro(usuarioLogado.id, true);
-            notificarCorridaAtivaParaModulos(ativaAtual);
-          }
-        })
-        .subscribe();
-    }
-
-    window.buscarCorridaAtivaPassageiro = buscarCorridaAtivaPassageiro;
-    window.corridaAtivaPassageiro = null;
 
     function forcarDesconexaoPorNovoLogin() {
       if (desconectandoSessao) return;
@@ -514,7 +308,6 @@
       if (intervaloHeartbeat) clearInterval(intervaloHeartbeat);
       if (intervaloValidacaoSessaoPassageiro) clearInterval(intervaloValidacaoSessaoPassageiro);
       if (canalRealtimePassageiro) supabaseClient.removeChannel(canalRealtimePassageiro);
-      if (canalRealtimeCorridasPassageiro) supabaseClient.removeChannel(canalRealtimeCorridasPassageiro);
       if (canalRealtimeSuporte) supabaseClient.removeChannel(canalRealtimeSuporte);
       if (typeof encerrarChamadaP2P === 'function') encerrarChamadaP2P(false);
       if (typeof pararRealtimeChatCorrida === 'function') pararRealtimeChatCorrida();
@@ -813,19 +606,14 @@
     }
 
     async function iniciarChamadaP2P({ corridaId, outroUsuarioId = null, outroNome = 'Motorista' }) {
-      let corridaRef = corridaAtivaPassageiro || window.corridaAtivaPassageiro || lerCorridaAtivaCache(usuarioLogado?.id);
-      if (!corridaRef && typeof buscarCorridaAtivaPassageiro === 'function') {
-        corridaRef = await buscarCorridaAtivaPassageiro(usuarioLogado?.id, true);
-      }
-
-      const idCorridaAlvo = corridaId || corridaRef?.id || null;
+      const idCorridaAlvo = corridaId || window.corridaAtualId || window.corridaAtivaDados?.id || null;
       if (!idCorridaAlvo) {
         alert('Nenhuma corrida ativa para iniciar chamada de voz.');
         return;
       }
 
-      const nomeAlvo = outroNome || corridaRef?.motorista?.nome || outroParticipanteChatNome || 'Motorista';
-      const idOutroAlvo = outroUsuarioId || corridaRef?.motorista_id || outroParticipanteChatId || null;
+      const nomeAlvo = outroNome || window.corridaAtivaDados?.motorista?.nome || outroParticipanteChatNome || 'Motorista';
+      const idOutroAlvo = outroUsuarioId || window.corridaAtivaDados?.motorista_id || outroParticipanteChatId || null;
 
       registrarCanalChamadaCorrida(idCorridaAlvo);
       outroParticipanteChatId = idOutroAlvo;
@@ -893,7 +681,7 @@
     }
 
     function abrirChamadaPeloAtalhoChat() {
-      const idAlvo = corridaChamadaAtualId || corridaChatAtualId || corridaAtivaPassageiro?.id;
+      const idAlvo = corridaChamadaAtualId || corridaChatAtualId || window.corridaAtualId || window.corridaAtivaDados?.id;
       if (!idAlvo) return;
       fecharChatCorrida();
       iniciarChamadaP2P({
@@ -904,7 +692,7 @@
     }
 
     function abrirChatDuranteChamada() {
-      const idAlvo = corridaChamadaAtualId || corridaChatAtualId || corridaAtivaPassageiro?.id;
+      const idAlvo = corridaChamadaAtualId || corridaChatAtualId || window.corridaAtualId || window.corridaAtivaDados?.id;
       if (!idAlvo) return;
       abrirChatCorrida(idAlvo, outroParticipanteChatNome, outroParticipanteChatId);
     }
@@ -1007,13 +795,8 @@
     }
 
     async function abrirChatCorrida(corridaId, nomeOutroParticipante = 'Motorista', outroId = null) {
-      let corridaRef = corridaAtivaPassageiro || window.corridaAtivaPassageiro || lerCorridaAtivaCache(usuarioLogado?.id);
-      if ((!corridaId || !outroId) && typeof buscarCorridaAtivaPassageiro === 'function') {
-        const buscada = await buscarCorridaAtivaPassageiro(usuarioLogado?.id, true);
-        if (buscada) corridaRef = buscada;
-      }
-
-      const idCorridaAlvo = corridaId || corridaRef?.id || null;
+      const corridaRef = window.corridaAtivaDados || null;
+      const idCorridaAlvo = corridaId || corridaRef?.id || window.corridaAtualId || null;
       const idOutroAlvo = outroId || corridaRef?.motorista_id || outroParticipanteChatId || null;
       const nomeAlvo = nomeOutroParticipante || corridaRef?.motorista?.nome || outroParticipanteChatNome || 'Motorista';
 
@@ -1235,19 +1018,10 @@
         return;
       }
 
-      const cacheCorrida = lerCorridaAtivaCache(usuarioLogado?.id);
-      if (cacheCorrida) {
-        corridaAtivaPassageiro = cacheCorrida;
-        window.corridaAtivaPassageiro = cacheCorrida;
-      }
-
       await verificarDadosUsuarioAtualizados();
       if (desconectandoSessao) return;
 
-      await buscarCorridaAtivaPassageiro(usuarioLogado.id, true);
-
       iniciarEscutaRealtimeStatus();
-      iniciarEscutaRealtimeCorridasPassageiro();
       iniciarEscutaSuporteRealtime();
       atualizarContadorNotificacoes();
 
@@ -1490,8 +1264,6 @@
       const tituloTopo = document.getElementById('titulo-topo-passageiro');
       if (tituloTopo) tituloTopo.innerText = 'Mobilidade Laguna';
 
-      const corridaAtual = await buscarCorridaAtivaPassageiro(usuarioLogado?.id, true);
-
       try {
         const response = await fetch('mapa.html');
         if (!response.ok) throw new Error('Falha ao carregar mapa');
@@ -1499,7 +1271,6 @@
         mainApp.innerHTML = htmlMapa;
 
         injetarScriptsDoModulo(mainApp);
-        notificarCorridaAtivaParaModulos(corridaAtual);
       } catch (error) {
         mainApp.innerHTML = '<div class="flex-1 flex justify-center items-center text-red-400">Erro ao carregar o módulo do mapa.</div>';
       }
@@ -1555,7 +1326,9 @@
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
           atualizarPresenca(true);
-          buscarCorridaAtivaPassageiro(usuarioLogado?.id, true).then(notificarCorridaAtivaParaModulos);
+          if (typeof window.verificarCorridaAtivaPassageiro === 'function') {
+            window.verificarCorridaAtivaPassageiro();
+          }
         } else {
           atualizarPresenca(false);
         }
