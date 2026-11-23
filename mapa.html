@@ -300,11 +300,24 @@
 
   function obterPassageiroAtual() {
     try {
-      const raw = localStorage.getItem('passageiro_logado');
-      return raw ? JSON.parse(raw) : null;
-    } catch (_) {
-      return null;
-    }
+      const rawLogado = localStorage.getItem('passageiro_logado');
+      if (rawLogado) {
+        const parsed = JSON.parse(rawLogado);
+        if (parsed && parsed.id) return parsed;
+      }
+    } catch (_) {}
+
+    try {
+      const rawCache = localStorage.getItem('mobiurb_corrida_ativa_passageiro');
+      if (rawCache) {
+        const parsedCache = JSON.parse(rawCache);
+        if (parsedCache && parsedCache.passageiro_id) {
+          return { id: parsedCache.passageiro_id, nome: parsedCache.passageiro_nome || 'Passageiro' };
+        }
+      }
+    } catch (_) {}
+
+    return null;
   }
 
   function obterCacheCorridaLocal() {
@@ -316,6 +329,156 @@
     } catch (_) {
       return null;
     }
+  }
+
+  function salvarCacheCorridaNoMapa(corrida) {
+    try {
+      if (!corrida || !corrida.id) {
+        localStorage.removeItem('mobiurb_corrida_ativa_passageiro');
+        window.corridaAtivaPassageiro = null;
+        return;
+      }
+      window.corridaAtivaPassageiro = corrida;
+      const passAtual = obterPassageiroAtual();
+      localStorage.setItem('mobiurb_corrida_ativa_passageiro', JSON.stringify({
+        passageiro_id: corrida.passageiro_id || passAtual?.id || null,
+        passageiro_nome: passAtual?.nome || 'Passageiro',
+        corrida
+      }));
+    } catch (_) {}
+  }
+
+  function exibirPainelCorridaEmTelaNoMapa(corrida) {
+    if (!corrida || !corrida.id) return;
+
+    const statusNorm = String(corrida.status || '').trim().toLowerCase().replace(/\s+/g, '_');
+    corridaAtualId = corrida.id;
+    corridaAtivaDados = corrida;
+    window.corridaAtualId = corrida.id;
+    window.corridaAtivaDados = corrida;
+    salvarCacheCorridaNoMapa(corrida);
+
+    document.getElementById('painel-solicitacao')?.classList.add('hidden');
+    document.getElementById('painel-avaliacao-passageiro')?.classList.add('hidden');
+
+    if (['procurando', 'pendente'].includes(statusNorm)) {
+      document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
+      document.getElementById('painel-espera-corrida')?.classList.remove('hidden');
+      if (typeof iniciarTimerEsperaCorrida === 'function') {
+        iniciarTimerEsperaCorrida();
+      }
+    } else {
+      document.getElementById('painel-espera-corrida')?.classList.add('hidden');
+      document.getElementById('painel-motorista-encontrado')?.classList.remove('hidden');
+
+      const nomeMot = primeiroNome(corrida.motorista?.nome || 'Motorista');
+      const nomeEl = document.getElementById('passageiro-motorista-nome');
+      const fotoEl = document.getElementById('passageiro-motorista-foto');
+      const notaEl = document.getElementById('passageiro-motorista-nota');
+      const statusEl = document.getElementById('passageiro-status-viagem-texto');
+      const origemEl = document.getElementById('pass-ativa-origem');
+      const destinoEl = document.getElementById('pass-ativa-destino');
+      const paradaEl = document.getElementById('pass-ativa-parada');
+      const blocoParada = document.getElementById('bloco-parada-ativa-container');
+      const btnCancelar = document.getElementById('btn-cancelar-passageiro-ativo');
+      const blocoEmbarque = document.getElementById('bloco-embarque-container');
+
+      if (nomeEl) nomeEl.innerText = nomeMot;
+      if (fotoEl) {
+        fotoEl.src = corrida.motorista?.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeMot)}&background=059669&color=ffffff`;
+      }
+      if (notaEl) notaEl.innerText = corrida.motorista?.avaliacao || corrida.motorista?.nota || '5.0';
+      if (origemEl) origemEl.innerText = corrida.origem || corrida.origem_endereco || '-';
+      if (destinoEl) destinoEl.innerText = corrida.destino || corrida.destino_endereco || '-';
+
+      const textoParada = corrida.parada || corrida.parada_endereco || '';
+      if (textoParada) {
+        if (paradaEl) paradaEl.innerText = textoParada;
+        blocoParada?.classList.remove('hidden');
+      } else {
+        blocoParada?.classList.add('hidden');
+      }
+
+      const emAndamento = ['em_andamento', 'em_curso', 'em_viagem', 'iniciada', 'viagem_iniciada'].includes(statusNorm);
+      if (emAndamento) {
+        if (statusEl) statusEl.innerText = 'Viagem em andamento';
+        btnCancelar?.classList.add('hidden');
+        if (blocoEmbarque) blocoEmbarque.style.display = 'none';
+      } else {
+        if (statusEl) {
+          statusEl.innerText = statusNorm === 'no_local'
+            ? 'Motorista no local de embarque'
+            : 'Motorista a caminho';
+        }
+        btnCancelar?.classList.remove('hidden');
+        if (blocoEmbarque) blocoEmbarque.style.display = 'block';
+      }
+
+      if (typeof atualizarIlustracaoJornada === 'function') {
+        atualizarIlustracaoJornada(statusNorm);
+      }
+    }
+
+    garantirCanalChamadaP2P(corrida.id);
+    registrarEscutaContadorChatPassageiro(corrida.id);
+  }
+
+  async function consultarCorridaAtivaDiretoNoBanco() {
+    const pass = obterPassageiroAtual();
+    const cacheLocal = obterCacheCorridaLocal();
+    const cliente = supabaseMapa || window.supabaseClient || null;
+
+    if (cacheLocal && cacheLocal.id) {
+      exibirPainelCorridaEmTelaNoMapa(cacheLocal);
+    }
+
+    if (!pass?.id || !cliente) {
+      return cacheLocal;
+    }
+
+    try {
+      const { data, error } = await cliente
+        .from('corridas')
+        .select('*')
+        .eq('passageiro_id', pass.id)
+        .in('status', [
+          'pendente',
+          'procurando',
+          'aceita',
+          'aceito',
+          'a_caminho',
+          'no_local',
+          'em_andamento',
+          'em_curso',
+          'em_viagem',
+          'iniciada',
+          'viagem_iniciada'
+        ])
+        .order('id', { ascending: false })
+        .limit(1);
+
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const corridaBanco = data[0];
+        if (corridaBanco.motorista_id) {
+          const { data: motRow } = await cliente
+            .from('usuarios')
+            .select('id, nome, foto_url, avaliacao, nota')
+            .eq('id', corridaBanco.motorista_id)
+            .maybeSingle();
+          if (motRow) {
+            corridaBanco.motorista = motRow;
+          }
+        }
+        exibirPainelCorridaEmTelaNoMapa(corridaBanco);
+        return corridaBanco;
+      }
+
+      if (!error && (!data || data.length === 0)) {
+        salvarCacheCorridaNoMapa(null);
+      }
+    } catch (_) {}
+
+    return cacheLocal;
   }
 
   function mostrarToastPass(texto) {
@@ -796,26 +959,21 @@
   }
 
   async function aplicarEstadoCorridaAtivaNoMapa(corridaRecebida = null) {
-    let corrida = corridaRecebida || corridaAtivaDados || window.corridaAtivaPassageiro || obterCacheCorridaLocal() || null;
+    const corrida = corridaRecebida || corridaAtivaDados || window.corridaAtivaPassageiro || obterCacheCorridaLocal() || null;
 
     if (corrida && corrida.id) {
-      corridaAtualId = corrida.id;
-      corridaAtivaDados = corrida;
-      garantirCanalChamadaP2P(corrida.id);
-      registrarEscutaContadorChatPassageiro(corrida.id);
+      exibirPainelCorridaEmTelaNoMapa(corrida);
     }
 
     if (typeof window.verificarCorridaAtivaPassageiro === 'function') {
       await window.verificarCorridaAtivaPassageiro();
-      return;
+    } else {
+      await consultarCorridaAtivaDiretoNoBanco();
     }
 
-    if (!corrida || !corrida.id) {
-      corridaAtualId = null;
-      corridaAtivaDados = null;
-      document.getElementById('painel-espera-corrida')?.classList.add('hidden');
-      document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
-      document.getElementById('painel-solicitacao')?.classList.remove('hidden');
+    const corridaFinal = corridaAtivaDados || window.corridaAtivaPassageiro || obterCacheCorridaLocal() || null;
+    if (corridaFinal && corridaFinal.id) {
+      exibirPainelCorridaEmTelaNoMapa(corridaFinal);
     }
   }
 
@@ -836,6 +994,8 @@
     if (idAtivo) {
       garantirCanalChamadaP2P(idAtivo);
       registrarEscutaContadorChatPassageiro(idAtivo);
+    } else if (!document.hidden) {
+      consultarCorridaAtivaDiretoNoBanco();
     }
   }, 3000);
 
@@ -1031,6 +1191,8 @@
   async function inicializarMapa() {
     const containerMapa = document.getElementById('map');
     if (!containerMapa) return;
+
+    await consultarCorridaAtivaDiretoNoBanco();
 
     if (mapaLeaflet && mapaLeaflet.getContainer && mapaLeaflet.getContainer() !== containerMapa) {
       try { mapaLeaflet.remove(); } catch (_) {}
