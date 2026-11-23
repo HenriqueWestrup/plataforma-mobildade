@@ -499,6 +499,7 @@
           statusOnline = false;
           localStorage.setItem('motorista_online', 'false');
           pararRastreamentoGPS();
+          atualizarStatusViagensNoBanco(false);
         }
         if (btnDesligar) btnDesligar.classList.add('hidden');
         if (luz && !corridaAtiva) {
@@ -1249,17 +1250,65 @@
       }
     }
 
-    async function atualizarPresencaNoApp(estaOnlineNoApp) {
+    async function atualizarPresencaNoApp(appVisivel) {
       if (!motoristaLogado || !motoristaLogado.id || desconectandoSessaoMotorista) return;
       try {
         const agoraIso = new Date().toISOString();
         await supabaseClient
           .from('usuarios')
           .update({
-            online: estaOnlineNoApp,
             ultimo_acesso: agoraIso
           })
           .eq('id', motoristaLogado.id);
+
+        if (!appVisivel && statusOnline) {
+          // Mantém o estado de viagens se o motorista estiver em corrida ou apenas em segundo plano,
+          // mas atualiza o carimbo de acesso.
+          motoristaLogado = { ...motoristaLogado, ultimo_acesso: agoraIso };
+          localStorage.setItem('motorista_logado', JSON.stringify(motoristaLogado));
+        }
+      } catch (e) {}
+    }
+
+    async function atualizarStatusViagensNoBanco(disponivelParaViagens, coords = null) {
+      if (!motoristaLogado || !motoristaLogado.id) return;
+      const ativo = Boolean(disponivelParaViagens) && !contaRestritaMotorista(motoristaLogado);
+      const agoraIso = new Date().toISOString();
+
+      const payloadCompleto = {
+        online: ativo,
+        disponivel_viagens: ativo,
+        radar_ativo: ativo,
+        ultimo_acesso: agoraIso
+      };
+
+      const payloadBasico = {
+        online: ativo,
+        ultimo_acesso: agoraIso
+      };
+
+      if (coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) {
+        payloadCompleto.lat = coords.lat;
+        payloadCompleto.lng = coords.lng;
+        payloadBasico.lat = coords.lat;
+        payloadBasico.lng = coords.lng;
+      }
+
+      try {
+        let { error } = await supabaseClient
+          .from('usuarios')
+          .update(payloadCompleto)
+          .eq('id', motoristaLogado.id);
+
+        if (error) {
+          await supabaseClient
+            .from('usuarios')
+            .update(payloadBasico)
+            .eq('id', motoristaLogado.id);
+        }
+
+        motoristaLogado = { ...motoristaLogado, ...payloadBasico, disponivel_viagens: ativo, radar_ativo: ativo };
+        localStorage.setItem('motorista_logado', JSON.stringify(motoristaLogado));
       } catch (e) {}
     }
 
@@ -1277,11 +1326,7 @@
 
       document.addEventListener('visibilitychange', () => {
         if (desconectandoSessaoMotorista) return;
-        if (!document.hidden) {
-          atualizarPresencaNoApp(true);
-        } else {
-          atualizarPresencaNoApp(false);
-        }
+        atualizarPresencaNoApp(!document.hidden);
       });
 
       window.addEventListener('pagehide', () => {
@@ -1323,15 +1368,19 @@
       if (restritaInicial) {
         statusOnline = false;
         localStorage.setItem('motorista_online', 'false');
+        await atualizarStatusViagensNoBanco(false);
         aplicarEstadoRestricaoContaUI(true);
         setGavetaAberta(true);
       } else if (estadoOnlineSalvo === 'true') {
         statusOnline = true;
+        await atualizarStatusViagensNoBanco(true);
         document.getElementById('container-btn-desligar-redondo').classList.remove('hidden');
         document.getElementById('status-luz-indicadora').className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping";
         if (!corridaAtiva) iniciarOscilacaoStatus();
         iniciarRastreamentoGPS();
         iniciarEscutaPedidos();
+      } else {
+        await atualizarStatusViagensNoBanco(false);
       }
       if (typeof sincronizarEstadoRadar === 'function') sincronizarEstadoRadar();
     }
@@ -1649,6 +1698,7 @@
       if (contaRestritaMotorista(motoristaLogado)) {
         statusOnline = false;
         localStorage.setItem('motorista_online', 'false');
+        await atualizarStatusViagensNoBanco(false);
         aplicarEstadoRestricaoContaUI(true);
         setGavetaAberta(true);
         mostrarToastAdmin(mensagemAvisoContaRestrita(motoristaLogado).toast, "erro");
@@ -1664,14 +1714,16 @@
       const indicador = document.getElementById('status-luz-indicadora');
 
       if (statusOnline) {
+        await atualizarStatusViagensNoBanco(true, ultimaPosicaoGPS);
         containerBtnDesligarRedondo.classList.remove('hidden');
         indicador.className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping";
         if (!corridaAtiva) iniciarOscilacaoStatus();
         setGavetaAberta(true);
         iniciarRastreamentoGPS();
         iniciarEscutaPedidos();
-        mostrarToastAdmin("Você está online e visível no radar.", "sucesso");
+        mostrarToastAdmin("Você está online e disponível para viagens.", "sucesso");
       } else {
+        await atualizarStatusViagensNoBanco(false, ultimaPosicaoGPS);
         containerBtnDesligarRedondo.classList.add('hidden');
         indicador.className = "w-3 h-3 rounded-full bg-slate-500";
         if (intervaloOscilacaoTexto) clearInterval(intervaloOscilacaoTexto);
@@ -1686,7 +1738,7 @@
         filaPedidosPendentes = [];
         corridaPendenteAtual = null;
         pararRastreamentoGPS();
-        mostrarToastAdmin("Aplicativo offline.", "aviso");
+        mostrarToastAdmin("Você ficou offline para viagens.", "aviso");
       }
 
       if (typeof sincronizarEstadoRadar === 'function') sincronizarEstadoRadar();
@@ -1720,7 +1772,7 @@
 
       watchIdGeoloc = navigator.geolocation.watchPosition(
         async (position) => {
-          if (desconectandoSessaoMotorista || contaRestritaMotorista(motoristaLogado)) return;
+          if (desconectandoSessaoMotorista || contaRestritaMotorista(motoristaLogado) || !statusOnline) return;
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
           ultimaPosicaoGPS = { lat, lng };
@@ -1729,14 +1781,7 @@
             atualizarPosicaoNoMapaRadar(lat, lng);
           }
 
-          if (motoristaLogado) {
-            await supabaseClient.from('usuarios').update({
-              online: true,
-              ultimo_acesso: new Date().toISOString(),
-              lat: lat,
-              lng: lng
-            }).eq('id', motoristaLogado.id);
-          }
+          await atualizarStatusViagensNoBanco(true, { lat, lng });
         },
         () => {},
         { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
@@ -2288,13 +2333,7 @@
       await pararRastreamentoGPS();
       clearInterval(intervaloPresencaApp);
       clearInterval(intervaloValidacaoSessao);
-      await supabaseClient
-        .from('usuarios')
-        .update({
-          online: false,
-          ultimo_acesso: new Date().toISOString()
-        })
-        .eq('id', motoristaLogado?.id);
+      await atualizarStatusViagensNoBanco(false);
       localStorage.removeItem('motorista_logado');
       localStorage.removeItem('passageiro_logado');
       localStorage.removeItem('session_token');
