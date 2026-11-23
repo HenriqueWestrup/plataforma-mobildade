@@ -805,8 +805,8 @@
       registrarEscutaContadorChatPassageiro(corrida.id);
     }
 
-    if (typeof verificarCorridaAtivaPassageiro === 'function') {
-      await verificarCorridaAtivaPassageiro();
+    if (typeof window.verificarCorridaAtivaPassageiro === 'function') {
+      await window.verificarCorridaAtivaPassageiro();
       return;
     }
 
@@ -999,28 +999,33 @@
     }
   }
 
-  function carregarScriptsMapa(callback) {
-    const scripts = ['mapa_regras.js', 'mapa_rotas.js', 'mapa_corrida.js'];
-    let idx = 0;
+  function carregarScriptSequencial(src) {
+    return new Promise((resolve) => {
+      const jaExiste = Array.from(document.scripts).some((s) => (s.src || '').includes(src));
+      if (jaExiste && (
+        (src === 'mapa_regras.js' && typeof window.carregarRegrasMapa === 'function') ||
+        (src === 'mapa_rotas.js' && typeof window.verificarECalcularSePronto === 'function') ||
+        (src === 'mapa_corrida.js' && typeof window.verificarCorridaAtivaPassageiro === 'function')
+      )) {
+        resolve();
+        return;
+      }
 
-    function proximo() {
-      if (idx >= scripts.length) {
-        if (typeof callback === 'function') callback();
-        return;
-      }
-      const src = scripts[idx++];
-      if (document.querySelector(`script[src="${src}"]`)) {
-        proximo();
-        return;
-      }
       const s = document.createElement('script');
-      s.src = src;
-      s.onload = proximo;
-      s.onerror = proximo;
+      s.src = `${src}?v=${Date.now()}`;
+      s.setAttribute('data-modulo-mapa-script', 'true');
+      s.onload = () => resolve();
+      s.onerror = () => resolve();
       document.body.appendChild(s);
-    }
+    });
+  }
 
-    proximo();
+  async function carregarScriptsMapa(callback) {
+    const scripts = ['mapa_regras.js', 'mapa_rotas.js', 'mapa_corrida.js'];
+    for (let i = 0; i < scripts.length; i++) {
+      await carregarScriptSequencial(scripts[i]);
+    }
+    if (typeof callback === 'function') callback();
   }
 
   async function inicializarMapa() {

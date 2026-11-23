@@ -8,7 +8,10 @@ var STATUS_ATIVOS_MAPA_CORRIDA = [
   'a_caminho',
   'no_local',
   'em_andamento',
-  'em_curso'
+  'em_curso',
+  'em_viagem',
+  'iniciada',
+  'viagem_iniciada'
 ];
 
 function normalizarStatusCorrida(status) {
@@ -162,50 +165,70 @@ async function verificarCorridaAtivaPassageiro() {
   if (!dadosUsuario.id || !cliente) return;
 
   try {
-    const { data } = await cliente
+    const { data, error } = await cliente
       .from('corridas')
       .select('*')
       .eq('passageiro_id', dadosUsuario.id)
-      .in('status', ['pendente', 'procurando', 'aceita', 'aceito', 'a_caminho', 'no_local', 'em_andamento', 'em_curso', 'concluido', 'concluida', 'finalizada'])
+      .in('status', [
+        'pendente',
+        'procurando',
+        'aceita',
+        'aceito',
+        'a_caminho',
+        'no_local',
+        'em_andamento',
+        'em_curso',
+        'em_viagem',
+        'iniciada',
+        'viagem_iniciada',
+        'concluido',
+        'concluida',
+        'finalizada'
+      ])
       .order('id', { ascending: false })
       .limit(1);
 
-    if (data && data.length > 0) {
-      const corrida = data[0];
-      const statusNorm = normalizarStatusCorrida(corrida.status);
-      const corridaConcluida = ['concluido', 'concluida', 'finalizada'].includes(statusNorm);
+    if (error || !data || data.length === 0) {
+      salvarCacheCorridaPassageiro(null);
+      return;
+    }
 
-      if (corridaConcluida) {
-        salvarCacheCorridaPassageiro(null);
-        if (corridaJaFoiAvaliada(corrida)) {
-          resetarPainelCompletoPassageiro(true);
-          return;
-        }
-        corridaAtualId = corrida.id;
-        corridaAtivaDados = corrida;
-        await exibirPainelAvaliacaoPassageiro(corrida);
-        iniciarEscutaPassageiroRealtime();
+    const corrida = data[0];
+    const statusNorm = normalizarStatusCorrida(corrida.status);
+    const corridaConcluida = ['concluido', 'concluida', 'finalizada'].includes(statusNorm);
+
+    if (corridaConcluida) {
+      salvarCacheCorridaPassageiro(null);
+      if (corridaJaFoiAvaliada(corrida)) {
+        resetarPainelCompletoPassageiro(true);
         return;
       }
-
       corridaAtualId = corrida.id;
       corridaAtivaDados = corrida;
-      salvarCacheCorridaPassageiro(corrida);
-
-      if (statusNorm === 'procurando' || statusNorm === 'pendente') {
-        document.getElementById('painel-solicitacao')?.classList.add('hidden');
-        document.getElementById('painel-avaliacao-passageiro')?.classList.add('hidden');
-        document.getElementById('painel-espera-corrida')?.classList.remove('hidden');
-        iniciarTimerEsperaCorrida();
-      } else {
-        await exibirPainelMotoristaEncontrado(corrida);
-      }
+      await exibirPainelAvaliacaoPassageiro(corrida);
       iniciarEscutaPassageiroRealtime();
-    } else {
-      salvarCacheCorridaPassageiro(null);
+      return;
     }
+
+    corridaAtualId = corrida.id;
+    corridaAtivaDados = corrida;
+    salvarCacheCorridaPassageiro(corrida);
+
+    if (statusNorm === 'procurando' || statusNorm === 'pendente') {
+      document.getElementById('painel-solicitacao')?.classList.add('hidden');
+      document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
+      document.getElementById('painel-avaliacao-passageiro')?.classList.add('hidden');
+      document.getElementById('painel-espera-corrida')?.classList.remove('hidden');
+      iniciarTimerEsperaCorrida();
+    } else {
+      await exibirPainelMotoristaEncontrado(corrida);
+    }
+
+    iniciarEscutaPassageiroRealtime();
   } catch (e) {}
 }
+
+window.verificarCorridaAtivaPassageiro = verificarCorridaAtivaPassageiro;
 
 async function iniciarRadarMotoristasOnline() {
   const cliente = obterClienteSupabaseMapa();
