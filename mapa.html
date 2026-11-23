@@ -8,7 +8,7 @@
   </button>
 
   <!-- PAINEL FLUTUANTE DE SOLICITAÇÃO DE CORRIDA -->
-  <div id="painel-solicitacao" class="hidden absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-slate-800 p-4 rounded-2xl space-y-3 shadow-2xl z-10">
+  <div id="painel-solicitacao" class="absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-slate-800 p-4 rounded-2xl space-y-3 shadow-2xl z-10">
     <!-- CAMPO ORIGEM -->
     <div class="relative">
       <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
@@ -179,7 +179,7 @@
 <script>
   var SUPABASE_URL_MAPA = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
   var SUPABASE_ANON_KEY_MAPA = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
-  var supabaseMapa = window.supabaseClient || window.__supabaseMapaInstance || (window.__supabaseMapaInstance = window.supabase ? window.supabase.createClient(SUPABASE_URL_MAPA, SUPABASE_ANON_KEY_MAPA) : null);
+  var supabaseMapa = window.__supabaseMapaInstance || (window.__supabaseMapaInstance = window.supabase ? window.supabase.createClient(SUPABASE_URL_MAPA, SUPABASE_ANON_KEY_MAPA) : null);
 
   var mapaLeaflet = null;
   var marcadorOrigem = null;
@@ -293,7 +293,7 @@
 
   function temCorridaAtivaEmMemoriaOuCache() {
     const cache = obterCacheCorridaLocal();
-    const ativa = corridaAtivaDados || window.corridaAtivaPassageiro || window.corridaAtivaDados || cache;
+    const ativa = corridaAtivaDados || window.corridaAtivaPassageiro || cache;
     if (!ativa || !ativa.id) return false;
     const st = normalizarStatusLocal(ativa.status);
     return !STATUS_FINALIZADOS_MAPA_LISTA.includes(st);
@@ -419,7 +419,7 @@
   async function consultarCorridaAtivaDiretoNoBanco() {
     const pass = obterPassageiroAtual();
     const cacheLocal = obterCacheCorridaLocal();
-    const cliente = window.supabaseClient || supabaseMapa || null;
+    const cliente = supabaseMapa || window.supabaseClient || null;
 
     if (cacheLocal && cacheLocal.id) {
       exibirPainelCorridaEmTelaNoMapa(cacheLocal);
@@ -518,7 +518,7 @@
   }
 
   async function aplicarEstadoCorridaAtivaNoMapa(corridaRecebida = null) {
-    let corrida = corridaRecebida || corridaAtivaDados || window.corridaAtivaPassageiro || window.corridaAtivaDados || obterCacheCorridaLocal() || null;
+    const corrida = corridaRecebida || corridaAtivaDados || window.corridaAtivaPassageiro || obterCacheCorridaLocal() || null;
 
     if (corrida && corrida.id) {
       exibirPainelCorridaEmTelaNoMapa(corrida);
@@ -530,19 +530,9 @@
       await consultarCorridaAtivaDiretoNoBanco();
     }
 
-    const corridaFinal = corridaAtivaDados || window.corridaAtivaPassageiro || window.corridaAtivaDados || obterCacheCorridaLocal() || null;
+    const corridaFinal = corridaAtivaDados || window.corridaAtivaPassageiro || obterCacheCorridaLocal() || null;
     if (corridaFinal && corridaFinal.id) {
       exibirPainelCorridaEmTelaNoMapa(corridaFinal);
-    } else {
-      const painelAval = document.getElementById('painel-avaliacao-passageiro');
-      const avalVisivel = painelAval && !painelAval.classList.contains('hidden');
-      if (!avalVisivel) {
-        const painelSol = document.getElementById('painel-solicitacao');
-        if (painelSol) {
-          painelSol.classList.remove('hidden');
-          painelSol.style.display = '';
-        }
-      }
     }
   }
 
@@ -726,11 +716,19 @@
 
   function carregarScriptSequencial(src) {
     return new Promise((resolve) => {
-      document.querySelectorAll(`script[data-modulo-mapa-script="${src}"]`).forEach((el) => el.remove());
+      const jaExiste = Array.from(document.scripts).some((s) => (s.src || '').includes(src));
+      if (jaExiste && (
+        (src === 'mapa_regras.js' && typeof window.carregarRegrasMapa === 'function') ||
+        (src === 'mapa_rotas.js' && typeof window.verificarECalcularSePronto === 'function') ||
+        (src === 'mapa_corrida.js' && typeof window.verificarCorridaAtivaPassageiro === 'function')
+      )) {
+        resolve();
+        return;
+      }
 
       const s = document.createElement('script');
       s.src = `${src}?v=${Date.now()}`;
-      s.setAttribute('data-modulo-mapa-script', src);
+      s.setAttribute('data-modulo-mapa-script', 'true');
       s.onload = () => resolve();
       s.onerror = () => resolve();
       document.body.appendChild(s);
@@ -788,20 +786,6 @@
     }
 
     await aplicarEstadoCorridaAtivaNoMapa(corridaPrevia);
-
-    if (typeof window.aplicarCorridaAtivaNoMapaDoIndex === 'function') {
-      await window.aplicarCorridaAtivaNoMapaDoIndex();
-    }
-
-    // Reaplicação de segurança caso algum script do mapa finalize sua inicialização logo depois
-    setTimeout(() => {
-      if (temCorridaAtivaEmMemoriaOuCache()) {
-        const atual = corridaAtivaDados || window.corridaAtivaPassageiro || window.corridaAtivaDados || obterCacheCorridaLocal();
-        if (atual && atual.id) {
-          exibirPainelCorridaEmTelaNoMapa(atual);
-        }
-      }
-    }, 300);
   }
 
   carregarScriptsMapa(() => {
