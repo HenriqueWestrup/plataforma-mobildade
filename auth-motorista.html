@@ -13,7 +13,7 @@
 
   <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-5 relative">
 
-    <span class="absolute top-2 right-3 text-[9px] text-slate-500 font-mono">v15</span>
+    <span class="absolute top-2 right-3 text-[9px] text-slate-500 font-mono">v17</span>
 
     <div class="text-center space-y-1">
       <div class="inline-block bg-amber-600/20 border border-amber-500/30 text-amber-400 p-3 rounded-2xl mb-1">
@@ -23,7 +23,7 @@
       <p class="text-xs text-slate-400">Entre com celular e senha para trabalhar</p>
     </div>
 
-    <!-- CAIXA DE ALERTA DE ERRO / AVISO EM ANÁLISE -->
+    <!-- CAIXA DE ALERTA DE ERRO / AVISO -->
     <div id="box-erro" class="hidden bg-red-950/80 border border-red-600 text-red-200 text-xs p-3 rounded-xl flex items-center gap-2">
       <i class="fa-solid fa-triangle-exclamation text-red-400 text-base shrink-0"></i>
       <span id="texto-erro">Erro ao realizar login.</span>
@@ -56,6 +56,85 @@
     </div>
   </div>
 
+  <!-- MODAL COMPLEMENTAR CADASTRO PARA PASSAGEIRO JÁ CADASTRADO -->
+  <div id="modal-complementar-passageiro" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/40 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div>
+          <h2 class="text-sm font-extrabold text-white">Completar Cadastro de Motorista</h2>
+          <p class="text-[10px] text-amber-300">Conta de passageiro localizada • Informe os dados do veículo</p>
+        </div>
+        <button type="button" onclick="fecharModalComplementarPassageiro()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <div id="box-erro-comp" class="hidden bg-red-950/80 border border-red-600 text-red-200 text-[11px] p-2.5 rounded-xl flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation text-red-400 shrink-0"></i>
+        <span id="texto-erro-comp">Erro ao atualizar cadastro.</span>
+      </div>
+
+      <form id="form-complementar-motorista" onsubmit="salvarComplementoMotoristaPassageiro(event)" class="space-y-3 text-xs">
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
+          <p class="text-[11px] font-bold text-emerald-400">Dados da sua conta</p>
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Nome completo <span class="text-amber-400">*</span></label>
+            <input type="text" id="comp-nome" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">CPF <span class="text-amber-400">*</span></label>
+              <input type="text" id="comp-cpf" maxlength="14" required placeholder="000.000.000-00" oninput="formatarCpfInput(this)" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-amber-500">
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Nascimento <span class="text-amber-400">*</span></label>
+              <input type="date" id="comp-nascimento" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
+            </div>
+          </div>
+          <div class="space-y-1">
+            <label class="text-slate-300 font-medium">Endereço <span class="text-amber-400">*</span></label>
+            <input type="text" id="comp-endereco" required placeholder="Rua, bairro, cidade - UF" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
+          </div>
+        </div>
+
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2">
+          <p class="text-[11px] font-bold text-amber-400">Dados do veículo e documento <span class="text-amber-400">*</span></p>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Marca <span class="text-amber-400">*</span></label>
+              <input type="text" id="comp-veiculo-marca" required placeholder="Ex: Renault" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Modelo <span class="text-amber-400">*</span></label>
+              <input type="text" id="comp-veiculo-modelo" required placeholder="Ex: Logan" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Ano <span class="text-amber-400">*</span></label>
+              <input type="text" id="comp-veiculo-ano" inputmode="numeric" maxlength="4" required placeholder="2018" oninput="formatarAnoInput(this)" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-amber-500">
+            </div>
+            <div class="space-y-1">
+              <label class="text-slate-300 font-medium">Placa <span class="text-amber-400">*</span></label>
+              <input type="text" id="comp-veiculo-placa" maxlength="8" required placeholder="ABC-1234" oninput="formatarPlacaInput(this)" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono uppercase focus:outline-none focus:border-amber-500">
+            </div>
+          </div>
+          <div class="space-y-1 pt-1">
+            <label class="text-[11px] font-bold text-slate-200 block">
+              Documento do veículo / identificação (Imagem ou PDF) <span class="text-amber-400">*</span>
+            </label>
+            <input type="file" id="comp-doc-arquivo" accept="image/jpeg,image/png,image/webp,application/pdf" required onchange="processarArquivoComplemento(event)" class="block w-full text-[11px] text-slate-300 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-slate-800 file:text-amber-300 hover:file:bg-slate-700 cursor-pointer">
+            <p id="comp-doc-status" class="text-[10px] text-slate-400">Selecione um arquivo (imagem ou PDF, até 4 MB).</p>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-salvar-comp-mot" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
+          Enviar para Análise
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL CADASTRO DE MOTORISTA EM 4 ETAPAS -->
   <div id="modal-cadastro-motorista" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
@@ -63,7 +142,7 @@
         <div>
           <div class="flex items-center gap-2">
             <h2 class="text-sm font-extrabold text-white">Cadastro de Motorista</h2>
-            <span class="text-[9px] text-slate-500 font-mono">v15</span>
+            <span class="text-[9px] text-slate-500 font-mono">v17</span>
           </div>
           <p id="subtitulo-etapa-mot" class="text-[10px] text-slate-400">Etapa 1 de 4 • Dados pessoais</p>
         </div>
@@ -96,7 +175,7 @@
 
       <form id="form-cadastro-motorista" class="space-y-3 text-xs" oninput="validarEtapasMotorista(); salvarRascunhoMotorista();" onsubmit="realizarCadastroMotorista(event)">
 
-        <!-- ETAPA 1: NOME COMPLETO, CPF, DATA DE ANIVERSÁRIO E CELULAR -->
+        <!-- ETAPA 1 -->
         <div id="etapa-mot-1" class="space-y-3">
           <div class="space-y-1">
             <label class="text-slate-300 font-medium">Nome completo <span class="text-amber-400">*</span></label>
@@ -123,7 +202,7 @@
           </button>
         </div>
 
-        <!-- ETAPA 2: ENDEREÇO + CONTATO DE EMERGÊNCIA + MODAL OPCIONAL -->
+        <!-- ETAPA 2 -->
         <div id="etapa-mot-2" class="hidden space-y-3">
           <div class="space-y-1">
             <label class="text-slate-300 font-medium">Endereço <span class="text-amber-400">*</span></label>
@@ -154,7 +233,7 @@
           </div>
         </div>
 
-        <!-- ETAPA 3: DADOS DO VEÍCULO + ANEXO DE IDENTIFICAÇÃO (APENAS ARQUIVO: IMAGEM OU PDF) -->
+        <!-- ETAPA 3 -->
         <div id="etapa-mot-3" class="hidden space-y-3">
           <div class="grid grid-cols-2 gap-2">
             <div class="space-y-1">
@@ -198,7 +277,7 @@
           </div>
         </div>
 
-        <!-- ETAPA 4: SENHA, CONFIRMAR SENHA E RECONHECIMENTO FACIAL -->
+        <!-- ETAPA 4 -->
         <div id="etapa-mot-4" class="hidden space-y-3">
           <div class="space-y-1.5">
             <div class="flex items-center justify-between gap-2">
@@ -316,9 +395,6 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Mantém o bloqueio de contas de passageiro no login de motorista por enquanto
-    const BLOQUEAR_PASSAGEIRO_NO_MOTORISTA = true;
-
     const CHAVE_RASCUNHO_MOT = 'mobiurb_rascunho_cadastro_motorista_v14';
     const LIMITE_ARQUIVO_BYTES = 4 * 1024 * 1024;
     const MODELO_FACIAL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
@@ -331,6 +407,9 @@
     let fotoCadastroDataUrl = null;
     let docIdentificacaoDataUrl = null;
     let docIdentificacaoNome = '';
+    let docComplementoDataUrl = null;
+    let docComplementoNome = '';
+    let usuarioPassageiroComplemento = null;
     let contatosEmergenciaExtras = [];
 
     function apenasDigitos(valor) {
@@ -344,11 +423,38 @@
       return `sess_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
     }
 
+    function contaEmAnaliseOuSuspensa(usuario) {
+      if (!usuario) return true;
+      const st = String(usuario.status || '').toLowerCase();
+      const ap = String(usuario.status_aprovacao || '').toLowerCase();
+      return (
+        st === 'em_analise' ||
+        st === 'pendente' ||
+        st === 'suspenso' ||
+        st === 'suspensa' ||
+        st === 'bloqueado' ||
+        st === 'bloqueada' ||
+        usuario.banido === true ||
+        ap === 'pendente' ||
+        ap === 'em_analise' ||
+        usuario.conta_suspensa === true ||
+        usuario.pode_ligar === false
+      );
+    }
+
     async function iniciarSessaoMotoristaEAbrirApp(dadosMotorista) {
       const novoToken = gerarTokenSessaoUnica();
+      const restrita = contaEmAnaliseOuSuspensa(dadosMotorista);
+      const statusEfetivo = dadosMotorista.status || (restrita ? 'em_analise' : 'ativo');
+
       const motoristaComSessao = {
         ...dadosMotorista,
-        tipo: 'motorista',
+        tipo: dadosMotorista.tipo === 'ambos' ? 'ambos' : 'motorista',
+        status: statusEfetivo,
+        status_aprovacao: restrita ? (dadosMotorista.status_aprovacao || 'pendente') : (dadosMotorista.status_aprovacao || 'aprovado'),
+        conta_suspensa: restrita,
+        pode_ligar: !restrita,
+        online: false,
         session_token: novoToken
       };
 
@@ -357,13 +463,16 @@
           .from('usuarios')
           .update({
             session_token: novoToken,
-            online: true,
+            online: false,
+            conta_suspensa: restrita,
+            pode_ligar: !restrita,
             ultimo_acesso: new Date().toISOString()
           })
           .eq('id', dadosMotorista.id);
       } catch (_) {}
 
       localStorage.removeItem('passageiro_logado');
+      localStorage.setItem('motorista_online', 'false');
       localStorage.setItem('session_token', novoToken);
       localStorage.setItem('motorista_logado', JSON.stringify(motoristaComSessao));
       window.location.href = 'motorista.html';
@@ -412,6 +521,197 @@
       const temVeiculo = Boolean(usuario.veiculo_placa || usuario.veiculo_modelo);
       const temDoc = Boolean(usuario.documento_identificacao_url || usuario.cnh);
       return tipo !== 'passageiro' && (temVeiculo || temDoc);
+    }
+
+    function abrirModalComplementarPassageiro(usuario) {
+      usuarioPassageiroComplemento = usuario;
+      docComplementoDataUrl = null;
+      docComplementoNome = '';
+      document.getElementById('box-erro-comp').classList.add('hidden');
+      document.getElementById('comp-nome').value = usuario.nome || '';
+      document.getElementById('comp-cpf').value = usuario.cpf || '';
+      if (usuario.cpf) formatarCpfInput(document.getElementById('comp-cpf'));
+      document.getElementById('comp-nascimento').value = usuario.data_nascimento || '';
+      document.getElementById('comp-endereco').value = usuario.endereco || '';
+      document.getElementById('comp-veiculo-marca').value = usuario.veiculo_marca || '';
+      document.getElementById('comp-veiculo-modelo').value = usuario.veiculo_modelo || '';
+      document.getElementById('comp-veiculo-ano').value = usuario.veiculo_ano || '';
+      document.getElementById('comp-veiculo-placa').value = usuario.veiculo_placa || '';
+      document.getElementById('comp-doc-arquivo').value = '';
+      document.getElementById('comp-doc-status').innerText = 'Selecione um arquivo (imagem ou PDF, até 4 MB).';
+      document.getElementById('comp-doc-status').className = 'text-[10px] text-slate-400';
+      document.getElementById('modal-complementar-passageiro').classList.remove('hidden');
+    }
+
+    function fecharModalComplementarPassageiro() {
+      usuarioPassageiroComplemento = null;
+      docComplementoDataUrl = null;
+      docComplementoNome = '';
+      document.getElementById('modal-complementar-passageiro').classList.add('hidden');
+    }
+
+    async function processarArquivoComplemento(event) {
+      const file = event.target.files && event.target.files[0];
+      const statusEl = document.getElementById('comp-doc-status');
+      document.getElementById('box-erro-comp').classList.add('hidden');
+
+      if (!file) {
+        docComplementoDataUrl = null;
+        docComplementoNome = '';
+        statusEl.innerText = 'Selecione um arquivo (imagem ou PDF, até 4 MB).';
+        statusEl.className = 'text-[10px] text-slate-400';
+        return;
+      }
+
+      const ehImagem = file.type.startsWith('image/');
+      const ehPdf = file.type === 'application/pdf';
+      if (!ehImagem && !ehPdf) {
+        docComplementoDataUrl = null;
+        docComplementoNome = '';
+        event.target.value = '';
+        statusEl.innerText = 'Envie apenas imagem ou PDF.';
+        statusEl.className = 'text-[10px] text-red-400 font-bold';
+        return;
+      }
+
+      if (file.size > LIMITE_ARQUIVO_BYTES) {
+        docComplementoDataUrl = null;
+        docComplementoNome = '';
+        event.target.value = '';
+        statusEl.innerText = 'Arquivo maior que 4 MB.';
+        statusEl.className = 'text-[10px] text-red-400 font-bold';
+        return;
+      }
+
+      try {
+        statusEl.innerText = 'Preparando arquivo...';
+        statusEl.className = 'text-[10px] text-amber-400';
+        if (ehImagem) {
+          docComplementoDataUrl = await comprimirImagemArquivo(file);
+        } else {
+          docComplementoDataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = () => reject(new Error('Falha ao ler PDF.'));
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(file);
+          });
+        }
+        docComplementoNome = file.name;
+        statusEl.innerText = `Arquivo anexado: ${file.name}`;
+        statusEl.className = 'text-[10px] text-emerald-400 font-bold truncate';
+      } catch (err) {
+        docComplementoDataUrl = null;
+        docComplementoNome = '';
+        statusEl.innerText = err.message || 'Erro ao anexar arquivo.';
+        statusEl.className = 'text-[10px] text-red-400 font-bold';
+      }
+    }
+
+    async function salvarComplementoMotoristaPassageiro(e) {
+      e.preventDefault();
+      if (!usuarioPassageiroComplemento) return;
+
+      const erroBox = document.getElementById('box-erro-comp');
+      const erroTexto = document.getElementById('texto-erro-comp');
+      erroBox.classList.add('hidden');
+
+      const nome = document.getElementById('comp-nome').value.trim();
+      const cpf = document.getElementById('comp-cpf').value.trim();
+      const dataNascimento = document.getElementById('comp-nascimento').value;
+      const endereco = document.getElementById('comp-endereco').value.trim();
+      const marca = document.getElementById('comp-veiculo-marca').value.trim();
+      const modelo = document.getElementById('comp-veiculo-modelo').value.trim();
+      const ano = document.getElementById('comp-veiculo-ano').value.trim();
+      const placa = document.getElementById('comp-veiculo-placa').value.trim().toUpperCase();
+      const anoNum = Number(ano);
+
+      if (!nome || apenasDigitos(cpf).length !== 11 || !dataNascimento || !endereco) {
+        erroTexto.innerText = 'Preencha nome completo, CPF (11 dígitos), nascimento e endereço.';
+        erroBox.classList.remove('hidden');
+        return;
+      }
+      if (!marca || !modelo || ano.length !== 4 || anoNum < 1980 || anoNum > 2027 || placa.replace(/[^A-Z0-9]/g, '').length !== 7) {
+        erroTexto.innerText = 'Preencha marca, modelo, ano válido e placa do veículo.';
+        erroBox.classList.remove('hidden');
+        return;
+      }
+      if (!docComplementoDataUrl) {
+        erroTexto.innerText = 'Anexe o documento do veículo ou identificação.';
+        erroBox.classList.remove('hidden');
+        return;
+      }
+
+      const btn = document.getElementById('btn-salvar-comp-mot');
+      btn.disabled = true;
+      btn.innerText = 'Enviando...';
+
+      try {
+        const payloadCompleto = {
+          tipo: 'ambos',
+          nome,
+          cpf,
+          data_nascimento: dataNascimento,
+          endereco,
+          veiculo_marca: marca,
+          veiculo_modelo: modelo,
+          veiculo_ano: ano,
+          veiculo_placa: placa,
+          documento_identificacao_url: docComplementoDataUrl,
+          documento_identificacao_nome: docComplementoNome,
+          status: 'em_analise',
+          status_aprovacao: 'pendente',
+          conta_suspensa: true,
+          pode_ligar: false,
+          online: false,
+          banido: false
+        };
+
+        let { data: atualizado, error } = await supabaseClient
+          .from('usuarios')
+          .update(payloadCompleto)
+          .eq('id', usuarioPassageiroComplemento.id)
+          .select('*')
+          .single();
+
+        if (error) {
+          const payloadBase = {
+            tipo: 'ambos',
+            nome,
+            cpf,
+            data_nascimento: dataNascimento,
+            endereco,
+            veiculo_modelo: `${marca} ${modelo} (${ano})`,
+            veiculo_placa: placa,
+            status: 'em_analise',
+            status_aprovacao: 'pendente',
+            conta_suspensa: true,
+            pode_ligar: false,
+            online: false,
+            banido: false
+          };
+          const retry = await supabaseClient
+            .from('usuarios')
+            .update(payloadBase)
+            .eq('id', usuarioPassageiroComplemento.id)
+            .select('*')
+            .single();
+          atualizado = retry.data;
+          error = retry.error;
+        }
+
+        if (error) {
+          throw new Error(error.message || 'Erro ao atualizar conta para motorista.');
+        }
+
+        const registroFinal = atualizado || { ...usuarioPassageiroComplemento, ...payloadCompleto };
+        fecharModalComplementarPassageiro();
+        await iniciarSessaoMotoristaEAbrirApp(registroFinal);
+      } catch (err) {
+        erroTexto.innerText = err.message || 'Erro ao enviar dados.';
+        erroBox.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerText = 'Enviar para Análise';
+      }
     }
 
     async function garantirModeloFacial() {
@@ -1068,7 +1368,7 @@
           .maybeSingle();
 
         if (existente) {
-          throw new Error('Este celular já está cadastrado.');
+          throw new Error('Este celular já está cadastrado. Faça login para complementar sua conta.');
         }
 
         const payload = {
@@ -1088,6 +1388,9 @@
           documento_identificacao_nome: docIdentificacaoNome,
           status: 'em_analise',
           status_aprovacao: 'pendente',
+          conta_suspensa: true,
+          pode_ligar: false,
+          online: false,
           banido: false
         };
 
@@ -1111,6 +1414,9 @@
             veiculo_placa: placa,
             status: 'em_analise',
             status_aprovacao: 'pendente',
+            conta_suspensa: true,
+            pode_ligar: false,
+            online: false,
             banido: false
           };
           const retry = await supabaseClient
@@ -1136,8 +1442,14 @@
         pararCamera();
         fecharModalCadastroMotorista();
 
-        // Libera o acesso direto ao aplicativo; o status 'em_analise' exibe a notificação no painel
-        await iniciarSessaoMotoristaEAbrirApp(novoMotorista);
+        await iniciarSessaoMotoristaEAbrirApp({
+          ...novoMotorista,
+          status: 'em_analise',
+          status_aprovacao: 'pendente',
+          conta_suspensa: true,
+          pode_ligar: false,
+          online: false
+        });
       } catch (err) {
         mostrarErroModal(err.message || 'Erro ao realizar cadastro.');
         btn.innerText = 'Concluir Cadastro';
@@ -1163,16 +1475,13 @@
           throw new Error('Celular ou senha inválidos.');
         }
 
-        if (data.status === 'bloqueado' || data.banido) {
-          throw new Error('Conta bloqueada pela administração.');
+        if (!possuiAcessoMotorista(data)) {
+          btn.innerText = 'Entrar como Motorista';
+          btn.disabled = false;
+          abrirModalComplementarPassageiro(data);
+          return;
         }
 
-        // Barramento: conta exclusiva de passageiro não pode entrar no portal do motorista
-        if (BLOQUEAR_PASSAGEIRO_NO_MOTORISTA && !possuiAcessoMotorista(data)) {
-          throw new Error('Esta conta é de passageiro e não tem acesso de motorista.');
-        }
-
-        // Mesmo com status 'em_analise' ou 'pendente', entra no app e recebe a notificação lá dentro
         await iniciarSessaoMotoristaEAbrirApp(data);
       } catch (err) {
         mostrarErro(err.message || 'Erro ao realizar login.');
