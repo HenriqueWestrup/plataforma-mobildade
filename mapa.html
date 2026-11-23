@@ -447,7 +447,7 @@
           if (corridaAtiva.motorista_id) {
             const { data: motRow } = await cliente
               .from('usuarios')
-              .select('*')
+              .select('id, nome, foto_url, avaliacao, nota')
               .eq('id', corridaAtiva.motorista_id)
               .maybeSingle();
             if (motRow) {
@@ -470,7 +470,7 @@
   }
 
   function abrirChatViagemPassageiro() {
-    const idCorrida = corridaAtualId || corridaAtivaDados?.id || window.estadoViagemPassageiro?.corridaId;
+    const idCorrida = corridaAtualId || corridaAtivaDados?.id || window.estadoViagemPassageiro?.corridaId || window.corridaAtualId;
     const nomeMot = primeiroNome(
       corridaAtivaDados?.motorista?.nome ||
       window.estadoViagemPassageiro?.motoristaNome ||
@@ -494,7 +494,7 @@
   }
 
   function iniciarChamadaVozPassageiro() {
-    const idCorrida = corridaAtualId || corridaAtivaDados?.id || window.estadoViagemPassageiro?.corridaId;
+    const idCorrida = corridaAtualId || corridaAtivaDados?.id || window.estadoViagemPassageiro?.corridaId || window.corridaAtualId;
     const nomeMot = primeiroNome(
       corridaAtivaDados?.motorista?.nome ||
       window.estadoViagemPassageiro?.motoristaNome ||
@@ -547,18 +547,6 @@
   }
 
   window.aplicarEstadoCorridaAtivaNoMapa = aplicarEstadoCorridaAtivaNoMapa;
-
-  if (!window.__listenerCorridaAtivaMapaRegistrado) {
-    window.__listenerCorridaAtivaMapaRegistrado = true;
-    window.addEventListener('corridaAtivaAtualizada', (e) => {
-      aplicarEstadoCorridaAtivaNoMapa(e?.detail?.corrida || null);
-    });
-  }
-
-  if (window.__intervaloSyncMapaPassageiro) {
-    clearInterval(window.__intervaloSyncMapaPassageiro);
-    window.__intervaloSyncMapaPassageiro = null;
-  }
 
   function atualizarEstadoBotaoChamar(estado, textoCustomizado = '') {
     if (estado === 'bloqueado' && temCorridaAtivaEmMemoriaOuCache()) {
@@ -789,22 +777,12 @@
 
     await aplicarEstadoCorridaAtivaNoMapa(corridaPrevia);
 
-    if (typeof window.aplicarCorridaAtivaNoMapaDoIndex === 'function') {
-      await window.aplicarCorridaAtivaNoMapaDoIndex();
+    if (typeof window.notificarMapaProntoParaCorrida === 'function') {
+      window.notificarMapaProntoParaCorrida();
     }
-
-    // Reaplicação de segurança caso algum script do mapa finalize sua inicialização logo depois
-    setTimeout(() => {
-      if (temCorridaAtivaEmMemoriaOuCache()) {
-        const atual = corridaAtivaDados || window.corridaAtivaPassageiro || window.corridaAtivaDados || obterCacheCorridaLocal();
-        if (atual && atual.id) {
-          exibirPainelCorridaEmTelaNoMapa(atual);
-        }
-      }
-    }, 300);
   }
 
   carregarScriptsMapa(() => {
-    setTimeout(inicializarMapa, 50);
+    setTimeout(inicializarMapa, 30);
   });
 </script>

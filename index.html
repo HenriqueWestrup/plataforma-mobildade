@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/css/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 h-[100dvh] flex flex-col overflow-hidden m-0 p-0 text-xs">
@@ -47,7 +47,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.15</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.20</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -274,6 +274,7 @@
     const SUPABASE_URL = 'https://mmcwmzesjtnqgpcdspir.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    window.supabaseClient = supabaseClient;
 
     let usuarioLogado = null;
     let intervaloHeartbeat = null;
@@ -293,6 +294,9 @@
     let assuntoAtualSuporte = 'Suporte Geral';
     let aguardandoTrocaSenhaObrigatoria = false;
     let checkupTokenAtual = 0;
+
+    let mapaProntoNoIndex = false;
+    let resolversMapaPronto = [];
 
     let canalSinalizacaoChamada = null;
     let corridaChamadaAtualId = null;
@@ -335,6 +339,31 @@
         { urls: 'stun:stun1.l.google.com:19302' }
       ]
     };
+
+    window.notificarMapaProntoParaCorrida = function () {
+      mapaProntoNoIndex = true;
+      const lista = resolversMapaPronto.slice();
+      resolversMapaPronto = [];
+      lista.forEach((fn) => {
+        try { fn(); } catch (_) {}
+      });
+    };
+
+    function aguardarMapaPronto(timeoutMs = 2000) {
+      if (mapaProntoNoIndex && typeof window.exibirPainelMotoristaEncontrado === 'function') {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        let finalizado = false;
+        const concluir = () => {
+          if (finalizado) return;
+          finalizado = true;
+          resolve();
+        };
+        resolversMapaPronto.push(concluir);
+        setTimeout(concluir, timeoutMs);
+      });
+    }
 
     function obterPrimeiroNomeApenas(nomeCompleto, fallback = 'Usuário') {
       const limpo = String(nomeCompleto || '').trim();
@@ -419,7 +448,12 @@
           mostrarToastChatIndex(`Nova mensagem de ${nomeRem}`);
           tocarSomAlertaPassageiro();
         })
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            corridaBadgeChatGlobalId = null;
+            setTimeout(() => iniciarEscutaBadgeChatGlobal(corridaId), 2000);
+          }
+        });
     }
 
     function atualizarPainelMotoristaComDados(corrida, motoristaInfo) {
@@ -428,16 +462,34 @@
       const painelMotorista = document.getElementById('painel-motorista-encontrado');
       const painelAvaliacao = document.getElementById('painel-avaliacao-passageiro');
 
-      if (painelSolicitacao) painelSolicitacao.classList.add('hidden');
-      if (painelAvaliacao) painelAvaliacao.classList.add('hidden');
+      if (painelSolicitacao) {
+        painelSolicitacao.classList.add('hidden');
+        painelSolicitacao.style.display = 'none';
+      }
+      if (painelAvaliacao) {
+        painelAvaliacao.classList.add('hidden');
+        painelAvaliacao.style.display = 'none';
+      }
 
       const statusNorm = normalizarStatusIndex(corrida?.status);
       if (['procurando', 'pendente'].includes(statusNorm)) {
-        if (painelMotorista) painelMotorista.classList.add('hidden');
-        if (painelEspera) painelEspera.classList.remove('hidden');
+        if (painelMotorista) {
+          painelMotorista.classList.add('hidden');
+          painelMotorista.style.display = 'none';
+        }
+        if (painelEspera) {
+          painelEspera.classList.remove('hidden');
+          painelEspera.style.display = '';
+        }
       } else {
-        if (painelEspera) painelEspera.classList.add('hidden');
-        if (painelMotorista) painelMotorista.classList.remove('hidden');
+        if (painelEspera) {
+          painelEspera.classList.add('hidden');
+          painelEspera.style.display = 'none';
+        }
+        if (painelMotorista) {
+          painelMotorista.classList.remove('hidden');
+          painelMotorista.style.display = '';
+        }
       }
 
       if (!motoristaInfo) return;
@@ -502,7 +554,9 @@
       const statusNorm = normalizarStatusIndex(corrida.status);
       const motId = corrida.motorista_id || corrida.motorista?.id || null;
 
-      if (!motId || STATUS_FINALIZADOS_PASSAGEIRO.includes(statusNorm) || STATUS_CANCELADOS_PASSAGEIRO.includes(statusNorm)) {
+      if (STATUS_FINALIZADOS_PASSAGEIRO.includes(statusNorm) || STATUS_CANCELADOS_PASSAGEIRO.includes(statusNorm)) {
+        window.estadoViagemPassageiro.corridaId = null;
+        window.estadoViagemPassageiro.motoristaId = null;
         return;
       }
 
@@ -539,7 +593,7 @@
         try {
           const { data: motRow } = await supabaseClient
             .from('usuarios')
-            .select('*')
+            .select('id, nome, foto_url, avaliacao, nota')
             .eq('id', motoristaId)
             .maybeSingle();
           if (motRow) {
@@ -635,6 +689,7 @@
         }));
       } catch (e) {}
 
+      await aguardarMapaPronto(1500);
       atualizarPainelMotoristaComDados(corridaCompleta, corridaCompleta.motorista);
 
       const statusNorm = normalizarStatusIndex(corridaCompleta.status);
@@ -735,7 +790,11 @@
             await processarAtualizacaoCorridaRealtime(registro);
           }
         })
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            setTimeout(() => iniciarEscutaCorridasPassageiroRealtime(), 2000);
+          }
+        });
     }
 
     async function consultarCorridaRelevanteNoBanco() {
@@ -782,17 +841,23 @@
       if (corridaEncontrada) {
         await processarAtualizacaoCorridaRealtime(corridaEncontrada, token);
       } else {
+        await aguardarMapaPronto(1000);
         const painelAvaliacao = document.getElementById('painel-avaliacao-passageiro');
         const avaliacaoVisivel = painelAvaliacao && !painelAvaliacao.classList.contains('hidden');
         if (!avaliacaoVisivel) {
           document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
           document.getElementById('painel-espera-corrida')?.classList.add('hidden');
-          document.getElementById('painel-solicitacao')?.classList.remove('hidden');
+          const painelSol = document.getElementById('painel-solicitacao');
+          if (painelSol) {
+            painelSol.classList.remove('hidden');
+            painelSol.style.display = '';
+          }
         }
       }
     }
 
     async function sincronizarEstadoCorridaAoEntrar() {
+      iniciarEscutaCorridasPassageiroRealtime();
       await executarCheckupCorridaPassageiro(2);
     }
 
@@ -801,6 +866,7 @@
       const completa = await enriquecerCorridaComMotorista(corrida);
       window.corridaAtualId = completa.id;
       window.corridaAtivaDados = completa;
+      window.corridaAtivaPassageiro = completa;
       registrarCanalChamadaCorrida(completa.id);
       iniciarEscutaBadgeChatGlobal(completa.id);
       if (completa.motorista_id) {
@@ -1140,7 +1206,12 @@
             }
           }
         })
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            corridaChamadaAtualId = null;
+            setTimeout(() => registrarCanalChamadaCorrida(corridaId), 2000);
+          }
+        });
     }
 
     async function iniciarChamadaP2P({ corridaId, outroUsuarioId = null, outroNome = 'Motorista' }) {
@@ -1828,23 +1899,24 @@
       const tituloTopo = document.getElementById('titulo-topo-passageiro');
       if (tituloTopo) tituloTopo.innerText = 'Mobilidade Laguna';
 
+      mapaProntoNoIndex = false;
+      resolversMapaPronto = [];
+
       try {
         const response = await fetch('mapa.html');
         if (!response.ok) throw new Error('Falha ao carregar mapa');
         const htmlMapa = await response.text();
         mainApp.innerHTML = htmlMapa;
 
-        // Oculta o painel de pesquisa até o check-up confirmar o estado da corrida
         document.getElementById('painel-solicitacao')?.classList.add('hidden');
         document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
         document.getElementById('painel-espera-corrida')?.classList.add('hidden');
 
         await injetarScriptsDoModulo(mainApp);
+        await aguardarMapaPronto(2000);
 
         if (!pularCheckup) {
           await executarCheckupCorridaPassageiro(2);
-          // Segundo check-up curto após a montagem para garantir sincronia com o mapa
-          setTimeout(() => executarCheckupCorridaPassageiro(1), 350);
         }
       } catch (error) {
         mainApp.innerHTML = '<div class="flex-1 flex justify-center items-center text-red-400">Erro ao carregar o módulo do mapa.</div>';
@@ -1932,9 +2004,6 @@
         if (!document.hidden) {
           atualizarPresenca(true);
           sincronizarEstadoCorridaAoEntrar();
-          if (typeof window.verificarCorridaAtivaPassageiro === 'function') {
-            window.verificarCorridaAtivaPassageiro();
-          }
         } else {
           atualizarPresenca(false);
         }

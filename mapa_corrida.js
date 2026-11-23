@@ -250,14 +250,18 @@ async function verificarCorridaAtivaPassageiro() {
     salvarCacheCorridaPassageiro(corrida);
 
     if (typeof window.vincularCorridaComunicacaoPassageiro === 'function') {
-      window.vincularCorridaComunicacaoPassageiro(corrida);
+      await window.vincularCorridaComunicacaoPassageiro(corrida);
     }
 
     if (statusNorm === 'procurando' || statusNorm === 'pendente') {
-      document.getElementById('painel-solicitacao')?.classList.add('hidden');
-      document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
-      document.getElementById('painel-avaliacao-passageiro')?.classList.add('hidden');
-      document.getElementById('painel-espera-corrida')?.classList.remove('hidden');
+      const painelSol = document.getElementById('painel-solicitacao');
+      const painelMot = document.getElementById('painel-motorista-encontrado');
+      const painelAval = document.getElementById('painel-avaliacao-passageiro');
+      const painelEsp = document.getElementById('painel-espera-corrida');
+      if (painelSol) { painelSol.classList.add('hidden'); painelSol.style.display = 'none'; }
+      if (painelMot) { painelMot.classList.add('hidden'); painelMot.style.display = 'none'; }
+      if (painelAval) { painelAval.classList.add('hidden'); painelAval.style.display = 'none'; }
+      if (painelEsp) { painelEsp.classList.remove('hidden'); painelEsp.style.display = ''; }
       iniciarTimerEsperaCorrida();
     } else {
       await exibirPainelMotoristaEncontrado(corrida);
@@ -416,11 +420,13 @@ async function chamarMotorista() {
     corridaAtualId = data.id;
     corridaAtivaDados = data;
     salvarCacheCorridaPassageiro(data);
-    document.getElementById('painel-solicitacao')?.classList.add('hidden');
-    document.getElementById('painel-espera-corrida')?.classList.remove('hidden');
+    const painelSol = document.getElementById('painel-solicitacao');
+    const painelEsp = document.getElementById('painel-espera-corrida');
+    if (painelSol) { painelSol.classList.add('hidden'); painelSol.style.display = 'none'; }
+    if (painelEsp) { painelEsp.classList.remove('hidden'); painelEsp.style.display = ''; }
 
     if (typeof window.vincularCorridaComunicacaoPassageiro === 'function') {
-      window.vincularCorridaComunicacaoPassageiro(data);
+      await window.vincularCorridaComunicacaoPassageiro(data);
     }
 
     mostrarModal('Buscando Motorista', 'Sua solicitação foi enviada aos motoristas próximos.', 'sucesso', 3500);
@@ -471,13 +477,18 @@ function iniciarEscutaPassageiroRealtime() {
 
 async function exibirPainelMotoristaEncontrado(corrida) {
   if (timerIntervalId) clearInterval(timerIntervalId);
-  document.getElementById('painel-espera-corrida')?.classList.add('hidden');
-  document.getElementById('painel-solicitacao')?.classList.add('hidden');
-  document.getElementById('painel-avaliacao-passageiro')?.classList.add('hidden');
+  const painelEsp = document.getElementById('painel-espera-corrida');
+  const painelSol = document.getElementById('painel-solicitacao');
+  const painelAval = document.getElementById('painel-avaliacao-passageiro');
+  if (painelEsp) { painelEsp.classList.add('hidden'); painelEsp.style.display = 'none'; }
+  if (painelSol) { painelSol.classList.add('hidden'); painelSol.style.display = 'none'; }
+  if (painelAval) { painelAval.classList.add('hidden'); painelAval.style.display = 'none'; }
 
   const painelMotorista = document.getElementById('painel-motorista-encontrado');
-  painelMotorista?.classList.remove('hidden');
-  if (painelMotorista) painelMotorista.style.display = '';
+  if (painelMotorista) {
+    painelMotorista.classList.remove('hidden');
+    painelMotorista.style.display = '';
+  }
 
   const motorista = await buscarDadosMotoristaAtual(corrida);
   corridaAtivaDados = { ...(corridaAtivaDados || {}), ...corrida, motorista };
@@ -485,7 +496,7 @@ async function exibirPainelMotoristaEncontrado(corrida) {
   salvarCacheCorridaPassageiro(corridaAtivaDados);
 
   if (typeof window.vincularCorridaComunicacaoPassageiro === 'function') {
-    window.vincularCorridaComunicacaoPassageiro(corridaAtivaDados);
+    await window.vincularCorridaComunicacaoPassageiro(corridaAtivaDados);
   }
 
   const nomeExibido = motorista.nomeCurto || obterNomeCurtoMotorista(motorista.nome);
@@ -540,6 +551,8 @@ async function exibirPainelMotoristaEncontrado(corrida) {
   }
 }
 
+window.exibirPainelMotoristaEncontrado = exibirPainelMotoristaEncontrado;
+
 async function cancelarCorridaPassageiroAtiva() {
   const cliente = obterClienteSupabaseMapa();
   if (!corridaAtualId || !cliente) return;
@@ -567,9 +580,12 @@ async function exibirPainelAvaliacaoPassageiro(corrida) {
   corridaAtualId = corrida.id;
   corridaAtivaDados = corrida;
 
-  document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
-  document.getElementById('painel-espera-corrida')?.classList.add('hidden');
-  document.getElementById('painel-solicitacao')?.classList.add('hidden');
+  const painelMot = document.getElementById('painel-motorista-encontrado');
+  const painelEsp = document.getElementById('painel-espera-corrida');
+  const painelSol = document.getElementById('painel-solicitacao');
+  if (painelMot) { painelMot.classList.add('hidden'); painelMot.style.display = 'none'; }
+  if (painelEsp) { painelEsp.classList.add('hidden'); painelEsp.style.display = 'none'; }
+  if (painelSol) { painelSol.classList.add('hidden'); painelSol.style.display = 'none'; }
 
   const valorNum = Number(corrida.valor ?? corrida.valor_total ?? 15.0);
   const valorExibido = Number.isFinite(valorNum) ? valorNum : 15.0;
@@ -588,6 +604,8 @@ async function exibirPainelAvaliacaoPassageiro(corrida) {
     painelAvaliacao.style.display = '';
   }
 }
+
+window.exibirPainelAvaliacaoPassageiro = exibirPainelAvaliacaoPassageiro;
 
 function passageiroSelecionarEstrela(nota) {
   passageiroNotaSelecionada = nota;
@@ -708,9 +726,18 @@ function resetarPainelCompletoPassageiro(manterLocalizacao = false) {
   const painelAvaliacao = document.getElementById('painel-avaliacao-passageiro');
   if (painelAvaliacao) {
     painelAvaliacao.classList.add('hidden');
+    painelAvaliacao.style.display = 'none';
   }
-  document.getElementById('painel-espera-corrida')?.classList.add('hidden');
-  document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
+  const painelEsp = document.getElementById('painel-espera-corrida');
+  if (painelEsp) {
+    painelEsp.classList.add('hidden');
+    painelEsp.style.display = 'none';
+  }
+  const painelMot = document.getElementById('painel-motorista-encontrado');
+  if (painelMot) {
+    painelMot.classList.add('hidden');
+    painelMot.style.display = 'none';
+  }
   const painelSol = document.getElementById('painel-solicitacao');
   if (painelSol) {
     painelSol.classList.remove('hidden');
@@ -742,6 +769,8 @@ function resetarPainelCompletoPassageiro(manterLocalizacao = false) {
     usarMinhaLocalizacao(true);
   }
 }
+
+window.resetarPainelCompletoPassageiro = resetarPainelCompletoPassageiro;
 
 function formatarSegundosHHMM(segundos) {
   const totalSeg = Math.max(0, Math.round(Number(segundos) || 0));
