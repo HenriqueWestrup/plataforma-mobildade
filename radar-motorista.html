@@ -2,16 +2,27 @@
   <!-- MAPA LIVRE PARA QUALQUER REGIÃO -->
   <div id="map-radar" class="w-full h-full absolute inset-0 z-0"></div>
 
-  <!-- BOTÃO POWER FLUTUANTE VERDE NO MAPA (VISÍVEL APENAS QUANDO OFFLINE) -->
+  <!-- BOTÃO POWER FLUTUANTE NO MAPA (VISÍVEL APENAS QUANDO OFFLINE) -->
   <div id="container-power-flutuante" class="absolute top-6 right-4 z-20">
-    <button onclick="alternarPowerMotorista()" class="bg-emerald-600 hover:bg-emerald-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center font-bold transition border-2 border-white/20 animate-bounce" title="Ligar Aplicativo (Ficar Online)">
+    <button
+      id="btn-power-radar"
+      type="button"
+      onclick="alternarPowerMotorista()"
+      class="bg-emerald-600 hover:bg-emerald-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center font-bold transition border-2 border-white/20 animate-bounce"
+      title="Ligar Aplicativo (Ficar Online)"
+    >
       <i class="fa-solid fa-power-off text-base"></i>
     </button>
   </div>
 
   <!-- BOTÃO GOOGLE MAPS FLUTUANTE (VISÍVEL DURANTE CORRIDA ATIVA) -->
   <div id="container-btn-maps-flutuante" class="hidden absolute bottom-6 right-4 z-30">
-    <button onclick="abrirNoGoogleMaps()" class="bg-sky-600 hover:bg-sky-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center font-bold transition border-2 border-white/20" title="Abrir no Google Maps">
+    <button
+      type="button"
+      onclick="abrirNoGoogleMaps()"
+      class="bg-sky-600 hover:bg-sky-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center font-bold transition border-2 border-white/20"
+      title="Abrir no Google Maps"
+    >
       <i class="fa-solid fa-map-location-dot text-base"></i>
     </button>
   </div>
@@ -21,6 +32,49 @@
   var mapaRadarInstancia = null;
   var marcadorCarroRadar = null;
   var camadaRotaRadar = null;
+
+  function radarContaRestrita() {
+    if (typeof contaRestritaMotorista === 'function' && typeof motoristaLogado !== 'undefined') {
+      return contaRestritaMotorista(motoristaLogado);
+    }
+    if (typeof motoristaLogado !== 'undefined' && motoristaLogado) {
+      const st = String(motoristaLogado.status || '').toLowerCase();
+      return (
+        st === 'em_analise' ||
+        st === 'pendente' ||
+        st === 'suspenso' ||
+        st === 'suspensa' ||
+        st === 'bloqueado' ||
+        st === 'bloqueada' ||
+        motoristaLogado.banido === true ||
+        motoristaLogado.conta_suspensa === true ||
+        motoristaLogado.pode_ligar === false
+      );
+    }
+    return false;
+  }
+
+  function abrirNoGoogleMaps() {
+    if (typeof corridaAtiva === 'undefined' || !corridaAtiva) {
+      if (typeof mostrarToastAdmin === 'function') {
+        mostrarToastAdmin('Nenhuma corrida ativa para navegar.', 'aviso');
+      }
+      return;
+    }
+
+    let destinoAlvo = corridaAtiva.destino || corridaAtiva.origem || '';
+    if (corridaAtiva.status === 'em_andamento') {
+      const temParada = Boolean(corridaAtiva.parada && String(corridaAtiva.parada).trim() !== '');
+      const paradaConcluida = typeof paradaFinalizada !== 'undefined' ? Boolean(paradaFinalizada) : false;
+      destinoAlvo = (temParada && !paradaConcluida) ? corridaAtiva.parada : (corridaAtiva.destino || '');
+    } else {
+      destinoAlvo = corridaAtiva.origem || corridaAtiva.destino || '';
+    }
+
+    if (!destinoAlvo) return;
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destinoAlvo)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
 
   function inicializarModuloMapaRadar() {
     const latInicial = (typeof ultimaPosicaoGPS !== 'undefined' && ultimaPosicaoGPS) ? ultimaPosicaoGPS.lat : -15.793889;
@@ -39,7 +93,7 @@
       if (mapaRadarInstancia) mapaRadarInstancia.invalidateSize();
     }, 250);
 
-    if (navigator.geolocation) {
+    if (navigator.geolocation && !radarContaRestrita()) {
       navigator.geolocation.getCurrentPosition((pos) => {
         atualizarPosicaoNoMapaRadar(pos.coords.latitude, pos.coords.longitude);
       }, () => {}, { enableHighAccuracy: true });
@@ -92,14 +146,28 @@
   }
 
   function sincronizarEstadoRadar() {
-    const btnPower = document.getElementById('container-power-flutuante');
+    const btnPowerContainer = document.getElementById('container-power-flutuante');
+    const btnPower = document.getElementById('btn-power-radar');
     const btnMaps = document.getElementById('container-btn-maps-flutuante');
+    const bloqueado = radarContaRestrita();
+
+    if (btnPowerContainer) {
+      if (typeof statusOnline !== 'undefined' && statusOnline && !bloqueado) {
+        btnPowerContainer.classList.add('hidden');
+      } else {
+        btnPowerContainer.classList.remove('hidden');
+      }
+    }
 
     if (btnPower) {
-      if (typeof statusOnline !== 'undefined' && statusOnline) {
-        btnPower.classList.add('hidden');
+      if (bloqueado) {
+        btnPower.className = 'bg-red-900/90 hover:bg-red-800 text-red-200 w-12 h-12 rounded-full shadow-2xl flex items-center justify-center font-bold transition border-2 border-red-400/50 cursor-not-allowed';
+        btnPower.setAttribute('aria-disabled', 'true');
+        btnPower.title = 'Botão de ligar bloqueado (conta pendente, em análise, suspensa ou bloqueada)';
       } else {
-        btnPower.classList.remove('hidden');
+        btnPower.className = 'bg-emerald-600 hover:bg-emerald-500 text-white w-12 h-12 rounded-full shadow-2xl flex items-center justify-center font-bold transition border-2 border-white/20 animate-bounce';
+        btnPower.removeAttribute('aria-disabled');
+        btnPower.title = 'Ligar Aplicativo (Ficar Online)';
       }
     }
 
