@@ -47,7 +47,7 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.13</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.15</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
@@ -292,6 +292,7 @@
     let outroParticipanteChatNome = 'Motorista';
     let assuntoAtualSuporte = 'Suporte Geral';
     let aguardandoTrocaSenhaObrigatoria = false;
+    let checkupTokenAtual = 0;
 
     let canalSinalizacaoChamada = null;
     let corridaChamadaAtualId = null;
@@ -422,10 +423,34 @@
     }
 
     function atualizarPainelMotoristaComDados(corrida, motoristaInfo) {
+      const painelSolicitacao = document.getElementById('painel-solicitacao');
+      const painelEspera = document.getElementById('painel-espera-corrida');
+      const painelMotorista = document.getElementById('painel-motorista-encontrado');
+      const painelAvaliacao = document.getElementById('painel-avaliacao-passageiro');
+
+      if (painelSolicitacao) painelSolicitacao.classList.add('hidden');
+      if (painelAvaliacao) painelAvaliacao.classList.add('hidden');
+
+      const statusNorm = normalizarStatusIndex(corrida?.status);
+      if (['procurando', 'pendente'].includes(statusNorm)) {
+        if (painelMotorista) painelMotorista.classList.add('hidden');
+        if (painelEspera) painelEspera.classList.remove('hidden');
+      } else {
+        if (painelEspera) painelEspera.classList.add('hidden');
+        if (painelMotorista) painelMotorista.classList.remove('hidden');
+      }
+
       if (!motoristaInfo) return;
       const nomeEl = document.getElementById('passageiro-motorista-nome');
       const fotoEl = document.getElementById('passageiro-motorista-foto');
       const notaEl = document.getElementById('passageiro-motorista-nota');
+      const statusEl = document.getElementById('passageiro-status-viagem-texto');
+      const origemEl = document.getElementById('pass-ativa-origem');
+      const destinoEl = document.getElementById('pass-ativa-destino');
+      const paradaEl = document.getElementById('pass-ativa-parada');
+      const blocoParada = document.getElementById('bloco-parada-ativa-container');
+      const btnCancelar = document.getElementById('btn-cancelar-passageiro-ativo');
+      const blocoEmbarque = document.getElementById('bloco-embarque-container');
 
       const primeiroNomeMot = obterPrimeiroNomeApenas(motoristaInfo.nome, 'Motorista');
       const rawNota = Number(motoristaInfo.avaliacao ?? motoristaInfo.nota ?? 5);
@@ -443,6 +468,28 @@
         fotoEl.src = fotoUrl;
       }
       if (notaEl) notaEl.innerText = notaFormatada;
+      if (statusEl && corrida) statusEl.innerText = textoStatusAmigavel(statusNorm);
+      if (origemEl && corrida) origemEl.innerText = corrida.origem || corrida.origem_endereco || '-';
+      if (destinoEl && corrida) destinoEl.innerText = corrida.destino || corrida.destino_endereco || '-';
+
+      if (corrida) {
+        const textoParada = corrida.parada || corrida.parada_endereco || '';
+        if (textoParada) {
+          if (paradaEl) paradaEl.innerText = textoParada;
+          blocoParada?.classList.remove('hidden');
+        } else {
+          blocoParada?.classList.add('hidden');
+        }
+
+        const emAndamento = ['em_andamento', 'em_curso', 'em_viagem', 'iniciada', 'viagem_iniciada'].includes(statusNorm);
+        if (emAndamento) {
+          btnCancelar?.classList.add('hidden');
+          if (blocoEmbarque) blocoEmbarque.style.display = 'none';
+        } else {
+          btnCancelar?.classList.remove('hidden');
+          if (blocoEmbarque) blocoEmbarque.style.display = 'block';
+        }
+      }
     }
 
     function atualizarBarraComunicacaoIndex(corrida) {
@@ -575,14 +622,62 @@
       }
     }
 
-    async function processarAtualizacaoCorridaRealtime(corridaRaw) {
+    async function enviarCorridaAtivaParaMapa(corridaCompleta) {
+      if (!corridaCompleta || !corridaCompleta.id) return;
+      window.corridaAtualId = corridaCompleta.id;
+      window.corridaAtivaDados = corridaCompleta;
+      window.corridaAtivaPassageiro = corridaCompleta;
+
+      try {
+        localStorage.setItem('mobiurb_corrida_ativa_passageiro', JSON.stringify({
+          passageiro_id: corridaCompleta.passageiro_id || obterMeuIdSessao() || null,
+          corrida: corridaCompleta
+        }));
+      } catch (e) {}
+
+      atualizarPainelMotoristaComDados(corridaCompleta, corridaCompleta.motorista);
+
+      const statusNorm = normalizarStatusIndex(corridaCompleta.status);
+      if (statusNorm === 'procurando' || statusNorm === 'pendente') {
+        if (typeof iniciarTimerEsperaCorrida === 'function') {
+          iniciarTimerEsperaCorrida();
+        }
+        if (typeof iniciarEscutaPassageiroRealtime === 'function') {
+          iniciarEscutaPassageiroRealtime();
+        }
+        return;
+      }
+
+      if (typeof exibirPainelMotoristaEncontrado === 'function') {
+        await exibirPainelMotoristaEncontrado(corridaCompleta);
+      }
+      if (typeof iniciarEscutaPassageiroRealtime === 'function') {
+        iniciarEscutaPassageiroRealtime();
+      }
+    }
+
+    window.aplicarCorridaAtivaNoMapaDoIndex = async function () {
+      const corridaAtual = window.corridaAtivaDados || window.corridaAtivaPassageiro || null;
+      if (!corridaAtual || !corridaAtual.id) return false;
+      const statusNorm = normalizarStatusIndex(corridaAtual.status);
+      if (!STATUS_ATIVOS_PASSAGEIRO.includes(statusNorm)) return false;
+      const completa = await enriquecerCorridaComMotorista(corridaAtual);
+      await enviarCorridaAtivaParaMapa(completa);
+      return true;
+    };
+
+    async function processarAtualizacaoCorridaRealtime(corridaRaw, tokenCheckup = null) {
+      if (tokenCheckup !== null && tokenCheckup !== checkupTokenAtual) return;
       if (!corridaRaw || !corridaRaw.id) return;
+
       const corridaCompleta = await enriquecerCorridaComMotorista(corridaRaw);
+      if (tokenCheckup !== null && tokenCheckup !== checkupTokenAtual) return;
+
       const statusNorm = normalizarStatusIndex(corridaCompleta.status);
 
       if (STATUS_FINALIZADOS_PASSAGEIRO.includes(statusNorm)) {
         if (!document.getElementById('painel-avaliacao-passageiro')) {
-          await carregarModuloMapa();
+          await carregarModuloMapa({ pularCheckup: true });
         }
         if (!corridaJaAvaliadaNoIndex(corridaCompleta)) {
           await exibirAvaliacaoPassageiroInstantanea(corridaCompleta);
@@ -606,16 +701,6 @@
       }
 
       if (STATUS_ATIVOS_PASSAGEIRO.includes(statusNorm)) {
-        window.corridaAtualId = corridaCompleta.id;
-        window.corridaAtivaDados = corridaCompleta;
-        window.corridaAtivaPassageiro = corridaCompleta;
-        try {
-          localStorage.setItem('mobiurb_corrida_ativa_passageiro', JSON.stringify({
-            passageiro_id: corridaCompleta.passageiro_id || obterMeuIdSessao() || null,
-            corrida: corridaCompleta
-          }));
-        } catch (e) {}
-
         registrarCanalChamadaCorrida(corridaCompleta.id);
         iniciarEscutaBadgeChatGlobal(corridaCompleta.id);
         if (corridaCompleta.motorista_id) {
@@ -624,14 +709,7 @@
         }
 
         atualizarBarraComunicacaoIndex(corridaCompleta);
-
-        if (document.getElementById('painel-motorista-encontrado')) {
-          if (typeof exibirPainelMotoristaEncontrado === 'function') {
-            await exibirPainelMotoristaEncontrado(corridaCompleta);
-          } else {
-            atualizarPainelMotoristaComDados(corridaCompleta, corridaCompleta.motorista);
-          }
-        }
+        await enviarCorridaAtivaParaMapa(corridaCompleta);
       }
     }
 
@@ -660,26 +738,62 @@
         .subscribe();
     }
 
-    async function sincronizarEstadoCorridaAoEntrar() {
+    async function consultarCorridaRelevanteNoBanco() {
       const meuId = obterMeuIdSessao();
-      if (!meuId) return;
+      if (!meuId) return null;
 
       try {
         const { data, error } = await supabaseClient
           .from('corridas')
           .select('*')
           .eq('passageiro_id', meuId)
-          .in('status', [
-            ...STATUS_ATIVOS_PASSAGEIRO,
-            ...STATUS_FINALIZADOS_PASSAGEIRO
-          ])
           .order('id', { ascending: false })
-          .limit(1);
+          .limit(5);
 
         if (!error && Array.isArray(data) && data.length > 0) {
-          await processarAtualizacaoCorridaRealtime(data[0]);
+          const ativa = data.find((c) => STATUS_ATIVOS_PASSAGEIRO.includes(normalizarStatusIndex(c.status)));
+          if (ativa) return ativa;
+
+          const finalizada = data.find((c) => STATUS_FINALIZADOS_PASSAGEIRO.includes(normalizarStatusIndex(c.status)));
+          if (finalizada && !corridaJaAvaliadaNoIndex(finalizada)) return finalizada;
         }
       } catch (e) {}
+      return null;
+    }
+
+    async function executarCheckupCorridaPassageiro(passos = 2) {
+      const meuId = obterMeuIdSessao();
+      if (!meuId) return;
+
+      const token = ++checkupTokenAtual;
+      let corridaEncontrada = null;
+
+      for (let i = 0; i < passos; i++) {
+        corridaEncontrada = await consultarCorridaRelevanteNoBanco();
+        if (token !== checkupTokenAtual) return;
+        if (corridaEncontrada) break;
+        if (i < passos - 1) {
+          await new Promise((r) => setTimeout(r, 250));
+        }
+      }
+
+      if (token !== checkupTokenAtual) return;
+
+      if (corridaEncontrada) {
+        await processarAtualizacaoCorridaRealtime(corridaEncontrada, token);
+      } else {
+        const painelAvaliacao = document.getElementById('painel-avaliacao-passageiro');
+        const avaliacaoVisivel = painelAvaliacao && !painelAvaliacao.classList.contains('hidden');
+        if (!avaliacaoVisivel) {
+          document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
+          document.getElementById('painel-espera-corrida')?.classList.add('hidden');
+          document.getElementById('painel-solicitacao')?.classList.remove('hidden');
+        }
+      }
+    }
+
+    async function sincronizarEstadoCorridaAoEntrar() {
+      await executarCheckupCorridaPassageiro(2);
     }
 
     async function vincularCorridaComunicacaoPassageiro(corrida) {
@@ -1475,7 +1589,6 @@
       document.getElementById('menu-foto').src = usuarioLogado.foto_url || avatarPadraoUrl(usuarioLogado.nome || 'Passageiro');
 
       await carregarModuloMapa();
-      await sincronizarEstadoCorridaAoEntrar();
       verificarExigenciaTrocaSenha(usuarioLogado);
     }
 
@@ -1682,21 +1795,27 @@
 
     function injetarScriptsDoModulo(container) {
       limparScriptsDinamicosModulo();
-      const scripts = container.querySelectorAll('script');
-      scripts.forEach(scriptAntigo => {
+      const scripts = Array.from(container.querySelectorAll('script'));
+      const promessas = scripts.map((scriptAntigo) => new Promise((resolve) => {
         const novoScript = document.createElement('script');
         novoScript.setAttribute('data-modulo-dinamico', 'true');
         if (scriptAntigo.src) {
           novoScript.src = scriptAntigo.src;
+          novoScript.onload = () => resolve();
+          novoScript.onerror = () => resolve();
+          document.body.appendChild(novoScript);
         } else {
           novoScript.textContent = scriptAntigo.textContent;
+          document.body.appendChild(novoScript);
+          resolve();
         }
-        document.body.appendChild(novoScript);
         scriptAntigo.remove();
-      });
+      }));
+      return Promise.all(promessas);
     }
 
-    async function carregarModuloMapa() {
+    async function carregarModuloMapa(opcoes = {}) {
+      const pularCheckup = Boolean(opcoes && opcoes.pularCheckup);
       const menu = document.getElementById('menu-lateral');
       if (menu && !menu.classList.contains('-translate-x-full')) {
         menu.classList.add('-translate-x-full');
@@ -1715,14 +1834,25 @@
         const htmlMapa = await response.text();
         mainApp.innerHTML = htmlMapa;
 
-        injetarScriptsDoModulo(mainApp);
-        setTimeout(() => sincronizarEstadoCorridaAoEntrar(), 120);
+        // Oculta o painel de pesquisa até o check-up confirmar o estado da corrida
+        document.getElementById('painel-solicitacao')?.classList.add('hidden');
+        document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
+        document.getElementById('painel-espera-corrida')?.classList.add('hidden');
+
+        await injetarScriptsDoModulo(mainApp);
+
+        if (!pularCheckup) {
+          await executarCheckupCorridaPassageiro(2);
+          // Segundo check-up curto após a montagem para garantir sincronia com o mapa
+          setTimeout(() => executarCheckupCorridaPassageiro(1), 350);
+        }
       } catch (error) {
         mainApp.innerHTML = '<div class="flex-1 flex justify-center items-center text-red-400">Erro ao carregar o módulo do mapa.</div>';
       }
     }
 
     async function carregarModuloHistorico() {
+      checkupTokenAtual++;
       const menu = document.getElementById('menu-lateral');
       if (menu && !menu.classList.contains('-translate-x-full')) {
         menu.classList.add('-translate-x-full');
@@ -1744,13 +1874,14 @@
         const corpo = doc.body ? doc.body.innerHTML : htmlHist;
         mainApp.innerHTML = `<div class="p-3 space-y-3">${corpo}</div>`;
 
-        injetarScriptsDoModulo(mainApp);
+        await injetarScriptsDoModulo(mainApp);
       } catch (error) {
         window.location.href = 'historico.html';
       }
     }
 
     async function carregarModuloPerfil() {
+      checkupTokenAtual++;
       const menu = document.getElementById('menu-lateral');
       if (menu && !menu.classList.contains('-translate-x-full')) {
         menu.classList.add('-translate-x-full');
@@ -1769,7 +1900,7 @@
         const htmlPerfil = await response.text();
         mainApp.innerHTML = htmlPerfil;
 
-        injetarScriptsDoModulo(mainApp);
+        await injetarScriptsDoModulo(mainApp);
       } catch (error) {
         mainApp.innerHTML = '<div class="flex-1 flex justify-center items-center text-red-400 p-6 text-center">Erro ao carregar o perfil.</div>';
       }
