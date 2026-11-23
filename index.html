@@ -47,14 +47,14 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.9</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.10</span>
   </header>
 
   <!-- GAVETA DO MENU LATERAL -->
   <div id="menu-lateral" class="fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
     <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
       <div class="flex items-center gap-3">
-        <img id="menu-foto" src="https://ui-avatars.com/api/?name=Passageiro" class="w-10 h-10 rounded-full object-cover border border-emerald-500">
+        <img id="menu-foto" src="https://ui-avatars.com/api/?name=Passageiro" onerror="this.src='https://ui-avatars.com/api/?name=Passageiro'" class="w-10 h-10 rounded-full object-cover border border-emerald-500">
         <div>
           <h3 id="menu-nome" class="font-bold text-white text-xs">Carregando...</h3>
           <p class="text-[10px] text-slate-400">Passageiro</p>
@@ -163,53 +163,28 @@
 
       <audio id="audio-remoto-p2p" autoplay playsinline class="hidden"></audio>
 
-      <!-- BOTÕES QUANDO RECEBE CHAMADA -->
       <div id="chamada-acoes-recebida" class="hidden grid grid-cols-2 gap-3 pt-1">
-        <button
-          type="button"
-          onclick="recusarChamadaRecebida()"
-          class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-2xl shadow transition flex items-center justify-center gap-2 text-xs"
-        >
-          <i class="fa-solid fa-phone-slash"></i>
-          <span>Recusar</span>
+        <button type="button" onclick="recusarChamadaRecebida()" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-2xl shadow transition flex items-center justify-center gap-2 text-xs">
+          <i class="fa-solid fa-phone-slash"></i> <span>Recusar</span>
         </button>
-        <button
-          type="button"
-          onclick="atenderChamadaRecebida()"
-          class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-2xl shadow transition flex items-center justify-center gap-2 text-xs"
-        >
-          <i class="fa-solid fa-phone"></i>
-          <span>Atender</span>
+        <button type="button" onclick="atenderChamadaRecebida()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-2xl shadow transition flex items-center justify-center gap-2 text-xs">
+          <i class="fa-solid fa-phone"></i> <span>Atender</span>
         </button>
       </div>
 
-      <!-- BOTÕES QUANDO ESTÁ LIGANDO OU EM CHAMADA -->
       <div id="chamada-acoes-ativa" class="hidden space-y-2.5 pt-1">
         <div class="grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            id="btn-mutar-chamada"
-            onclick="alternarMudoChamada()"
-            class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-2.5 rounded-2xl transition flex flex-col items-center justify-center gap-1 text-[10px]"
-          >
+          <button type="button" id="btn-mutar-chamada" onclick="alternarMudoChamada()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-2.5 rounded-2xl transition flex flex-col items-center justify-center gap-1 text-[10px]">
             <i id="icone-mutar-chamada" class="fa-solid fa-microphone text-sm text-emerald-400"></i>
             <span id="label-mutar-chamada">Microfone</span>
           </button>
 
-          <button
-            type="button"
-            onclick="abrirChatDuranteChamada()"
-            class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-bold py-2.5 rounded-2xl transition flex flex-col items-center justify-center gap-1 text-[10px]"
-          >
+          <button type="button" onclick="abrirChatDuranteChamada()" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-bold py-2.5 rounded-2xl transition flex flex-col items-center justify-center gap-1 text-[10px]">
             <i class="fa-solid fa-comments text-sm"></i>
             <span>Mensagem</span>
           </button>
 
-          <button
-            type="button"
-            onclick="encerrarChamadaP2P(true)"
-            class="bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-2xl shadow transition flex flex-col items-center justify-center gap-1 text-[10px]"
-          >
+          <button type="button" onclick="encerrarChamadaP2P(true)" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-2xl shadow transition flex flex-col items-center justify-center gap-1 text-[10px]">
             <i class="fa-solid fa-phone-slash text-sm"></i>
             <span>Encerrar</span>
           </button>
@@ -261,13 +236,7 @@
           <label for="nova-senha-input" class="font-bold text-slate-200">Nova senha</label>
           <span id="forca-senha-label" class="font-extrabold text-red-400">Fraco • 0%</span>
         </div>
-        <input
-          id="nova-senha-input"
-          type="password"
-          oninput="avaliarNovaSenhaModal()"
-          placeholder="Digite sua nova senha (mín. 8)"
-          class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3.5 py-2.5 text-xs text-white outline-none focus:border-emerald-500"
-        />
+        <input id="nova-senha-input" type="password" oninput="avaliarNovaSenhaModal()" placeholder="Digite sua nova senha (mín. 8)" class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3.5 py-2.5 text-xs text-white outline-none focus:border-emerald-500" />
         <div class="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
           <div id="forca-senha-barra" class="h-full w-0 bg-red-500 transition-all duration-200"></div>
         </div>
@@ -275,13 +244,7 @@
 
       <div class="space-y-1.5">
         <label for="confirmar-nova-senha-input" class="block text-[11px] font-bold text-slate-200">Repita a nova senha</label>
-        <input
-          id="confirmar-nova-senha-input"
-          type="password"
-          oninput="avaliarNovaSenhaModal()"
-          placeholder="Digite novamente para confirmar"
-          class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3.5 py-2.5 text-xs text-white outline-none focus:border-emerald-500"
-        />
+        <input id="confirmar-nova-senha-input" type="password" oninput="avaliarNovaSenhaModal()" placeholder="Digite novamente para confirmar" class="w-full rounded-xl bg-slate-950 border border-slate-700 px-3.5 py-2.5 text-xs text-white outline-none focus:border-emerald-500" />
       </div>
 
       <ul class="space-y-1 text-[11px] text-slate-400">
@@ -293,21 +256,8 @@
       <p id="erro-nova-senha-modal" class="hidden text-[11px] font-bold text-red-400"></p>
 
       <div class="flex gap-2 pt-1">
-        <button
-          type="button"
-          onclick="sairConta()"
-          class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 px-3.5 rounded-xl text-xs transition"
-        >
-          Sair
-        </button>
-        <button
-          id="btn-salvar-nova-senha-modal"
-          type="button"
-          onclick="salvarNovaSenhaObrigatoria()"
-          class="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-bold text-white shadow transition"
-        >
-          Salvar nova senha
-        </button>
+        <button type="button" onclick="sairConta()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 px-3.5 rounded-xl text-xs transition">Sair</button>
+        <button id="btn-salvar-nova-senha-modal" type="button" onclick="salvarNovaSenhaObrigatoria()" class="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-bold text-white shadow transition">Salvar nova senha</button>
       </div>
     </div>
   </div>
@@ -325,7 +275,10 @@
       'a_caminho',
       'no_local',
       'em_andamento',
-      'em_curso'
+      'em_curso',
+      'em_viagem',
+      'iniciada',
+      'viagem_iniciada'
     ];
     const CHAVE_CORRIDA_ATIVA_PASSAGEIRO = 'mobiurb_corrida_ativa_passageiro';
 
@@ -344,7 +297,6 @@
     let assuntoAtualSuporte = 'Suporte Geral';
     let aguardandoTrocaSenhaObrigatoria = false;
 
-    // Estado da chamada P2P (WebRTC + Supabase Realtime Broadcast)
     let canalSinalizacaoChamada = null;
     let corridaChamadaAtualId = null;
     let peerConnectionP2P = null;
@@ -362,9 +314,45 @@
       ]
     };
 
+    function normalizarStatusCorrida(status) {
+      return String(status || '').trim().toLowerCase().replace(/\s+/g, '_');
+    }
+
+    function avatarPadraoUrl(nome = 'Passageiro') {
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(nome || 'Passageiro')}`;
+    }
+
+    async function enriquecerCorridaComMotorista(corrida) {
+      if (!corrida || !corrida.id) return corrida;
+      if (corrida.motorista && corrida.motorista.nome) return corrida;
+      if (!corrida.motorista_id) return corrida;
+
+      try {
+        const { data: mot } = await supabaseClient
+          .from('usuarios')
+          .select('id, nome, foto_url, avaliacao')
+          .eq('id', corrida.motorista_id)
+          .maybeSingle();
+
+        if (mot) {
+          return {
+            ...corrida,
+            motorista: {
+              id: mot.id,
+              nome: mot.nome || 'Motorista',
+              foto_url: mot.foto_url || avatarPadraoUrl(mot.nome || 'Motorista'),
+              avaliacao: mot.avaliacao ?? 5.0
+            }
+          };
+        }
+      } catch (e) {}
+      return corrida;
+    }
+
     function salvarCorridaAtivaCache(corrida) {
       try {
-        if (!corrida || !corrida.id || !STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(String(corrida.status || '').toLowerCase())) {
+        const st = normalizarStatusCorrida(corrida?.status);
+        if (!corrida || !corrida.id || !STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(st)) {
           localStorage.removeItem(CHAVE_CORRIDA_ATIVA_PASSAGEIRO);
           return;
         }
@@ -384,7 +372,8 @@
         if (passageiroId && parsed.passageiro_id && String(parsed.passageiro_id) !== String(passageiroId)) {
           return null;
         }
-        if (!STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(String(parsed.corrida.status || '').toLowerCase())) {
+        const st = normalizarStatusCorrida(parsed.corrida.status);
+        if (!STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(st)) {
           return null;
         }
         return parsed.corrida;
@@ -411,8 +400,16 @@
           .limit(1);
 
         if (!error && Array.isArray(data) && data.length > 0) {
-          corridaAtivaPassageiro = data[0];
+          let corridaCompleta = data[0];
+          corridaCompleta = await enriquecerCorridaComMotorista(corridaCompleta);
+          corridaAtivaPassageiro = corridaCompleta;
           window.corridaAtivaPassageiro = corridaAtivaPassageiro;
+          if (corridaCompleta.motorista_id) {
+            outroParticipanteChatId = corridaCompleta.motorista_id;
+          }
+          if (corridaCompleta.motorista?.nome) {
+            outroParticipanteChatNome = corridaCompleta.motorista.nome;
+          }
           salvarCorridaAtivaCache(corridaAtivaPassageiro);
           registrarCanalChamadaCorrida(corridaAtivaPassageiro.id);
           return corridaAtivaPassageiro;
@@ -456,8 +453,10 @@
           filter: `passageiro_id=eq.${usuarioLogado.id}`
         }, async (payload) => {
           const registro = payload.new || payload.old;
-          if (registro && STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(String(registro.status || '').toLowerCase()) && payload.eventType !== 'DELETE') {
-            corridaAtivaPassageiro = payload.new;
+          const st = normalizarStatusCorrida(registro?.status);
+          if (registro && STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(st) && payload.eventType !== 'DELETE') {
+            const completa = await enriquecerCorridaComMotorista(payload.new);
+            corridaAtivaPassageiro = completa;
             salvarCorridaAtivaCache(corridaAtivaPassageiro);
             registrarCanalChamadaCorrida(corridaAtivaPassageiro.id);
             notificarCorridaAtivaParaModulos(corridaAtivaPassageiro);
@@ -519,8 +518,8 @@
     function obterMeuIdSessao() {
       if (usuarioLogado?.id) return String(usuarioLogado.id);
       try {
-        const mot = JSON.parse(localStorage.getItem('motorista_logado') || '{}');
-        if (mot?.id) return String(mot.id);
+        const pass = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
+        if (pass?.id) return String(pass.id);
       } catch (e) {}
       return '';
     }
@@ -528,10 +527,10 @@
     function obterMeuNomeSessao() {
       if (usuarioLogado?.nome) return usuarioLogado.nome;
       try {
-        const mot = JSON.parse(localStorage.getItem('motorista_logado') || '{}');
-        if (mot?.nome) return mot.nome;
+        const pass = JSON.parse(localStorage.getItem('passageiro_logado') || '{}');
+        if (pass?.nome) return pass.nome;
       } catch (e) {}
-      return 'Usuário';
+      return 'Passageiro';
     }
 
     function exibirAvisoRedeChamada(mensagem) {
@@ -777,18 +776,26 @@
         .subscribe();
     }
 
-    async function iniciarChamadaP2P({ corridaId, outroUsuarioId = null, outroNome = 'Contato' }) {
-      const idCorridaAlvo = corridaId || corridaAtivaPassageiro?.id || null;
+    async function iniciarChamadaP2P({ corridaId, outroUsuarioId = null, outroNome = 'Motorista' }) {
+      let corridaRef = corridaAtivaPassageiro || window.corridaAtivaPassageiro || lerCorridaAtivaCache(usuarioLogado?.id);
+      if (!corridaRef && typeof buscarCorridaAtivaPassageiro === 'function') {
+        corridaRef = await buscarCorridaAtivaPassageiro(usuarioLogado?.id, true);
+      }
+
+      const idCorridaAlvo = corridaId || corridaRef?.id || null;
       if (!idCorridaAlvo) {
         alert('Nenhuma corrida ativa para iniciar chamada de voz.');
         return;
       }
 
-      registrarCanalChamadaCorrida(idCorridaAlvo);
-      outroParticipanteChatId = outroUsuarioId || outroParticipanteChatId;
-      outroParticipanteChatNome = outroNome || outroParticipanteChatNome;
+      const nomeAlvo = outroNome || corridaRef?.motorista?.nome || outroParticipanteChatNome || 'Motorista';
+      const idOutroAlvo = outroUsuarioId || corridaRef?.motorista_id || outroParticipanteChatId || null;
 
-      document.getElementById('chamada-nome-contato').innerText = outroNome;
+      registrarCanalChamadaCorrida(idCorridaAlvo);
+      outroParticipanteChatId = idOutroAlvo;
+      outroParticipanteChatNome = nomeAlvo;
+
+      document.getElementById('chamada-nome-contato').innerText = nomeAlvo;
       document.getElementById('chamada-acoes-recebida').classList.add('hidden');
       document.getElementById('chamada-acoes-ativa').classList.remove('hidden');
       ocultarAvisoRedeChamada();
@@ -798,7 +805,7 @@
       try {
         await prepararAudioLocal();
         atualizarStatusChamadaUI('Chamando...', 'fa-phone-volume');
-        await enviarSinalChamada('chamando', { paraId: outroUsuarioId });
+        await enviarSinalChamada('chamando', { paraId: idOutroAlvo });
 
         const pc = criarPeerConnectionP2P();
         const offer = await pc.createOffer();
@@ -964,14 +971,27 @@
     }
 
     async function abrirChatCorrida(corridaId, nomeOutroParticipante = 'Motorista', outroId = null) {
-      const idCorridaAlvo = corridaId || corridaAtivaPassageiro?.id || null;
-      if (!idCorridaAlvo && !outroId) return;
+      let corridaRef = corridaAtivaPassageiro || window.corridaAtivaPassageiro || lerCorridaAtivaCache(usuarioLogado?.id);
+      if ((!corridaId || !outroId) && typeof buscarCorridaAtivaPassageiro === 'function') {
+        const buscada = await buscarCorridaAtivaPassageiro(usuarioLogado?.id, true);
+        if (buscada) corridaRef = buscada;
+      }
+
+      const idCorridaAlvo = corridaId || corridaRef?.id || null;
+      const idOutroAlvo = outroId || corridaRef?.motorista_id || outroParticipanteChatId || null;
+      const nomeAlvo = nomeOutroParticipante || corridaRef?.motorista?.nome || outroParticipanteChatNome || 'Motorista';
+
+      if (!idCorridaAlvo && !idOutroAlvo) return;
+
       corridaChatAtualId = idCorridaAlvo;
-      outroParticipanteChatId = outroId;
-      outroParticipanteChatNome = nomeOutroParticipante || 'Motorista';
+      outroParticipanteChatId = idOutroAlvo;
+      outroParticipanteChatNome = nomeAlvo;
 
       if (idCorridaAlvo) {
         registrarCanalChamadaCorrida(idCorridaAlvo);
+      }
+      if (typeof window.zerarBadgeChatPassageiro === 'function') {
+        window.zerarBadgeChatPassageiro();
       }
 
       document.getElementById('chat-corrida-titulo').innerText = `Chat do Aplicativo • ${outroParticipanteChatNome}`;
@@ -980,7 +1000,7 @@
         : 'Histórico de conversas';
       document.getElementById('modal-chat-corrida').classList.remove('hidden');
 
-      await carregarMensagensCorrida(idCorridaAlvo, outroId);
+      await carregarMensagensCorrida(idCorridaAlvo, idOutroAlvo);
       if (idCorridaAlvo) iniciarRealtimeChatCorrida(idCorridaAlvo);
       document.getElementById('chat-corrida-input')?.focus();
     }
@@ -1020,7 +1040,6 @@
       await carregarMensagensCorrida(corridaChatAtualId, outroParticipanteChatId);
     }
 
-    // Expõe helpers globais para o mapa do passageiro e para o motorista
     window.abrirChatCorrida = abrirChatCorrida;
     window.fecharChatCorrida = fecharChatCorrida;
     window.iniciarChamadaP2P = iniciarChamadaP2P;
@@ -1199,7 +1218,7 @@
       intervaloValidacaoSessaoPassageiro = setInterval(validarSessaoUnicaPassageiro, 7000);
 
       document.getElementById('menu-nome').innerText = usuarioLogado.nome || 'Passageiro';
-      document.getElementById('menu-foto').src = usuarioLogado.foto_url || 'https://ui-avatars.com/api/?name=Passageiro';
+      document.getElementById('menu-foto').src = usuarioLogado.foto_url || avatarPadraoUrl(usuarioLogado.nome || 'Passageiro');
 
       await carregarModuloMapa();
       verificarExigenciaTrocaSenha(usuarioLogado);
@@ -1301,11 +1320,7 @@
     }
 
     function abrirSuporteAssunto(assunto) {
-      if (assunto === 'bloqueio') {
-        assuntoAtualSuporte = 'Assunto: Conta Suspensa / Bloqueada';
-      } else {
-        assuntoAtualSuporte = assunto;
-      }
+      assuntoAtualSuporte = assunto === 'bloqueio' ? 'Assunto: Conta Suspensa / Bloqueada' : assunto;
       document.getElementById('modal-suporte-passageiro').classList.remove('hidden');
       carregarHistoricoMensagensSuporte();
     }
@@ -1371,7 +1386,6 @@
           .eq('lido', false);
 
         atualizarContadorNotificacoes();
-
       } catch (e) {
         if (!manterFoco) {
           container.innerHTML = '<p class="text-slate-500 text-center py-2">Erro ao carregar histórico.</p>';
@@ -1511,13 +1525,8 @@
         }
       });
 
-      window.addEventListener('pagehide', () => {
-        atualizarPresenca(false);
-      });
-
-      window.addEventListener('beforeunload', () => {
-        atualizarPresenca(false);
-      });
+      window.addEventListener('pagehide', () => atualizarPresenca(false));
+      window.addEventListener('beforeunload', () => atualizarPresenca(false));
     }
 
     function toggleMenuLateral() {
