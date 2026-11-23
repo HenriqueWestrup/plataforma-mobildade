@@ -81,7 +81,7 @@
   <div id="painel-motorista-encontrado" class="hidden absolute bottom-4 inset-x-4 bg-slate-900/95 backdrop-blur-md border border-emerald-500/60 p-5 rounded-2xl space-y-4 shadow-2xl z-20">
     <div class="flex items-center justify-between border-b border-slate-800 pb-3">
       <div class="flex items-center gap-3">
-        <img id="passageiro-motorista-foto" src="" class="w-12 h-12 rounded-full object-cover border-2 border-emerald-500 shadow">
+        <img id="passageiro-motorista-foto" src="https://ui-avatars.com/api/?name=Motorista" class="w-12 h-12 rounded-full object-cover border-2 border-emerald-500 shadow">
         <div>
           <h4 id="passageiro-motorista-nome" class="font-extrabold text-white text-sm">-</h4>
           <span class="text-[11px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30"><i class="fa-solid fa-star text-[10px]"></i> <span id="passageiro-motorista-nota">5.0</span></span>
@@ -288,7 +288,7 @@
   var p2pTimeoutChamadaId = null;
   var p2pContextoAtual = { corridaId: null, outroUsuarioId: null, outroNome: 'Motorista', papelLocal: 'passageiro' };
 
-  const P2P_ICE_CONFIG = {
+  var P2P_ICE_CONFIG = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' }
@@ -366,7 +366,6 @@
           return;
         }
 
-        // Não abre o modal na cara da pessoa: apenas avisa e incrementa o badge
         atualizarBadgeChatPassageiro(naoLidasChatPassageiro + 1);
         mostrarToastPass(`Nova mensagem de ${primeiroNome(novaMsg.remetente_nome || 'Motorista')}`);
       })
@@ -407,7 +406,6 @@
 
   function fecharChatFallbackPass() {
     modalFallbackPassAberto = false;
-    document.getElementById('chat-fb-pass-lista') && (modalFallbackPassAberto = false);
     document.getElementById('modal-chat-fallback-pass')?.classList.add('hidden');
   }
 
@@ -789,9 +787,134 @@
     });
   }
 
-  // Sincroniza canal de chamada e badge assim que houver corrida ativa
-  setInterval(() => {
-    const idAtivo = corridaAtualId || corridaAtivaDados?.id;
+  // --- RESTAURAÇÃO E SINCRONIZAÇÃO DA CORRIDA ATIVA ---
+  async function aplicarEstadoCorridaAtivaNoMapa(corridaRecebida = null) {
+    let corrida = corridaRecebida || corridaAtivaDados || window.corridaAtivaPassageiro || null;
+
+    if (!corrida && typeof window.buscarCorridaAtivaPassageiro === 'function') {
+      const passAtual = obterPassageiroAtual();
+      corrida = await window.buscarCorridaAtivaPassageiro(passAtual?.id, true);
+    }
+
+    if (!corrida && supabaseMapa) {
+      const passAtual = obterPassageiroAtual();
+      if (passAtual?.id) {
+        const { data } = await supabaseMapa
+          .from('corridas')
+          .select('*')
+          .eq('passageiro_id', passAtual.id)
+          .in('status', ['pendente', 'procurando', 'aceita', 'aceito', 'a_caminho', 'no_local', 'em_andamento', 'em_curso'])
+          .order('id', { ascending: false })
+          .limit(1);
+        if (Array.isArray(data) && data.length > 0) {
+          corrida = data[0];
+        }
+      }
+    }
+
+    if (!corrida || !corrida.id) {
+      corridaAtualId = null;
+      corridaAtivaDados = null;
+      document.getElementById('painel-espera-corrida')?.classList.add('hidden');
+      document.getElementById('painel-motorista-encontrado')?.classList.add('hidden');
+      document.getElementById('painel-solicitacao')?.classList.remove('hidden');
+      return;
+    }
+
+    corridaAtualId = corrida.id;
+    corridaAtivaDados = corrida;
+    garantirCanalChamadaP2P(corrida.id);
+    registrarEscutaContadorChatPassageiro(corrida.id);
+
+    const status = String(corrida.status || '').toLowerCase();
+    const painelSolicitacao = document.getElementById('painel-solicitacao');
+    const painelEspera = document.getElementById('painel-espera-corrida');
+    const painelMotorista = document.getElementById('painel-motorista-encontrado');
+
+    if (status === 'pendente' || status === 'procurando') {
+      painelSolicitacao?.classList.add('hidden');
+      painelMotorista?.classList.add('hidden');
+      painelEspera?.classList.remove('hidden');
+    } else {
+      painelSolicitacao?.classList.add('hidden');
+      painelEspera?.classList.add('hidden');
+      painelMotorista?.classList.remove('hidden');
+
+      const mapaStatusTexto = {
+        aceita: 'Motorista a caminho',
+        aceito: 'Motorista a caminho',
+        a_caminho: 'Motorista a caminho',
+        no_local: 'Motorista no local de embarque',
+        em_andamento: 'Viagem em andamento',
+        em_curso: 'Viagem em andamento'
+      };
+      const statusEl = document.getElementById('passageiro-status-viagem-texto');
+      if (statusEl) {
+        statusEl.innerText = mapaStatusTexto[status] || 'Viagem em andamento';
+      }
+
+      const origemEl = document.getElementById('pass-ativa-origem');
+      const destinoEl = document.getElementById('pass-ativa-destino');
+      const paradaContainer = document.getElementById('bloco-parada-ativa-container');
+      const paradaEl = document.getElementById('pass-ativa-parada');
+
+      if (origemEl) origemEl.innerText = corrida.origem_endereco || corrida.origem || '-';
+      if (destinoEl) destinoEl.innerText = corrida.destino_endereco || corrida.destino || '-';
+
+      if (paradaContainer && paradaEl) {
+        const paradaTexto = corrida.parada_endereco || corrida.parada || '';
+        if (paradaTexto) {
+          paradaEl.innerText = paradaTexto;
+          paradaContainer.classList.remove('hidden');
+        } else {
+          paradaContainer.classList.add('hidden');
+        }
+      }
+
+      let motoristaInfo = corrida.motorista || null;
+      if (!motoristaInfo && corrida.motorista_id && supabaseMapa) {
+        try {
+          const { data: motData } = await supabaseMapa
+            .from('usuarios')
+            .select('id, nome, foto_url, avaliacao, nota')
+            .eq('id', corrida.motorista_id)
+            .single();
+          if (motData) {
+            motoristaInfo = motData;
+            corridaAtivaDados = { ...corridaAtivaDados, motorista: motData };
+          }
+        } catch (_) {}
+      }
+
+      if (motoristaInfo) {
+        const nomeEl = document.getElementById('passageiro-motorista-nome');
+        const fotoEl = document.getElementById('passageiro-motorista-foto');
+        const notaEl = document.getElementById('passageiro-motorista-nota');
+        if (nomeEl) nomeEl.innerText = motoristaInfo.nome || 'Motorista';
+        if (fotoEl) fotoEl.src = motoristaInfo.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(motoristaInfo.nome || 'Motorista')}`;
+        if (notaEl) notaEl.innerText = Number(motoristaInfo.nota || motoristaInfo.avaliacao || 5).toFixed(1);
+      }
+    }
+
+    if (typeof verificarCorridaAtivaPassageiro === 'function') {
+      verificarCorridaAtivaPassageiro();
+    }
+  }
+
+  window.aplicarEstadoCorridaAtivaNoMapa = aplicarEstadoCorridaAtivaNoMapa;
+
+  if (!window.__listenerCorridaAtivaMapaRegistrado) {
+    window.__listenerCorridaAtivaMapaRegistrado = true;
+    window.addEventListener('corridaAtivaAtualizada', (e) => {
+      aplicarEstadoCorridaAtivaNoMapa(e?.detail?.corrida || null);
+    });
+  }
+
+  if (window.__intervaloSyncMapaPassageiro) {
+    clearInterval(window.__intervaloSyncMapaPassageiro);
+  }
+  window.__intervaloSyncMapaPassageiro = setInterval(() => {
+    const idAtivo = corridaAtualId || corridaAtivaDados?.id || window.corridaAtivaPassageiro?.id;
     if (idAtivo) {
       garantirCanalChamadaP2P(idAtivo);
       registrarEscutaContadorChatPassageiro(idAtivo);
@@ -817,7 +940,7 @@
       btn.disabled = true;
       btn.className = 'w-full bg-slate-800 text-slate-500 cursor-not-allowed font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2';
       btn.innerHTML = `<i class="fa-solid fa-route"></i> <span>${textoCustomizado || 'Preencha origem e destino'}</span>`;
-      document.getElementById('bloco-estimativa').classList.add('hidden');
+      document.getElementById('bloco-estimativa')?.classList.add('hidden');
       if (polylineRota && mapaLeaflet) {
         mapaLeaflet.removeLayer(polylineRota);
         polylineRota = null;
@@ -883,7 +1006,7 @@
 
   function fecharModalAviso() {
     if (modalTimeoutId) clearTimeout(modalTimeoutId);
-    document.getElementById('modal-aviso').classList.add('hidden');
+    document.getElementById('modal-aviso')?.classList.add('hidden');
   }
 
   function centralizarNoUsuario() {
@@ -944,7 +1067,9 @@
             inputOrigem.placeholder = 'Local de embarque';
           }
 
-          verificarECalcularSePronto();
+          if (typeof verificarECalcularSePronto === 'function') {
+            verificarECalcularSePronto();
+          }
         },
         () => {
           if (inputOrigem) inputOrigem.placeholder = 'Local de embarque';
@@ -981,31 +1106,43 @@
   }
 
   async function inicializarMapa() {
-    if (mapaLeaflet) {
+    const containerMapa = document.getElementById('map');
+    if (!containerMapa) return;
+
+    if (mapaLeaflet && mapaLeaflet.getContainer && mapaLeaflet.getContainer() !== containerMapa) {
+      try { mapaLeaflet.remove(); } catch (_) {}
+      mapaLeaflet = null;
+      marcadorOrigem = null;
+      marcadorDestino = null;
+      marcadoresParadas = {};
+      polylineRota = null;
+    }
+
+    if (!mapaLeaflet) {
+      const latLaguna = -28.4811;
+      const lngLaguna = -48.7811;
+
+      mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(mapaLeaflet);
+
+      setTimeout(() => mapaLeaflet && mapaLeaflet.invalidateSize(), 300);
+      atualizarEstadoBotaoChamar('bloqueado');
+
+      if (typeof carregarRegrasMapa === 'function') {
+        await carregarRegrasMapa(supabaseMapa);
+      }
+
+      usarMinhaLocalizacao(true);
+      if (typeof iniciarRadarMotoristasOnline === 'function') iniciarRadarMotoristasOnline();
+    } else {
       mapaLeaflet.invalidateSize();
-      return;
     }
 
-    const latLaguna = -28.4811;
-    const lngLaguna = -48.7811;
-
-    mapaLeaflet = L.map('map', { zoomControl: false }).setView([latLaguna, lngLaguna], 14);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(mapaLeaflet);
-
-    setTimeout(() => mapaLeaflet.invalidateSize(), 300);
-    atualizarEstadoBotaoChamar('bloqueado');
-
-    if (typeof carregarRegrasMapa === 'function') {
-      await carregarRegrasMapa(supabaseMapa);
-    }
-
-    usarMinhaLocalizacao(true);
-    if (typeof iniciarRadarMotoristasOnline === 'function') iniciarRadarMotoristasOnline();
-    if (typeof verificarCorridaAtivaPassageiro === 'function') verificarCorridaAtivaPassageiro();
+    await aplicarEstadoCorridaAtivaNoMapa();
   }
 
   carregarScriptsMapa(() => {

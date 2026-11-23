@@ -20,7 +20,7 @@
         <h4 class="font-extrabold text-white text-xs">Atenção: Conta Suspensa / Bloqueada</h4>
         <p class="text-[10px] text-red-200">Seu acesso para corridas foi restrito pela administração central.</p>
       </div>
-      <button onclick="abrirSuporteAssunto('bloqueio')" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded-xl font-bold text-[11px] shadow">
+      <button type="button" onclick="abrirSuporteAssunto('bloqueio')" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded-xl font-bold text-[11px] shadow">
         Suporte
       </button>
     </div>
@@ -30,7 +30,7 @@
   <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shrink-0 z-40">
     <div class="flex items-center gap-3">
       <div class="relative">
-        <button onclick="toggleMenuLateral()" class="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800 border border-slate-700 block">
+        <button type="button" onclick="toggleMenuLateral()" class="text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800 border border-slate-700 block">
           <i class="fa-solid fa-bars text-sm"></i>
         </button>
         <span id="badge-menu-topo" class="hidden absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center shadow animate-bounce">0</span>
@@ -60,27 +60,27 @@
           <p class="text-[10px] text-slate-400">Passageiro</p>
         </div>
       </div>
-      <button onclick="toggleMenuLateral()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      <button type="button" onclick="toggleMenuLateral()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
     </div>
 
     <div class="flex-1 p-3 space-y-2 overflow-y-auto">
-      <button onclick="carregarModuloMapa()" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
+      <button type="button" onclick="carregarModuloMapa()" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <i class="fa-solid fa-house text-emerald-400 w-5"></i> Mapa / Início
       </button>
       <a href="historico.html" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition">
         <i class="fa-solid fa-clock-rotate-left text-amber-400 w-5"></i> Histórico de Viagens
       </a>
-      <button onclick="carregarModuloPerfil()" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
+      <button type="button" onclick="carregarModuloPerfil()" class="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <i class="fa-solid fa-user text-sky-400 w-5"></i> Meu Perfil
       </button>
-      <button onclick="abrirModalSuporteGeral()" class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
+      <button type="button" onclick="abrirModalSuporteGeral()" class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold transition text-left">
         <span class="flex items-center gap-3"><i class="fa-solid fa-headset text-emerald-400 w-5"></i> Mensagens do Suporte</span>
         <span id="badge-menu-lateral" class="hidden bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold shadow">0</span>
       </button>
     </div>
 
     <div class="p-4 border-t border-slate-800">
-      <button onclick="sairConta()" class="w-full bg-red-950/40 text-red-400 font-bold py-2.5 rounded-xl border border-red-800 hover:bg-red-900/40 transition">
+      <button type="button" onclick="sairConta()" class="w-full bg-red-950/40 text-red-400 font-bold py-2.5 rounded-xl border border-red-800 hover:bg-red-900/40 transition">
         Sair da Conta
       </button>
     </div>
@@ -225,7 +225,7 @@
         <h3 class="font-extrabold text-white text-sm flex items-center gap-2">
           <i class="fa-solid fa-headset text-emerald-400"></i> Mensagens do Suporte
         </h3>
-        <button onclick="fecharModalSuporte()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
+        <button type="button" onclick="fecharModalSuporte()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
       </div>
 
       <div class="space-y-2 flex-1 flex flex-col min-h-0">
@@ -237,7 +237,7 @@
 
       <div class="space-y-2 pt-2 border-t border-slate-800 shrink-0">
         <textarea id="sup-input-mensagem" rows="2" placeholder="Escreva sua dúvida ou mensagem para o suporte..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs outline-none focus:border-emerald-500 resize-none"></textarea>
-        <button onclick="enviarMensagemSuportePassageiro()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow transition">
+        <button type="button" onclick="enviarMensagemSuportePassageiro()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow transition">
           Enviar para o Suporte
         </button>
       </div>
@@ -245,7 +245,7 @@
   </div>
 
   <!-- MODAL OBRIGATÓRIO: CRIAR NOVA SENHA APÓS LOGIN COM SENHA DO ADMIN -->
-  <div id="modal-trocar-senha-obrigatoria" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-trocar-senha-obrigatoria" class="fixed inset-0 z-[80] hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="w-full max-w-md rounded-3xl bg-slate-900 border border-emerald-500/40 p-5 space-y-4 text-slate-100 shadow-2xl m-auto">
       <div class="space-y-1">
         <h3 class="text-base font-extrabold text-white flex items-center gap-2">
@@ -317,11 +317,25 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tY3dtemVzanRucWdwY2RzcGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NTgyMzUsImV4cCI6MjExMDAzNDIzNX0.VfOyJpZ5Xl30CvLtP-ZpAl1BO1ijVU8ChpabOPmel-E';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    const STATUS_CORRIDA_ATIVA_PASSAGEIRO = [
+      'pendente',
+      'procurando',
+      'aceita',
+      'aceito',
+      'a_caminho',
+      'no_local',
+      'em_andamento',
+      'em_curso'
+    ];
+    const CHAVE_CORRIDA_ATIVA_PASSAGEIRO = 'mobiurb_corrida_ativa_passageiro';
+
     let usuarioLogado = null;
+    let corridaAtivaPassageiro = null;
     let intervaloHeartbeat = null;
     let intervaloValidacaoSessaoPassageiro = null;
     let desconectandoSessao = false;
     let canalRealtimePassageiro = null;
+    let canalRealtimeCorridasPassageiro = null;
     let canalRealtimeSuporte = null;
     let canalChatCorridaAtivo = null;
     let corridaChatAtualId = null;
@@ -348,6 +362,116 @@
       ]
     };
 
+    function salvarCorridaAtivaCache(corrida) {
+      try {
+        if (!corrida || !corrida.id || !STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(String(corrida.status || '').toLowerCase())) {
+          localStorage.removeItem(CHAVE_CORRIDA_ATIVA_PASSAGEIRO);
+          return;
+        }
+        localStorage.setItem(CHAVE_CORRIDA_ATIVA_PASSAGEIRO, JSON.stringify({
+          passageiro_id: usuarioLogado?.id || corrida.passageiro_id || null,
+          corrida
+        }));
+      } catch (e) {}
+    }
+
+    function lerCorridaAtivaCache(passageiroId) {
+      try {
+        const bruto = localStorage.getItem(CHAVE_CORRIDA_ATIVA_PASSAGEIRO);
+        if (!bruto) return null;
+        const parsed = JSON.parse(bruto);
+        if (!parsed?.corrida || !parsed.corrida.id) return null;
+        if (passageiroId && parsed.passageiro_id && String(parsed.passageiro_id) !== String(passageiroId)) {
+          return null;
+        }
+        if (!STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(String(parsed.corrida.status || '').toLowerCase())) {
+          return null;
+        }
+        return parsed.corrida;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function buscarCorridaAtivaPassageiro(passageiroId = usuarioLogado?.id, forcarBanco = true) {
+      const idAlvo = passageiroId || usuarioLogado?.id;
+      if (!idAlvo) return null;
+
+      if (!forcarBanco && corridaAtivaPassageiro && String(corridaAtivaPassageiro.passageiro_id) === String(idAlvo)) {
+        return corridaAtivaPassageiro;
+      }
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('corridas')
+          .select('*')
+          .eq('passageiro_id', idAlvo)
+          .in('status', STATUS_CORRIDA_ATIVA_PASSAGEIRO)
+          .order('id', { ascending: false })
+          .limit(1);
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          corridaAtivaPassageiro = data[0];
+          window.corridaAtivaPassageiro = corridaAtivaPassageiro;
+          salvarCorridaAtivaCache(corridaAtivaPassageiro);
+          registrarCanalChamadaCorrida(corridaAtivaPassageiro.id);
+          return corridaAtivaPassageiro;
+        }
+
+        corridaAtivaPassageiro = null;
+        window.corridaAtivaPassageiro = null;
+        salvarCorridaAtivaCache(null);
+        return null;
+      } catch (e) {
+        const cache = lerCorridaAtivaCache(idAlvo);
+        if (cache) {
+          corridaAtivaPassageiro = cache;
+          window.corridaAtivaPassageiro = corridaAtivaPassageiro;
+        }
+        return corridaAtivaPassageiro;
+      }
+    }
+
+    function notificarCorridaAtivaParaModulos(corrida) {
+      window.corridaAtivaPassageiro = corrida || null;
+      try {
+        window.dispatchEvent(new CustomEvent('corridaAtivaAtualizada', {
+          detail: { corrida: corrida || null }
+        }));
+      } catch (e) {}
+    }
+
+    function iniciarEscutaRealtimeCorridasPassageiro() {
+      if (!usuarioLogado?.id) return;
+      if (canalRealtimeCorridasPassageiro) {
+        supabaseClient.removeChannel(canalRealtimeCorridasPassageiro);
+      }
+
+      canalRealtimeCorridasPassageiro = supabaseClient
+        .channel(`public:corridas_passageiro:${usuarioLogado.id}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'corridas',
+          filter: `passageiro_id=eq.${usuarioLogado.id}`
+        }, async (payload) => {
+          const registro = payload.new || payload.old;
+          if (registro && STATUS_CORRIDA_ATIVA_PASSAGEIRO.includes(String(registro.status || '').toLowerCase()) && payload.eventType !== 'DELETE') {
+            corridaAtivaPassageiro = payload.new;
+            salvarCorridaAtivaCache(corridaAtivaPassageiro);
+            registrarCanalChamadaCorrida(corridaAtivaPassageiro.id);
+            notificarCorridaAtivaParaModulos(corridaAtivaPassageiro);
+          } else {
+            const ativaAtual = await buscarCorridaAtivaPassageiro(usuarioLogado.id, true);
+            notificarCorridaAtivaParaModulos(ativaAtual);
+          }
+        })
+        .subscribe();
+    }
+
+    window.buscarCorridaAtivaPassageiro = buscarCorridaAtivaPassageiro;
+    window.corridaAtivaPassageiro = null;
+
     function forcarDesconexaoPorNovoLogin() {
       if (desconectandoSessao) return;
       desconectandoSessao = true;
@@ -355,6 +479,7 @@
       if (intervaloHeartbeat) clearInterval(intervaloHeartbeat);
       if (intervaloValidacaoSessaoPassageiro) clearInterval(intervaloValidacaoSessaoPassageiro);
       if (canalRealtimePassageiro) supabaseClient.removeChannel(canalRealtimePassageiro);
+      if (canalRealtimeCorridasPassageiro) supabaseClient.removeChannel(canalRealtimeCorridasPassageiro);
       if (canalRealtimeSuporte) supabaseClient.removeChannel(canalRealtimeSuporte);
       if (typeof encerrarChamadaP2P === 'function') encerrarChamadaP2P(false);
       if (typeof pararRealtimeChatCorrida === 'function') pararRealtimeChatCorrida();
@@ -653,12 +778,13 @@
     }
 
     async function iniciarChamadaP2P({ corridaId, outroUsuarioId = null, outroNome = 'Contato' }) {
-      if (!corridaId) {
+      const idCorridaAlvo = corridaId || corridaAtivaPassageiro?.id || null;
+      if (!idCorridaAlvo) {
         alert('Nenhuma corrida ativa para iniciar chamada de voz.');
         return;
       }
 
-      registrarCanalChamadaCorrida(corridaId);
+      registrarCanalChamadaCorrida(idCorridaAlvo);
       outroParticipanteChatId = outroUsuarioId || outroParticipanteChatId;
       outroParticipanteChatNome = outroNome || outroParticipanteChatNome;
 
@@ -724,7 +850,7 @@
     }
 
     function abrirChamadaPeloAtalhoChat() {
-      const idAlvo = corridaChamadaAtualId || corridaChatAtualId;
+      const idAlvo = corridaChamadaAtualId || corridaChatAtualId || corridaAtivaPassageiro?.id;
       if (!idAlvo) return;
       fecharChatCorrida();
       iniciarChamadaP2P({
@@ -735,7 +861,7 @@
     }
 
     function abrirChatDuranteChamada() {
-      const idAlvo = corridaChamadaAtualId || corridaChatAtualId;
+      const idAlvo = corridaChamadaAtualId || corridaChatAtualId || corridaAtivaPassageiro?.id;
       if (!idAlvo) return;
       abrirChatCorrida(idAlvo, outroParticipanteChatNome, outroParticipanteChatId);
     }
@@ -838,23 +964,24 @@
     }
 
     async function abrirChatCorrida(corridaId, nomeOutroParticipante = 'Motorista', outroId = null) {
-      if (!corridaId && !outroId) return;
-      corridaChatAtualId = corridaId;
+      const idCorridaAlvo = corridaId || corridaAtivaPassageiro?.id || null;
+      if (!idCorridaAlvo && !outroId) return;
+      corridaChatAtualId = idCorridaAlvo;
       outroParticipanteChatId = outroId;
       outroParticipanteChatNome = nomeOutroParticipante || 'Motorista';
 
-      if (corridaId) {
-        registrarCanalChamadaCorrida(corridaId);
+      if (idCorridaAlvo) {
+        registrarCanalChamadaCorrida(idCorridaAlvo);
       }
 
       document.getElementById('chat-corrida-titulo').innerText = `Chat do Aplicativo • ${outroParticipanteChatNome}`;
-      document.getElementById('chat-corrida-subtitulo').innerText = corridaId
-        ? `Corrida #${String(corridaId).slice(0, 8)}`
+      document.getElementById('chat-corrida-subtitulo').innerText = idCorridaAlvo
+        ? `Corrida #${String(idCorridaAlvo).slice(0, 8)}`
         : 'Histórico de conversas';
       document.getElementById('modal-chat-corrida').classList.remove('hidden');
 
-      await carregarMensagensCorrida(corridaId, outroId);
-      if (corridaId) iniciarRealtimeChatCorrida(corridaId);
+      await carregarMensagensCorrida(idCorridaAlvo, outroId);
+      if (idCorridaAlvo) iniciarRealtimeChatCorrida(idCorridaAlvo);
       document.getElementById('chat-corrida-input')?.focus();
     }
 
@@ -1043,8 +1170,8 @@
       const motoristaStorage = localStorage.getItem('motorista_logado');
 
       if (motoristaStorage) {
-         window.location.href = 'motorista.html';
-         return;
+        window.location.href = 'motorista.html';
+        return;
       } else if (passageiroStorage) {
         usuarioLogado = JSON.parse(passageiroStorage);
         iniciarHeartbeatOnline();
@@ -1053,10 +1180,19 @@
         return;
       }
 
+      const cacheCorrida = lerCorridaAtivaCache(usuarioLogado?.id);
+      if (cacheCorrida) {
+        corridaAtivaPassageiro = cacheCorrida;
+        window.corridaAtivaPassageiro = cacheCorrida;
+      }
+
       await verificarDadosUsuarioAtualizados();
       if (desconectandoSessao) return;
 
+      await buscarCorridaAtivaPassageiro(usuarioLogado.id, true);
+
       iniciarEscutaRealtimeStatus();
+      iniciarEscutaRealtimeCorridasPassageiro();
       iniciarEscutaSuporteRealtime();
       atualizarContadorNotificacoes();
 
@@ -1065,7 +1201,7 @@
       document.getElementById('menu-nome').innerText = usuarioLogado.nome || 'Passageiro';
       document.getElementById('menu-foto').src = usuarioLogado.foto_url || 'https://ui-avatars.com/api/?name=Passageiro';
 
-      carregarModuloMapa();
+      await carregarModuloMapa();
       verificarExigenciaTrocaSenha(usuarioLogado);
     }
 
@@ -1205,7 +1341,7 @@
         container.innerHTML = msgs.map(m => {
           const isAdmin = m.remetente === 'admin';
           const remetenteNome = isAdmin ? 'Suporte' : primeiroNomeUsuario;
-          
+
           let textoMensagem = m.mensagem || '';
           if (textoMensagem.startsWith('[')) {
             const fimColchete = textoMensagem.indexOf(']');
@@ -1271,6 +1407,26 @@
       }
     }
 
+    function limparScriptsDinamicosModulo() {
+      document.querySelectorAll('script[data-modulo-dinamico="true"]').forEach(s => s.remove());
+    }
+
+    function injetarScriptsDoModulo(container) {
+      limparScriptsDinamicosModulo();
+      const scripts = container.querySelectorAll('script');
+      scripts.forEach(scriptAntigo => {
+        const novoScript = document.createElement('script');
+        novoScript.setAttribute('data-modulo-dinamico', 'true');
+        if (scriptAntigo.src) {
+          novoScript.src = scriptAntigo.src;
+        } else {
+          novoScript.textContent = scriptAntigo.textContent;
+        }
+        document.body.appendChild(novoScript);
+        scriptAntigo.remove();
+      });
+    }
+
     async function carregarModuloMapa() {
       const menu = document.getElementById('menu-lateral');
       if (menu && !menu.classList.contains('-translate-x-full')) {
@@ -1284,23 +1440,16 @@
       const tituloTopo = document.getElementById('titulo-topo-passageiro');
       if (tituloTopo) tituloTopo.innerText = 'Mobilidade Laguna';
 
+      const corridaAtual = await buscarCorridaAtivaPassageiro(usuarioLogado?.id, true);
+
       try {
         const response = await fetch('mapa.html');
         if (!response.ok) throw new Error('Falha ao carregar mapa');
         const htmlMapa = await response.text();
         mainApp.innerHTML = htmlMapa;
 
-        const scripts = mainApp.querySelectorAll('script');
-        scripts.forEach(scriptAntigo => {
-          const novoScript = document.createElement('script');
-          if (scriptAntigo.src) {
-            novoScript.src = scriptAntigo.src;
-          } else {
-            novoScript.textContent = scriptAntigo.textContent;
-          }
-          document.body.appendChild(novoScript);
-          scriptAntigo.remove();
-        });
+        injetarScriptsDoModulo(mainApp);
+        notificarCorridaAtivaParaModulos(corridaAtual);
       } catch (error) {
         mainApp.innerHTML = '<div class="flex-1 flex justify-center items-center text-red-400">Erro ao carregar o módulo do mapa.</div>';
       }
@@ -1325,17 +1474,7 @@
         const htmlPerfil = await response.text();
         mainApp.innerHTML = htmlPerfil;
 
-        const scripts = mainApp.querySelectorAll('script');
-        scripts.forEach(scriptAntigo => {
-          const novoScript = document.createElement('script');
-          if (scriptAntigo.src) {
-            novoScript.src = scriptAntigo.src;
-          } else {
-            novoScript.textContent = scriptAntigo.textContent;
-          }
-          document.body.appendChild(novoScript);
-          scriptAntigo.remove();
-        });
+        injetarScriptsDoModulo(mainApp);
       } catch (error) {
         mainApp.innerHTML = '<div class="flex-1 flex justify-center items-center text-red-400 p-6 text-center">Erro ao carregar o perfil.</div>';
       }
@@ -1364,8 +1503,12 @@
       }, 15000);
 
       document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) atualizarPresenca(true);
-        else atualizarPresenca(false);
+        if (!document.hidden) {
+          atualizarPresenca(true);
+          buscarCorridaAtivaPassageiro(usuarioLogado?.id, true).then(notificarCorridaAtivaParaModulos);
+        } else {
+          atualizarPresenca(false);
+        }
       });
 
       window.addEventListener('pagehide', () => {
