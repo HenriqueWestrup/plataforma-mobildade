@@ -309,6 +309,17 @@
     }
   }
 
+  function obterCacheCorridaLocal() {
+    try {
+      const raw = localStorage.getItem('mobiurb_corrida_ativa_passageiro');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && parsed.corrida ? parsed.corrida : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   function mostrarToastPass(texto) {
     const toast = document.getElementById('toast-pass-msg');
     const txt = document.getElementById('toast-pass-msg-texto');
@@ -787,9 +798,95 @@
     });
   }
 
+  function renderizarPainelCorridaImediato(corrida) {
+    if (!corrida || !corrida.id) return false;
+    const status = String(corrida.status || '').toLowerCase();
+    const ativos = ['pendente', 'procurando', 'aceita', 'aceito', 'a_caminho', 'no_local', 'em_andamento', 'em_curso'];
+    if (!ativos.includes(status)) return false;
+
+    corridaAtualId = corrida.id;
+    corridaAtivaDados = corrida;
+
+    const painelSolicitacao = document.getElementById('painel-solicitacao');
+    const painelEspera = document.getElementById('painel-espera-corrida');
+    const painelMotorista = document.getElementById('painel-motorista-encontrado');
+    const btnCancelarAtivo = document.getElementById('btn-cancelar-passageiro-ativo');
+    const blocoEmbarque = document.getElementById('bloco-embarque-container');
+
+    if (status === 'pendente' || status === 'procurando') {
+      painelSolicitacao?.classList.add('hidden');
+      painelMotorista?.classList.add('hidden');
+      painelEspera?.classList.remove('hidden');
+      return true;
+    }
+
+    painelSolicitacao?.classList.add('hidden');
+    painelEspera?.classList.add('hidden');
+    painelMotorista?.classList.remove('hidden');
+
+    const viagemIniciada = status === 'em_andamento' || status === 'em_curso';
+    const mapaStatusTexto = {
+      aceita: 'Motorista a caminho',
+      aceito: 'Motorista a caminho',
+      a_caminho: 'Motorista a caminho',
+      no_local: 'Motorista no local de embarque',
+      em_andamento: 'Viagem em andamento',
+      em_curso: 'Viagem em andamento'
+    };
+
+    const statusEl = document.getElementById('passageiro-status-viagem-texto');
+    if (statusEl) {
+      statusEl.innerText = mapaStatusTexto[status] || 'Viagem em andamento';
+    }
+
+    if (viagemIniciada) {
+      btnCancelarAtivo?.classList.add('hidden');
+      if (blocoEmbarque) blocoEmbarque.style.display = 'none';
+    } else {
+      btnCancelarAtivo?.classList.remove('hidden');
+      if (blocoEmbarque) blocoEmbarque.style.display = 'block';
+    }
+
+    const origemEl = document.getElementById('pass-ativa-origem');
+    const destinoEl = document.getElementById('pass-ativa-destino');
+    const paradaContainer = document.getElementById('bloco-parada-ativa-container');
+    const paradaEl = document.getElementById('pass-ativa-parada');
+
+    if (origemEl) origemEl.innerText = corrida.origem_endereco || corrida.origem || '-';
+    if (destinoEl) destinoEl.innerText = corrida.destino_endereco || corrida.destino || '-';
+
+    if (paradaContainer && paradaEl) {
+      const paradaTexto = corrida.parada_endereco || corrida.parada || '';
+      if (paradaTexto) {
+        paradaEl.innerText = paradaTexto;
+        paradaContainer.classList.remove('hidden');
+      } else {
+        paradaContainer.classList.add('hidden');
+      }
+    }
+
+    const motoristaInfo = corrida.motorista || null;
+    if (motoristaInfo) {
+      const nomeEl = document.getElementById('passageiro-motorista-nome');
+      const fotoEl = document.getElementById('passageiro-motorista-foto');
+      const notaEl = document.getElementById('passageiro-motorista-nota');
+      if (nomeEl) nomeEl.innerText = primeiroNome(motoristaInfo.nome || 'Motorista');
+      if (fotoEl) fotoEl.src = motoristaInfo.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(motoristaInfo.nome || 'Motorista')}`;
+      if (notaEl) notaEl.innerText = Number(motoristaInfo.nota || motoristaInfo.avaliacao || 5).toFixed(1);
+    }
+
+    return true;
+  }
+
   // --- RESTAURAÇÃO E SINCRONIZAÇÃO DA CORRIDA ATIVA ---
   async function aplicarEstadoCorridaAtivaNoMapa(corridaRecebida = null) {
-    let corrida = corridaRecebida || corridaAtivaDados || window.corridaAtivaPassageiro || null;
+    let corrida = corridaRecebida || corridaAtivaDados || window.corridaAtivaPassageiro || obterCacheCorridaLocal() || null;
+
+    if (corrida && corrida.id) {
+      renderizarPainelCorridaImediato(corrida);
+      garantirCanalChamadaP2P(corrida.id);
+      registrarEscutaContadorChatPassageiro(corrida.id);
+    }
 
     if (!corrida && typeof window.buscarCorridaAtivaPassageiro === 'function') {
       const passAtual = obterPassageiroAtual();
@@ -801,7 +898,7 @@
       if (passAtual?.id) {
         const { data } = await supabaseMapa
           .from('corridas')
-          .select('*')
+          .select('*, motorista:motorista_id(nome, foto_url, nota)')
           .eq('passageiro_id', passAtual.id)
           .in('status', ['pendente', 'procurando', 'aceita', 'aceito', 'a_caminho', 'no_local', 'em_andamento', 'em_curso'])
           .order('id', { ascending: false })
@@ -823,77 +920,24 @@
 
     corridaAtualId = corrida.id;
     corridaAtivaDados = corrida;
+    window.corridaAtivaPassageiro = corrida;
     garantirCanalChamadaP2P(corrida.id);
     registrarEscutaContadorChatPassageiro(corrida.id);
 
-    const status = String(corrida.status || '').toLowerCase();
-    const painelSolicitacao = document.getElementById('painel-solicitacao');
-    const painelEspera = document.getElementById('painel-espera-corrida');
-    const painelMotorista = document.getElementById('painel-motorista-encontrado');
+    renderizarPainelCorridaImediato(corrida);
 
-    if (status === 'pendente' || status === 'procurando') {
-      painelSolicitacao?.classList.add('hidden');
-      painelMotorista?.classList.add('hidden');
-      painelEspera?.classList.remove('hidden');
-    } else {
-      painelSolicitacao?.classList.add('hidden');
-      painelEspera?.classList.add('hidden');
-      painelMotorista?.classList.remove('hidden');
-
-      const mapaStatusTexto = {
-        aceita: 'Motorista a caminho',
-        aceito: 'Motorista a caminho',
-        a_caminho: 'Motorista a caminho',
-        no_local: 'Motorista no local de embarque',
-        em_andamento: 'Viagem em andamento',
-        em_curso: 'Viagem em andamento'
-      };
-      const statusEl = document.getElementById('passageiro-status-viagem-texto');
-      if (statusEl) {
-        statusEl.innerText = mapaStatusTexto[status] || 'Viagem em andamento';
-      }
-
-      const origemEl = document.getElementById('pass-ativa-origem');
-      const destinoEl = document.getElementById('pass-ativa-destino');
-      const paradaContainer = document.getElementById('bloco-parada-ativa-container');
-      const paradaEl = document.getElementById('pass-ativa-parada');
-
-      if (origemEl) origemEl.innerText = corrida.origem_endereco || corrida.origem || '-';
-      if (destinoEl) destinoEl.innerText = corrida.destino_endereco || corrida.destino || '-';
-
-      if (paradaContainer && paradaEl) {
-        const paradaTexto = corrida.parada_endereco || corrida.parada || '';
-        if (paradaTexto) {
-          paradaEl.innerText = paradaTexto;
-          paradaContainer.classList.remove('hidden');
-        } else {
-          paradaContainer.classList.add('hidden');
+    if (!corrida.motorista && corrida.motorista_id && supabaseMapa) {
+      try {
+        const { data: motData } = await supabaseMapa
+          .from('usuarios')
+          .select('id, nome, foto_url, avaliacao, nota')
+          .eq('id', corrida.motorista_id)
+          .single();
+        if (motData) {
+          corridaAtivaDados = { ...corridaAtivaDados, motorista: motData };
+          renderizarPainelCorridaImediato(corridaAtivaDados);
         }
-      }
-
-      let motoristaInfo = corrida.motorista || null;
-      if (!motoristaInfo && corrida.motorista_id && supabaseMapa) {
-        try {
-          const { data: motData } = await supabaseMapa
-            .from('usuarios')
-            .select('id, nome, foto_url, avaliacao, nota')
-            .eq('id', corrida.motorista_id)
-            .single();
-          if (motData) {
-            motoristaInfo = motData;
-            corridaAtivaDados = { ...corridaAtivaDados, motorista: motData };
-          }
-        } catch (_) {}
-      }
-
-      if (motoristaInfo) {
-        const nomeEl = document.getElementById('passageiro-motorista-nome');
-        const fotoEl = document.getElementById('passageiro-motorista-foto');
-        const notaEl = document.getElementById('passageiro-motorista-nota');
-        if (nomeEl) nomeEl.innerText = motoristaInfo.nome || 'Motorista';
-        if (fotoEl) fotoEl.src = motoristaInfo.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(motoristaInfo.nome || 'Motorista')}`;
-        if (notaEl) notaEl.innerText = Number(motoristaInfo.nota || motoristaInfo.avaliacao || 5).toFixed(1);
-      }
+      } catch (_) {}
     }
 
     if (typeof verificarCorridaAtivaPassageiro === 'function') {
@@ -1109,6 +1153,9 @@
     const containerMapa = document.getElementById('map');
     if (!containerMapa) return;
 
+    // Restaura imediatamente do cache/memória antes de aguardar rede ou regras
+    await aplicarEstadoCorridaAtivaNoMapa();
+
     if (mapaLeaflet && mapaLeaflet.getContainer && mapaLeaflet.getContainer() !== containerMapa) {
       try { mapaLeaflet.remove(); } catch (_) {}
       mapaLeaflet = null;
@@ -1146,6 +1193,6 @@
   }
 
   carregarScriptsMapa(() => {
-    setTimeout(inicializarMapa, 100);
+    setTimeout(inicializarMapa, 50);
   });
 </script>
