@@ -101,7 +101,7 @@
       <p><strong>Destino:</strong> <span id="pass-ativa-destino" class="text-white">-</span></p>
     </div>
 
-    <!-- AÇÕES DE COMUNICAÇÃO NA BARRA/CARD DA VIAGEM (CHAT COM BADGE + CHAMADA DE VOZ P2P) -->
+    <!-- AÇÕES DE COMUNICAÇÃO (REDIRECIONADAS PARA OS MODAIS CENTRALIZADOS DO INDEX) -->
     <div id="acoes-comunicacao-viagem" class="grid grid-cols-2 gap-2">
       <button
         type="button"
@@ -161,70 +161,6 @@
     </button>
   </div>
 
-  <!-- MODAL DE CHAMADA DE VOZ P2P (PASSAGEIRO) -->
-  <div id="modal-chamada-p2p-pass" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-sky-500/50 w-full max-w-xs rounded-3xl p-5 text-center space-y-4 shadow-2xl">
-      <div class="w-14 h-14 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-300 flex items-center justify-center mx-auto text-xl animate-pulse">
-        <i class="fa-solid fa-phone-volume"></i>
-      </div>
-      <div class="space-y-1">
-        <h4 id="p2p-pass-nome" class="text-white font-extrabold text-sm">Motorista</h4>
-        <p id="p2p-pass-status" class="text-sky-300 text-xs font-semibold">Conectando...</p>
-        <p id="p2p-pass-timer" class="text-slate-400 font-mono text-[11px] hidden">00:00</p>
-      </div>
-
-      <div id="p2p-pass-botoes-recebendo" class="hidden grid grid-cols-2 gap-2">
-        <button type="button" onclick="p2pRecusarChamada()" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl text-xs transition">
-          Recusar
-        </button>
-        <button type="button" onclick="p2pAceitarChamada()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs transition">
-          Atender
-        </button>
-      </div>
-
-      <div id="p2p-pass-botoes-ativa" class="grid grid-cols-2 gap-2">
-        <button type="button" id="btn-p2p-pass-mudo" onclick="p2pAlternarMudo()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
-          <i class="fa-solid fa-microphone"></i>
-          <span>Mudo</span>
-        </button>
-        <button type="button" onclick="p2pEncerrarChamada(true)" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
-          <i class="fa-solid fa-phone-slash"></i>
-          <span>Desligar</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL FALLBACK DE CHAT -->
-  <div id="modal-chat-fallback-pass" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-emerald-500/40 w-full max-w-md rounded-3xl p-4 space-y-3 shadow-2xl max-h-[85vh] flex flex-col">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-2.5">
-        <div>
-          <h4 id="chat-fb-pass-titulo" class="text-white font-extrabold text-sm">Chat da Corrida</h4>
-          <p class="text-[10px] text-slate-400">Mensagens em tempo real</p>
-        </div>
-        <button type="button" onclick="fecharChatFallbackPass()" class="text-slate-400 hover:text-white p-1">
-          <i class="fa-solid fa-xmark text-base"></i>
-        </button>
-      </div>
-      <div id="chat-fb-pass-lista" class="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2 overflow-y-auto text-xs flex-1 min-h-[160px] max-h-64"></div>
-      <form onsubmit="enviarChatFallbackPass(event)" class="flex gap-2 pt-1 border-t border-slate-800">
-        <input id="chat-fb-pass-input" type="text" autocomplete="off" placeholder="Digite sua mensagem..." class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-emerald-500">
-        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs">Enviar</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- TOAST DISCRETO DE MENSAGEM / NOTIFICAÇÃO -->
-  <div id="toast-pass-msg" class="hidden fixed top-16 inset-x-4 z-[65] flex justify-center pointer-events-none">
-    <div id="toast-pass-msg-box" class="pointer-events-auto bg-slate-900/95 border border-emerald-500/60 text-emerald-200 px-4 py-2.5 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-2 max-w-sm">
-      <i class="fa-solid fa-comment-dots text-emerald-400"></i>
-      <span id="toast-pass-msg-texto">Nova mensagem no chat</span>
-    </div>
-  </div>
-
-  <audio id="p2p-remote-audio" autoplay playsinline class="hidden"></audio>
-
   <!-- MODAL DE AVISOS INTERNO -->
   <div id="modal-aviso" class="hidden absolute inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-300">
     <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl max-w-xs w-full text-center space-y-4 shadow-2xl">
@@ -266,32 +202,6 @@
   var calculoRotaPronto = false;
   var valorCalculadoAtual = 0;
   var timerBuscaDebounced = {};
-
-  var naoLidasChatPassageiro = 0;
-  var canalContadorChatPass = null;
-  var corridaContadorChatId = null;
-  var toastMsgPassTimeout = null;
-  var modalFallbackPassAberto = false;
-
-  var p2pCanal = null;
-  var p2pCanalCorridaId = null;
-  var p2pCanalInscrito = false;
-  var p2pPeer = null;
-  var p2pLocalStream = null;
-  var p2pMudo = false;
-  var p2pChamadaEmCurso = false;
-  var p2pRecebendoOferta = null;
-  var p2pTimerChamadaId = null;
-  var p2pSegundosAtivos = 0;
-  var p2pTimeoutChamadaId = null;
-  var p2pContextoAtual = { corridaId: null, outroUsuarioId: null, outroNome: 'Motorista', papelLocal: 'passageiro' };
-
-  var P2P_ICE_CONFIG = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
-    ]
-  };
 
   function primeiroNome(nomeCompleto) {
     if (!nomeCompleto) return 'Motorista';
@@ -358,6 +268,10 @@
     window.corridaAtivaDados = corrida;
     salvarCacheCorridaNoMapa(corrida);
 
+    if (typeof window.vincularCorridaComunicacaoPassageiro === 'function') {
+      window.vincularCorridaComunicacaoPassageiro(corrida);
+    }
+
     document.getElementById('painel-solicitacao')?.classList.add('hidden');
     document.getElementById('painel-avaliacao-passageiro')?.classList.add('hidden');
 
@@ -371,7 +285,7 @@
       document.getElementById('painel-espera-corrida')?.classList.add('hidden');
       document.getElementById('painel-motorista-encontrado')?.classList.remove('hidden');
 
-      const nomeMot = primeiroNome(corrida.motorista?.nome || 'Motorista');
+      const nomeMot = primeiroNome(corrida.motorista?.nome || window.estadoViagemPassageiro?.motoristaNome || 'Motorista');
       const nomeEl = document.getElementById('passageiro-motorista-nome');
       const fotoEl = document.getElementById('passageiro-motorista-foto');
       const notaEl = document.getElementById('passageiro-motorista-nota');
@@ -383,11 +297,23 @@
       const btnCancelar = document.getElementById('btn-cancelar-passageiro-ativo');
       const blocoEmbarque = document.getElementById('bloco-embarque-container');
 
+      const fotoUrl = String(
+        corrida.motorista?.foto_url ||
+        corrida.motorista?.foto ||
+        corrida.motorista?.avatar_url ||
+        window.estadoViagemPassageiro?.motoristaFoto ||
+        ''
+      ).trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeMot)}&background=059669&color=ffffff`;
+
       if (nomeEl) nomeEl.innerText = nomeMot;
       if (fotoEl) {
-        fotoEl.src = corrida.motorista?.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeMot)}&background=059669&color=ffffff`;
+        fotoEl.onerror = function () {
+          this.onerror = null;
+          this.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeMot)}&background=059669&color=ffffff`;
+        };
+        fotoEl.src = fotoUrl;
       }
-      if (notaEl) notaEl.innerText = corrida.motorista?.avaliacao || corrida.motorista?.nota || '5.0';
+      if (notaEl) notaEl.innerText = corrida.motorista?.avaliacao || corrida.motorista?.nota || window.estadoViagemPassageiro?.motoristaNota || '5.0';
       if (origemEl) origemEl.innerText = corrida.origem || corrida.origem_endereco || '-';
       if (destinoEl) destinoEl.innerText = corrida.destino || corrida.destino_endereco || '-';
 
@@ -418,9 +344,6 @@
         atualizarIlustracaoJornada(statusNorm);
       }
     }
-
-    garantirCanalChamadaP2P(corrida.id);
-    registrarEscutaContadorChatPassageiro(corrida.id);
   }
 
   async function consultarCorridaAtivaDiretoNoBanco() {
@@ -462,7 +385,7 @@
         if (corridaBanco.motorista_id) {
           const { data: motRow } = await cliente
             .from('usuarios')
-            .select('id, nome, foto_url, avaliacao, nota')
+            .select('*')
             .eq('id', corridaBanco.motorista_id)
             .maybeSingle();
           if (motRow) {
@@ -481,481 +404,52 @@
     return cacheLocal;
   }
 
-  function mostrarToastPass(texto) {
-    const toast = document.getElementById('toast-pass-msg');
-    const txt = document.getElementById('toast-pass-msg-texto');
-    if (!toast || !txt) return;
-    txt.innerText = texto;
-    toast.classList.remove('hidden');
-    if (toastMsgPassTimeout) clearTimeout(toastMsgPassTimeout);
-    toastMsgPassTimeout = setTimeout(() => toast.classList.add('hidden'), 3000);
-  }
-
-  function atualizarBadgeChatPassageiro(quantidade) {
-    naoLidasChatPassageiro = Math.max(0, Number(quantidade) || 0);
-    const badge = document.getElementById('badge-chat-passageiro');
-    if (!badge) return;
-    if (naoLidasChatPassageiro > 0) {
-      badge.innerText = naoLidasChatPassageiro > 99 ? '99+' : String(naoLidasChatPassageiro);
-      badge.classList.remove('hidden');
-    } else {
-      badge.classList.add('hidden');
-    }
-  }
-
-  window.zerarBadgeChatPassageiro = function () {
-    atualizarBadgeChatPassageiro(0);
-  };
-
-  function registrarEscutaContadorChatPassageiro(corridaId) {
-    if (!supabaseMapa || !corridaId) return;
-    if (canalContadorChatPass && String(corridaContadorChatId) === String(corridaId)) return;
-
-    if (canalContadorChatPass) {
-      supabaseMapa.removeChannel(canalContadorChatPass);
-      canalContadorChatPass = null;
-    }
-
-    corridaContadorChatId = corridaId;
-    const passAtual = obterPassageiroAtual();
-    const meuId = passAtual?.id ? String(passAtual.id) : null;
-
-    canalContadorChatPass = supabaseMapa
-      .channel(`pass_chat_badge_${corridaId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'mensagens_chat',
-        filter: `corrida_id=eq.${corridaId}`
-      }, (payload) => {
-        const novaMsg = payload.new;
-        if (!novaMsg) return;
-        const ehMinha = meuId && String(novaMsg.remetente_id) === meuId;
-        if (ehMinha) return;
-
-        if (modalFallbackPassAberto) {
-          carregarMensagensFallbackPass(corridaId);
-          return;
-        }
-
-        atualizarBadgeChatPassageiro(naoLidasChatPassageiro + 1);
-        mostrarToastPass(`Nova mensagem de ${primeiroNome(novaMsg.remetente_nome || 'Motorista')}`);
-      })
-      .subscribe();
-  }
-
-  async function carregarMensagensFallbackPass(corridaId) {
-    const lista = document.getElementById('chat-fb-pass-lista');
-    if (!lista || !corridaId || !supabaseMapa) return;
-    const passAtual = obterPassageiroAtual();
-    const meuId = passAtual?.id ? String(passAtual.id) : null;
-
-    const { data } = await supabaseMapa
-      .from('mensagens_chat')
-      .select('*')
-      .eq('corrida_id', corridaId)
-      .order('criado_em', { ascending: true });
-
-    if (!Array.isArray(data) || data.length === 0) {
-      lista.innerHTML = '<p class="text-slate-500 text-center py-4">Nenhuma mensagem ainda.</p>';
-      return;
-    }
-
-    lista.innerHTML = data.map((m) => {
-      const ehMinha = meuId && String(m.remetente_id) === meuId;
-      const hora = new Date(m.criado_em || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      return `
-        <div class="flex flex-col ${ehMinha ? 'items-end' : 'items-start'}">
-          <div class="max-w-[85%] rounded-2xl px-3 py-2 border ${ehMinha ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-100' : 'bg-slate-900 border-slate-800 text-slate-200'}">
-            <div class="text-[9px] text-slate-400 mb-0.5">${ehMinha ? 'Você' : (m.remetente_nome || 'Motorista')} • ${hora}</div>
-            <div>${String(m.mensagem || '').replace(/</g, '&lt;')}</div>
-          </div>
-        </div>
-      `;
-    }).join('');
-    lista.scrollTop = lista.scrollHeight;
-  }
-
-  function fecharChatFallbackPass() {
-    modalFallbackPassAberto = false;
-    document.getElementById('modal-chat-fallback-pass')?.classList.add('hidden');
-  }
-
-  async function enviarChatFallbackPass(e) {
-    e.preventDefault();
-    const input = document.getElementById('chat-fb-pass-input');
-    const texto = (input?.value || '').trim();
-    const idCorrida = corridaAtualId || corridaAtivaDados?.id;
-    const passAtual = obterPassageiroAtual();
-    if (!texto || !idCorrida || !supabaseMapa) return;
-
-    input.value = '';
-    await supabaseMapa.from('mensagens_chat').insert([{
-      corrida_id: idCorrida,
-      remetente_id: passAtual?.id || 'passageiro',
-      remetente_nome: passAtual?.nome || 'Passageiro',
-      mensagem: texto
-    }]);
-    await carregarMensagensFallbackPass(idCorrida);
-  }
-
   function abrirChatViagemPassageiro() {
-    const idCorrida = corridaAtualId || corridaAtivaDados?.id;
-    const nomeMot = primeiroNome(corridaAtivaDados?.motorista?.nome || document.getElementById('passageiro-motorista-nome')?.innerText || 'Motorista');
-    const outroId = corridaAtivaDados?.motorista_id || null;
+    const idCorrida = corridaAtualId || corridaAtivaDados?.id || window.estadoViagemPassageiro?.corridaId;
+    const nomeMot = primeiroNome(
+      corridaAtivaDados?.motorista?.nome ||
+      window.estadoViagemPassageiro?.motoristaNome ||
+      document.getElementById('passageiro-motorista-nome')?.innerText ||
+      'Motorista'
+    );
+    const outroId = corridaAtivaDados?.motorista_id || window.estadoViagemPassageiro?.motoristaId || null;
 
     if (!idCorrida) {
       mostrarModal('Aviso', 'Nenhuma corrida ativa para abrir o chat.', 'cancelar', 2500);
       return;
     }
 
-    atualizarBadgeChatPassageiro(0);
-    registrarEscutaContadorChatPassageiro(idCorrida);
+    if (typeof window.zerarBadgeChatPassageiro === 'function') {
+      window.zerarBadgeChatPassageiro();
+    }
 
     if (typeof window.abrirChatCorrida === 'function') {
       window.abrirChatCorrida(idCorrida, nomeMot, outroId);
-    } else {
-      modalFallbackPassAberto = true;
-      document.getElementById('chat-fb-pass-titulo').innerText = `Chat • ${nomeMot}`;
-      document.getElementById('modal-chat-fallback-pass')?.classList.remove('hidden');
-      carregarMensagensFallbackPass(idCorrida);
     }
-  }
-
-  function atualizarUiChamadaPass(estado, statusTexto) {
-    const modal = document.getElementById('modal-chamada-p2p-pass');
-    const nomeEl = document.getElementById('p2p-pass-nome');
-    const statusEl = document.getElementById('p2p-pass-status');
-    const timerEl = document.getElementById('p2p-pass-timer');
-    const btnsReceb = document.getElementById('p2p-pass-botoes-recebendo');
-    const btnsAtiva = document.getElementById('p2p-pass-botoes-ativa');
-
-    if (!modal) return;
-    if (nomeEl) nomeEl.innerText = p2pContextoAtual.outroNome || 'Motorista';
-    if (statusEl && statusTexto) statusEl.innerText = statusTexto;
-
-    if (estado === 'oculto') {
-      modal.classList.add('hidden');
-      timerEl?.classList.add('hidden');
-      return;
-    }
-
-    modal.classList.remove('hidden');
-    if (estado === 'recebendo') {
-      btnsReceb?.classList.remove('hidden');
-      btnsAtiva?.classList.add('hidden');
-      timerEl?.classList.add('hidden');
-    } else {
-      btnsReceb?.classList.add('hidden');
-      btnsAtiva?.classList.remove('hidden');
-      if (estado === 'conectada') {
-        timerEl?.classList.remove('hidden');
-      } else {
-        timerEl?.classList.add('hidden');
-      }
-    }
-  }
-
-  function iniciarCronometroChamada() {
-    pararCronometroChamada();
-    p2pSegundosAtivos = 0;
-    const timerEl = document.getElementById('p2p-pass-timer');
-    if (timerEl) {
-      timerEl.innerText = '00:00';
-      timerEl.classList.remove('hidden');
-    }
-    p2pTimerChamadaId = setInterval(() => {
-      p2pSegundosAtivos++;
-      const min = String(Math.floor(p2pSegundosAtivos / 60)).padStart(2, '0');
-      const seg = String(p2pSegundosAtivos % 60).padStart(2, '0');
-      if (timerEl) timerEl.innerText = `${min}:${seg}`;
-    }, 1000);
-  }
-
-  function pararCronometroChamada() {
-    if (p2pTimerChamadaId) {
-      clearInterval(p2pTimerChamadaId);
-      p2pTimerChamadaId = null;
-    }
-    if (p2pTimeoutChamadaId) {
-      clearTimeout(p2pTimeoutChamadaId);
-      p2pTimeoutChamadaId = null;
-    }
-  }
-
-  function limparMidiaEPeer() {
-    pararCronometroChamada();
-    p2pChamadaEmCurso = false;
-    p2pRecebendoOferta = null;
-    p2pMudo = false;
-
-    const btnMudo = document.getElementById('btn-p2p-pass-mudo');
-    if (btnMudo) btnMudo.innerHTML = '<i class="fa-solid fa-microphone"></i><span>Mudo</span>';
-
-    if (p2pPeer) {
-      try { p2pPeer.close(); } catch (_) {}
-      p2pPeer = null;
-    }
-    if (p2pLocalStream) {
-      p2pLocalStream.getTracks().forEach((t) => {
-        try { t.stop(); } catch (_) {}
-      });
-      p2pLocalStream = null;
-    }
-    const audioEl = document.getElementById('p2p-remote-audio');
-    if (audioEl) audioEl.srcObject = null;
-  }
-
-  async function p2pEnviarSinal(evento, dados = {}) {
-    if (!p2pCanal || !p2pCanalInscrito) return false;
-    try {
-      await p2pCanal.send({
-        type: 'broadcast',
-        event: 'sinal_chamada',
-        payload: {
-          evento,
-          corridaId: p2pContextoAtual.corridaId,
-          remetentePapel: p2pContextoAtual.papelLocal,
-          ...dados
-        }
-      });
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function garantirCanalChamadaP2P(corridaId) {
-    return new Promise((resolve) => {
-      if (!supabaseMapa || !corridaId) {
-        resolve(false);
-        return;
-      }
-
-      if (p2pCanal && String(p2pCanalCorridaId) === String(corridaId) && p2pCanalInscrito) {
-        resolve(true);
-        return;
-      }
-
-      if (p2pCanal) {
-        try { supabaseMapa.removeChannel(p2pCanal); } catch (_) {}
-        p2pCanal = null;
-        p2pCanalInscrito = false;
-      }
-
-      p2pCanalCorridaId = corridaId;
-      p2pContextoAtual.corridaId = corridaId;
-
-      const canal = supabaseMapa.channel(`chamada_voz_corrida_${corridaId}`, {
-        config: { broadcast: { self: false } }
-      });
-
-      canal.on('broadcast', { event: 'sinal_chamada' }, async (msg) => {
-        const payload = msg?.payload || {};
-        if (!payload.evento) return;
-
-        if (payload.evento === 'chamando') {
-          if (payload.remetentePapel !== 'passageiro' && !p2pChamadaEmCurso) {
-            p2pContextoAtual.outroNome = payload.remetenteNome || p2pContextoAtual.outroNome || 'Motorista';
-            atualizarUiChamadaPass('recebendo', 'Chamada de voz recebida...');
-          }
-        } else if (payload.evento === 'offer' && payload.sdp) {
-          p2pRecebendoOferta = payload.sdp;
-          if (!p2pChamadaEmCurso) {
-            p2pContextoAtual.outroNome = payload.remetenteNome || p2pContextoAtual.outroNome || 'Motorista';
-            atualizarUiChamadaPass('recebendo', 'Chamada de voz recebida...');
-          }
-        } else if (payload.evento === 'answer' && payload.sdp && p2pPeer) {
-          try {
-            await p2pPeer.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-            pararCronometroChamada();
-            iniciarCronometroChamada();
-            atualizarUiChamadaPass('conectada', 'Em chamada');
-          } catch (_) {}
-        } else if (payload.evento === 'ice' && payload.candidate && p2pPeer) {
-          try {
-            await p2pPeer.addIceCandidate(new RTCIceCandidate(payload.candidate));
-          } catch (_) {}
-        } else if (payload.evento === 'aceita') {
-          atualizarUiChamadaPass('chamando', 'Atendido! Conectando áudio...');
-        } else if (payload.evento === 'recusada') {
-          limparMidiaEPeer();
-          atualizarUiChamadaPass('oculto');
-          mostrarToastPass('Chamada recusada.');
-        } else if (payload.evento === 'encerrada') {
-          limparMidiaEPeer();
-          atualizarUiChamadaPass('oculto');
-          mostrarToastPass('Chamada encerrada.');
-        }
-      });
-
-      canal.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          p2pCanalInscrito = true;
-          resolve(true);
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          p2pCanalInscrito = false;
-          resolve(false);
-        }
-      });
-
-      p2pCanal = canal;
-    });
-  }
-
-  async function criarPeerConnection(comoChamador) {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      throw new Error('Microfone não suportado neste navegador.');
-    }
-
-    p2pLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    const pc = new RTCPeerConnection(P2P_ICE_CONFIG);
-
-    p2pLocalStream.getTracks().forEach((track) => {
-      pc.addTrack(track, p2pLocalStream);
-    });
-
-    pc.ontrack = (event) => {
-      const audioEl = document.getElementById('p2p-remote-audio');
-      if (audioEl && event.streams && event.streams[0]) {
-        audioEl.srcObject = event.streams[0];
-        audioEl.play().catch(() => {});
-      }
-    };
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        p2pEnviarSinal('ice', { candidate: event.candidate });
-      }
-    };
-
-    pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'connected') {
-        pararCronometroChamada();
-        iniciarCronometroChamada();
-        atualizarUiChamadaPass('conectada', 'Em chamada');
-      } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-        atualizarUiChamadaPass('chamando', 'Conexão de rede instável...');
-      }
-    };
-
-    p2pPeer = pc;
-
-    if (comoChamador) {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      await p2pEnviarSinal('offer', {
-        sdp: pc.localDescription,
-        remetenteNome: primeiroNome(obterPassageiroAtual()?.nome || 'Passageiro')
-      });
-    }
-
-    return pc;
-  }
-
-  window.iniciarChamadaP2P = async function ({ corridaId, outroUsuarioId = null, outroNome = 'Motorista', papelLocal = 'passageiro' }) {
-    if (!corridaId) return;
-    p2pContextoAtual = { corridaId, outroUsuarioId, outroNome, papelLocal };
-    limparMidiaEPeer();
-    p2pChamadaEmCurso = true;
-    atualizarUiChamadaPass('chamando', `Chamando ${outroNome}...`);
-
-    const pronto = await garantirCanalChamadaP2P(corridaId);
-    if (!pronto) {
-      limparMidiaEPeer();
-      atualizarUiChamadaPass('oculto');
-      mostrarModal('Erro de Rede', 'Não foi possível conectar ao canal de chamada em tempo real.', 'cancelar', 3500);
-      return;
-    }
-
-    await p2pEnviarSinal('chamando', {
-      remetenteNome: primeiroNome(obterPassageiroAtual()?.nome || 'Passageiro')
-    });
-
-    try {
-      await criarPeerConnection(true);
-    } catch (err) {
-      limparMidiaEPeer();
-      atualizarUiChamadaPass('oculto');
-      mostrarModal('Microfone', err.message || 'Permita o acesso ao microfone para ligar.', 'cancelar', 3500);
-      return;
-    }
-
-    p2pTimeoutChamadaId = setTimeout(() => {
-      if (p2pPeer && p2pPeer.connectionState !== 'connected') {
-        p2pEnviarSinal('encerrada', { motivo: 'timeout' });
-        limparMidiaEPeer();
-        atualizarUiChamadaPass('oculto');
-        mostrarToastPass('Sem resposta na chamada.');
-      }
-    }, 35000);
-  };
-
-  async function p2pAceitarChamada() {
-    if (!p2pContextoAtual.corridaId) return;
-    p2pChamadaEmCurso = true;
-    atualizarUiChamadaPass('chamando', 'Conectando áudio...');
-
-    try {
-      const pc = await criarPeerConnection(false);
-      if (p2pRecebendoOferta) {
-        await pc.setRemoteDescription(new RTCSessionDescription(p2pRecebendoOferta));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        await p2pEnviarSinal('aceita');
-        await p2pEnviarSinal('answer', { sdp: pc.localDescription });
-      }
-    } catch (err) {
-      limparMidiaEPeer();
-      atualizarUiChamadaPass('oculto');
-      mostrarModal('Microfone', err.message || 'Não foi possível acessar o microfone.', 'cancelar', 3500);
-    }
-  }
-
-  async function p2pRecusarChamada() {
-    await p2pEnviarSinal('recusada');
-    limparMidiaEPeer();
-    atualizarUiChamadaPass('oculto');
-  }
-
-  function p2pAlternarMudo() {
-    if (!p2pLocalStream) return;
-    p2pMudo = !p2pMudo;
-    p2pLocalStream.getAudioTracks().forEach((track) => {
-      track.enabled = !p2pMudo;
-    });
-    const btn = document.getElementById('btn-p2p-pass-mudo');
-    if (btn) {
-      btn.innerHTML = p2pMudo
-        ? '<i class="fa-solid fa-microphone-slash text-amber-400"></i><span>Ativar Som</span>'
-        : '<i class="fa-solid fa-microphone"></i><span>Mudo</span>';
-    }
-  }
-
-  async function p2pEncerrarChamada(notificarOutro = true) {
-    if (notificarOutro) {
-      await p2pEnviarSinal('encerrada');
-    }
-    limparMidiaEPeer();
-    atualizarUiChamadaPass('oculto');
   }
 
   function iniciarChamadaVozPassageiro() {
-    const idCorrida = corridaAtualId || corridaAtivaDados?.id;
-    const nomeMot = primeiroNome(corridaAtivaDados?.motorista?.nome || document.getElementById('passageiro-motorista-nome')?.innerText || 'Motorista');
-    const outroId = corridaAtivaDados?.motorista_id || null;
+    const idCorrida = corridaAtualId || corridaAtivaDados?.id || window.estadoViagemPassageiro?.corridaId;
+    const nomeMot = primeiroNome(
+      corridaAtivaDados?.motorista?.nome ||
+      window.estadoViagemPassageiro?.motoristaNome ||
+      document.getElementById('passageiro-motorista-nome')?.innerText ||
+      'Motorista'
+    );
+    const outroId = corridaAtivaDados?.motorista_id || window.estadoViagemPassageiro?.motoristaId || null;
 
     if (!idCorrida) {
       mostrarModal('Aviso', 'Nenhuma corrida ativa para iniciar chamada.', 'cancelar', 2500);
       return;
     }
 
-    window.iniciarChamadaP2P({
-      corridaId: idCorrida,
-      outroUsuarioId: outroId,
-      outroNome: nomeMot,
-      papelLocal: 'passageiro'
-    });
+    if (typeof window.iniciarChamadaP2P === 'function') {
+      window.iniciarChamadaP2P({
+        corridaId: idCorrida,
+        outroUsuarioId: outroId,
+        outroNome: nomeMot
+      });
+    }
   }
 
   async function aplicarEstadoCorridaAtivaNoMapa(corridaRecebida = null) {
@@ -991,10 +485,7 @@
   }
   window.__intervaloSyncMapaPassageiro = setInterval(() => {
     const idAtivo = corridaAtualId || corridaAtivaDados?.id || window.corridaAtivaPassageiro?.id;
-    if (idAtivo) {
-      garantirCanalChamadaP2P(idAtivo);
-      registrarEscutaContadorChatPassageiro(idAtivo);
-    } else if (!document.hidden) {
+    if (!idAtivo && !document.hidden) {
       consultarCorridaAtivaDiretoNoBanco();
     }
   }, 3000);

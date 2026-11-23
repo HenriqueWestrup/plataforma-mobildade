@@ -47,8 +47,45 @@
         </div>
       </div>
     </div>
-    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.11</span>
+    <span class="text-[9px] text-slate-600 font-mono pr-1">v19.12</span>
   </header>
+
+  <!-- BARRA FIXA DE COMUNICAÇÃO DA VIAGEM NO INDEX (INDEPENDENTE DO MAPA) -->
+  <div id="barra-comunicacao-index" class="hidden bg-slate-900/95 border-b border-emerald-500/40 px-3 py-2 flex items-center justify-between gap-2 shrink-0 z-30 shadow-lg">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <img id="index-mot-foto" src="https://ui-avatars.com/api/?name=Motorista" class="w-9 h-9 rounded-full object-cover border border-emerald-500 shrink-0">
+      <div class="min-w-0">
+        <div class="flex items-center gap-1.5">
+          <p id="index-mot-nome" class="text-xs font-extrabold text-white truncate">Motorista</p>
+          <span class="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.2 rounded-full border border-amber-500/30 shrink-0">
+            <i class="fa-solid fa-star text-[9px]"></i> <span id="index-mot-nota">5.0</span>
+          </span>
+        </div>
+        <p id="index-mot-status" class="text-[10px] text-emerald-400 font-semibold truncate">Motorista a caminho</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 shrink-0">
+      <button
+        type="button"
+        onclick="abrirChatViagemIndex()"
+        class="relative bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/50 font-bold px-3 py-2 rounded-xl text-[11px] flex items-center gap-1.5 transition shadow"
+      >
+        <i class="fa-solid fa-comments"></i>
+        <span>Chat</span>
+        <span id="badge-chat-index" class="hidden -top-1.5 -right-1.5 absolute min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center shadow animate-bounce">0</span>
+      </button>
+
+      <button
+        type="button"
+        onclick="iniciarChamadaViagemIndex()"
+        class="bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/50 font-bold px-3 py-2 rounded-xl text-[11px] flex items-center gap-1.5 transition shadow"
+      >
+        <i class="fa-solid fa-phone"></i>
+        <span>Ligar</span>
+      </button>
+    </div>
+  </div>
 
   <!-- GAVETA DO MENU LATERAL -->
   <div id="menu-lateral" class="fixed inset-y-0 left-0 w-72 bg-slate-900 border-r border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
@@ -93,6 +130,14 @@
       Carregando mapa em Laguna...
     </div>
   </main>
+
+  <!-- TOAST DISCRETO DE NOVA MENSAGEM -->
+  <div id="toast-chat-index" class="hidden fixed top-16 inset-x-4 z-[60] flex justify-center pointer-events-none">
+    <button type="button" onclick="abrirChatViagemIndex()" class="pointer-events-auto bg-slate-900/95 border border-emerald-500/60 text-emerald-200 px-4 py-2.5 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-2 max-w-sm">
+      <i class="fa-solid fa-comment-dots text-emerald-400"></i>
+      <span id="toast-chat-index-texto">Nova mensagem no chat</span>
+    </button>
+  </div>
 
   <!-- MODAL CENTRALIZADO DE CHAT DO APLICATIVO (mensagens_chat) -->
   <div id="modal-chat-corrida" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[65] hidden flex items-center justify-center p-4">
@@ -275,6 +320,10 @@
     let canalRealtimeSuporte = null;
     let canalRealtimeCorridasPassageiro = null;
     let canalChatCorridaAtivo = null;
+    let canalBadgeChatGlobal = null;
+    let corridaBadgeChatGlobalId = null;
+    let naoLidasChatIndex = 0;
+    let toastIndexTimeout = null;
     let corridaChatAtualId = null;
     let outroParticipanteChatId = null;
     let outroParticipanteChatNome = 'Motorista';
@@ -290,6 +339,15 @@
     let filaCandidatosIce = [];
     let chamadaEmAndamento = false;
     let timeoutChamadaSemResposta = null;
+
+    window.estadoViagemPassageiro = {
+      corridaId: null,
+      motoristaId: null,
+      motoristaNome: 'Motorista',
+      motoristaFoto: '',
+      motoristaNota: '5.0',
+      status: ''
+    };
 
     const STATUS_FINALIZADOS_PASSAGEIRO = ['concluido', 'concluida', 'finalizada'];
     const STATUS_CANCELADOS_PASSAGEIRO = ['cancelado', 'cancelada', 'expirado', 'expirada'];
@@ -329,6 +387,77 @@
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(obterPrimeiroNomeApenas(nome, 'Passageiro'))}`;
     }
 
+    function textoStatusAmigavel(statusNorm) {
+      if (statusNorm === 'no_local') return 'Motorista no local de embarque';
+      if (['em_andamento', 'em_curso', 'em_viagem', 'iniciada', 'viagem_iniciada'].includes(statusNorm)) {
+        return 'Viagem em andamento';
+      }
+      if (['pendente', 'procurando'].includes(statusNorm)) return 'Procurando motorista...';
+      return 'Motorista a caminho';
+    }
+
+    function atualizarBadgesChatUnificado(qtd) {
+      naoLidasChatIndex = Math.max(0, Number(qtd) || 0);
+      ['badge-chat-index', 'badge-chat-passageiro'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (naoLidasChatIndex > 0) {
+          el.innerText = naoLidasChatIndex > 99 ? '99+' : String(naoLidasChatIndex);
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+    }
+
+    window.zerarBadgeChatPassageiro = function () {
+      atualizarBadgesChatUnificado(0);
+    };
+
+    function mostrarToastChatIndex(texto) {
+      const box = document.getElementById('toast-chat-index');
+      const txt = document.getElementById('toast-chat-index-texto');
+      if (!box || !txt) return;
+      txt.innerText = texto;
+      box.classList.remove('hidden');
+      if (toastIndexTimeout) clearTimeout(toastIndexTimeout);
+      toastIndexTimeout = setTimeout(() => box.classList.add('hidden'), 3500);
+    }
+
+    function iniciarEscutaBadgeChatGlobal(corridaId) {
+      if (!corridaId) return;
+      if (canalBadgeChatGlobal && String(corridaBadgeChatGlobalId) === String(corridaId)) return;
+
+      if (canalBadgeChatGlobal) {
+        supabaseClient.removeChannel(canalBadgeChatGlobal);
+        canalBadgeChatGlobal = null;
+      }
+      corridaBadgeChatGlobalId = String(corridaId);
+
+      canalBadgeChatGlobal = supabaseClient
+        .channel(`badge_chat_global_${corridaBadgeChatGlobalId}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'mensagens_chat',
+          filter: `corrida_id=eq.${corridaBadgeChatGlobalId}`
+        }, (payload) => {
+          const novaMsg = payload?.new;
+          if (!novaMsg || ehConteudoSuporteOuAvaliacao(novaMsg)) return;
+          const meuId = obterMeuIdSessao();
+          if (meuId && String(novaMsg.remetente_id) === meuId) return;
+
+          const modalAberto = !document.getElementById('modal-chat-corrida')?.classList.contains('hidden');
+          if (modalAberto) return;
+
+          atualizarBadgesChatUnificado(naoLidasChatIndex + 1);
+          const nomeRem = obterPrimeiroNomeApenas(novaMsg.remetente_nome || window.estadoViagemPassageiro?.motoristaNome, 'Motorista');
+          mostrarToastChatIndex(`Nova mensagem de ${nomeRem}`);
+          tocarSomAlertaPassageiro();
+        })
+        .subscribe();
+    }
+
     function atualizarPainelMotoristaComDados(corrida, motoristaInfo) {
       if (!motoristaInfo) return;
       const nomeEl = document.getElementById('passageiro-motorista-nome');
@@ -338,7 +467,8 @@
       const primeiroNomeMot = obterPrimeiroNomeApenas(motoristaInfo.nome, 'Motorista');
       const rawNota = Number(motoristaInfo.avaliacao ?? motoristaInfo.nota ?? 5);
       const notaFormatada = Number.isFinite(rawNota) ? rawNota.toFixed(1) : '5.0';
-      const fotoUrl = String(motoristaInfo.foto_url || '').trim() ||
+      const fotoBruta = String(motoristaInfo.foto_url || motoristaInfo.foto || motoristaInfo.avatar_url || '').trim();
+      const fotoUrl = fotoBruta ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(primeiroNomeMot)}&background=059669&color=ffffff`;
 
       if (nomeEl) nomeEl.innerText = primeiroNomeMot;
@@ -352,6 +482,58 @@
       if (notaEl) notaEl.innerText = notaFormatada;
     }
 
+    function atualizarBarraComunicacaoIndex(corrida) {
+      const barra = document.getElementById('barra-comunicacao-index');
+      if (!barra) return;
+
+      if (!corrida || !corrida.id) {
+        barra.classList.add('hidden');
+        return;
+      }
+
+      const statusNorm = normalizarStatusIndex(corrida.status);
+      const motId = corrida.motorista_id || corrida.motorista?.id || null;
+
+      if (!motId || STATUS_FINALIZADOS_PASSAGEIRO.includes(statusNorm) || STATUS_CANCELADOS_PASSAGEIRO.includes(statusNorm)) {
+        barra.classList.add('hidden');
+        return;
+      }
+
+      const primeiroNomeMot = obterPrimeiroNomeApenas(corrida.motorista?.nome, 'Motorista');
+      const rawNota = Number(corrida.motorista?.avaliacao ?? corrida.motorista?.nota ?? 5);
+      const notaFormatada = Number.isFinite(rawNota) ? rawNota.toFixed(1) : '5.0';
+      const fotoBruta = String(corrida.motorista?.foto_url || corrida.motorista?.foto || corrida.motorista?.avatar_url || '').trim();
+      const fotoUrl = fotoBruta ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(primeiroNomeMot)}&background=059669&color=ffffff`;
+
+      window.estadoViagemPassageiro = {
+        corridaId: corrida.id,
+        motoristaId: motId,
+        motoristaNome: primeiroNomeMot,
+        motoristaFoto: fotoUrl,
+        motoristaNota: notaFormatada,
+        status: statusNorm
+      };
+
+      const imgEl = document.getElementById('index-mot-foto');
+      const nomeEl = document.getElementById('index-mot-nome');
+      const notaEl = document.getElementById('index-mot-nota');
+      const statusEl = document.getElementById('index-mot-status');
+
+      if (imgEl) {
+        imgEl.onerror = function () {
+          this.onerror = null;
+          this.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(primeiroNomeMot)}&background=059669&color=ffffff`;
+        };
+        imgEl.src = fotoUrl;
+      }
+      if (nomeEl) nomeEl.innerText = primeiroNomeMot;
+      if (notaEl) notaEl.innerText = notaFormatada;
+      if (statusEl) statusEl.innerText = textoStatusAmigavel(statusNorm);
+
+      barra.classList.remove('hidden');
+    }
+
     async function enriquecerCorridaComMotorista(corrida) {
       if (!corrida) return corrida;
       const motoristaId = corrida.motorista_id || corrida.motorista?.id || null;
@@ -363,17 +545,14 @@
         try {
           const { data: motRow } = await supabaseClient
             .from('usuarios')
-            .select('id, nome, foto_url, avaliacao, nota')
+            .select('*')
             .eq('id', motoristaId)
             .maybeSingle();
           if (motRow) {
             dadosMot = {
               ...dadosMot,
-              id: motRow.id || motoristaId,
-              nome: motRow.nome || dadosMot.nome || 'Motorista',
-              foto_url: motRow.foto_url || dadosMot.foto_url || '',
-              avaliacao: motRow.avaliacao ?? motRow.nota ?? dadosMot.avaliacao ?? dadosMot.nota ?? 5.0,
-              nota: motRow.nota ?? motRow.avaliacao ?? dadosMot.nota ?? dadosMot.avaliacao ?? 5.0
+              ...motRow,
+              id: motRow.id || motoristaId
             };
           }
         } catch (e) {}
@@ -382,7 +561,8 @@
       const primeiroNomeMot = obterPrimeiroNomeApenas(dadosMot.nome, 'Motorista');
       const rawNota = Number(dadosMot.avaliacao ?? dadosMot.nota ?? 5);
       const notaFormatada = Number.isFinite(rawNota) ? rawNota.toFixed(1) : '5.0';
-      const fotoFinal = String(dadosMot.foto_url || '').trim() ||
+      const fotoBruta = String(dadosMot.foto_url || dadosMot.foto || dadosMot.avatar_url || '').trim();
+      const fotoFinal = fotoBruta ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(primeiroNomeMot)}&background=059669&color=ffffff`;
 
       return {
@@ -413,6 +593,7 @@
     async function exibirAvaliacaoPassageiroInstantanea(corrida) {
       if (!corrida || corridaJaAvaliadaNoIndex(corrida)) return;
 
+      document.getElementById('barra-comunicacao-index')?.classList.add('hidden');
       window.corridaAtualId = corrida.id;
       window.corridaAtivaDados = corrida;
       try {
@@ -454,6 +635,7 @@
       const statusNorm = normalizarStatusIndex(corridaCompleta.status);
 
       if (STATUS_FINALIZADOS_PASSAGEIRO.includes(statusNorm)) {
+        document.getElementById('barra-comunicacao-index')?.classList.add('hidden');
         if (!document.getElementById('painel-avaliacao-passageiro')) {
           await carregarModuloMapa();
         }
@@ -466,6 +648,7 @@
       }
 
       if (STATUS_CANCELADOS_PASSAGEIRO.includes(statusNorm)) {
+        document.getElementById('barra-comunicacao-index')?.classList.add('hidden');
         try {
           localStorage.removeItem('mobiurb_corrida_ativa_passageiro');
           window.corridaAtivaPassageiro = null;
@@ -490,10 +673,13 @@
         } catch (e) {}
 
         registrarCanalChamadaCorrida(corridaCompleta.id);
+        iniciarEscutaBadgeChatGlobal(corridaCompleta.id);
         if (corridaCompleta.motorista_id) {
-          outroParticipanteChatId = corridaCompleta.motorista_id;
+          outroParticipanteChatId = String(corridaCompleta.motorista_id);
           outroParticipanteChatNome = obterPrimeiroNomeApenas(corridaCompleta.motorista?.nome, 'Motorista');
         }
+
+        atualizarBarraComunicacaoIndex(corridaCompleta);
 
         if (document.getElementById('painel-motorista-encontrado')) {
           if (typeof exibirPainelMotoristaEncontrado === 'function') {
@@ -552,18 +738,44 @@
       } catch (e) {}
     }
 
-    function vincularCorridaComunicacaoPassageiro(corrida) {
+    async function vincularCorridaComunicacaoPassageiro(corrida) {
       if (!corrida || !corrida.id) return;
-      window.corridaAtualId = corrida.id;
-      window.corridaAtivaDados = corrida;
-      registrarCanalChamadaCorrida(corrida.id);
-      if (corrida.motorista_id) {
-        outroParticipanteChatId = corrida.motorista_id;
+      const completa = await enriquecerCorridaComMotorista(corrida);
+      window.corridaAtualId = completa.id;
+      window.corridaAtivaDados = completa;
+      registrarCanalChamadaCorrida(completa.id);
+      iniciarEscutaBadgeChatGlobal(completa.id);
+      if (completa.motorista_id) {
+        outroParticipanteChatId = String(completa.motorista_id);
       }
-      if (corrida.motorista?.nome) {
-        outroParticipanteChatNome = obterPrimeiroNomeApenas(corrida.motorista.nome, 'Motorista');
+      if (completa.motorista?.nome) {
+        outroParticipanteChatNome = obterPrimeiroNomeApenas(completa.motorista.nome, 'Motorista');
       }
-      atualizarPainelMotoristaComDados(corrida, corrida.motorista);
+      atualizarBarraComunicacaoIndex(completa);
+      atualizarPainelMotoristaComDados(completa, completa.motorista);
+    }
+
+    function abrirChatViagemIndex() {
+      const estado = window.estadoViagemPassageiro || {};
+      const idCorrida = estado.corridaId || window.corridaAtualId || window.corridaAtivaDados?.id;
+      const nomeMot = estado.motoristaNome || outroParticipanteChatNome || 'Motorista';
+      const idMot = estado.motoristaId || window.corridaAtivaDados?.motorista_id || outroParticipanteChatId || null;
+      if (!idCorrida) return;
+      document.getElementById('toast-chat-index')?.classList.add('hidden');
+      abrirChatCorrida(idCorrida, nomeMot, idMot);
+    }
+
+    function iniciarChamadaViagemIndex() {
+      const estado = window.estadoViagemPassageiro || {};
+      const idCorrida = estado.corridaId || window.corridaAtualId || window.corridaAtivaDados?.id;
+      const nomeMot = estado.motoristaNome || outroParticipanteChatNome || 'Motorista';
+      const idMot = estado.motoristaId || window.corridaAtivaDados?.motorista_id || outroParticipanteChatId || null;
+      if (!idCorrida) return;
+      iniciarChamadaP2P({
+        corridaId: idCorrida,
+        outroUsuarioId: idMot,
+        outroNome: nomeMot
+      });
     }
 
     function forcarDesconexaoPorNovoLogin() {
@@ -575,6 +787,7 @@
       if (canalRealtimePassageiro) supabaseClient.removeChannel(canalRealtimePassageiro);
       if (canalRealtimeSuporte) supabaseClient.removeChannel(canalRealtimeSuporte);
       if (canalRealtimeCorridasPassageiro) supabaseClient.removeChannel(canalRealtimeCorridasPassageiro);
+      if (canalBadgeChatGlobal) supabaseClient.removeChannel(canalBadgeChatGlobal);
       if (typeof encerrarChamadaP2P === 'function') encerrarChamadaP2P(false);
       if (typeof pararRealtimeChatCorrida === 'function') pararRealtimeChatCorrida();
 
@@ -873,17 +1086,17 @@
     }
 
     async function iniciarChamadaP2P({ corridaId, outroUsuarioId = null, outroNome = 'Motorista' }) {
-      const idCorridaAlvo = corridaId || window.corridaAtualId || window.corridaAtivaDados?.id || null;
+      const idCorridaAlvo = corridaId || window.estadoViagemPassageiro?.corridaId || window.corridaAtualId || window.corridaAtivaDados?.id || null;
       if (!idCorridaAlvo) {
         alert('Nenhuma corrida ativa para iniciar chamada de voz.');
         return;
       }
 
       const nomeAlvo = obterPrimeiroNomeApenas(
-        outroNome || window.corridaAtivaDados?.motorista?.nome || outroParticipanteChatNome,
+        outroNome || window.estadoViagemPassageiro?.motoristaNome || window.corridaAtivaDados?.motorista?.nome || outroParticipanteChatNome,
         'Motorista'
       );
-      const idOutroAlvo = outroUsuarioId || window.corridaAtivaDados?.motorista_id || outroParticipanteChatId || null;
+      const idOutroAlvo = outroUsuarioId || window.estadoViagemPassageiro?.motoristaId || window.corridaAtivaDados?.motorista_id || outroParticipanteChatId || null;
 
       registrarCanalChamadaCorrida(idCorridaAlvo);
       outroParticipanteChatId = idOutroAlvo;
@@ -951,7 +1164,7 @@
     }
 
     function abrirChamadaPeloAtalhoChat() {
-      const idAlvo = corridaChamadaAtualId || corridaChatAtualId || window.corridaAtualId || window.corridaAtivaDados?.id;
+      const idAlvo = corridaChamadaAtualId || corridaChatAtualId || window.estadoViagemPassageiro?.corridaId || window.corridaAtualId || window.corridaAtivaDados?.id;
       if (!idAlvo) return;
       fecharChatCorrida();
       iniciarChamadaP2P({
@@ -962,7 +1175,7 @@
     }
 
     function abrirChatDuranteChamada() {
-      const idAlvo = corridaChamadaAtualId || corridaChatAtualId || window.corridaAtualId || window.corridaAtivaDados?.id;
+      const idAlvo = corridaChamadaAtualId || corridaChatAtualId || window.estadoViagemPassageiro?.corridaId || window.corridaAtualId || window.corridaAtivaDados?.id;
       if (!idAlvo) return;
       abrirChatCorrida(idAlvo, outroParticipanteChatNome, outroParticipanteChatId);
     }
@@ -990,8 +1203,8 @@
           const meuId = obterMeuIdSessao();
           const mesmaCorrida = corridaId && String(novaMsg.corrida_id) === String(corridaId);
           const entreMesmoPar = outroId && meuId && (
-            (String(novaMsg.remetente_id) === meuId && String(novaMsg.destinatario_id || outroId) === String(outroId)) ||
-            (String(novaMsg.remetente_id) === String(outroId) && (!novaMsg.destinatario_id || String(novaMsg.destinatario_id) === meuId))
+            String(novaMsg.remetente_id) === meuId ||
+            String(novaMsg.remetente_id) === String(outroId)
           );
           if (mesmaCorrida || entreMesmoPar) {
             carregarMensagensCorrida(corridaId, outroId);
@@ -1039,26 +1252,6 @@
           .in('corrida_id', idsCorridasComMotorista)
           .order('criado_em', { ascending: true });
         if (Array.isArray(porCorridas)) lista = lista.concat(porCorridas);
-      }
-
-      if (meuId && outroId) {
-        const { data: porRemetentes } = await supabaseClient
-          .from('mensagens_chat')
-          .select('*')
-          .in('remetente_id', [meuId, String(outroId)])
-          .order('criado_em', { ascending: true })
-          .limit(150);
-        if (Array.isArray(porRemetentes)) {
-          const filtradasPar = porRemetentes.filter(m => {
-            const rem = String(m.remetente_id);
-            const dest = m.destinatario_id ? String(m.destinatario_id) : null;
-            const pertenceAoPar =
-              (rem === meuId && (!dest || dest === String(outroId))) ||
-              (rem === String(outroId) && (!dest || dest === meuId));
-            return pertenceAoPar || idsCorridasComMotorista.includes(m.corrida_id);
-          });
-          lista = lista.concat(filtradasPar);
-        }
       }
 
       const mapaUnico = new Map();
@@ -1120,10 +1313,11 @@
 
     async function abrirChatCorrida(corridaId, nomeOutroParticipante = 'Motorista', outroId = null) {
       const corridaRef = window.corridaAtivaDados || null;
-      const idCorridaAlvo = corridaId || corridaRef?.id || window.corridaAtualId || null;
-      const idOutroAlvo = outroId || corridaRef?.motorista_id || outroParticipanteChatId || null;
+      const estado = window.estadoViagemPassageiro || {};
+      const idCorridaAlvo = corridaId || estado.corridaId || corridaRef?.id || window.corridaAtualId || null;
+      const idOutroAlvo = outroId || estado.motoristaId || corridaRef?.motorista_id || outroParticipanteChatId || null;
       const primeiroNomeAlvo = obterPrimeiroNomeApenas(
-        nomeOutroParticipante || corridaRef?.motorista?.nome || outroParticipanteChatNome,
+        nomeOutroParticipante || estado.motoristaNome || corridaRef?.motorista?.nome || outroParticipanteChatNome,
         'Motorista'
       );
 
@@ -1136,9 +1330,7 @@
       if (idCorridaAlvo) {
         registrarCanalChamadaCorrida(idCorridaAlvo);
       }
-      if (typeof window.zerarBadgeChatPassageiro === 'function') {
-        window.zerarBadgeChatPassageiro();
-      }
+      atualizarBadgesChatUnificado(0);
 
       document.getElementById('chat-corrida-titulo').innerText = `Chat do Aplicativo • ${primeiroNomeAlvo}`;
       document.getElementById('chat-corrida-subtitulo').innerText = idCorridaAlvo
@@ -1162,28 +1354,36 @@
       const inputEl = document.getElementById('chat-corrida-input');
       const texto = (inputEl?.value || '').trim();
       const meuId = obterMeuIdSessao();
-      const idCorridaEnvio = corridaChatAtualId || window.corridaAtualId || window.corridaAtivaDados?.id || null;
-      if (!texto || !meuId || (!idCorridaEnvio && !outroParticipanteChatId)) return;
+      const idCorridaEnvio = corridaChatAtualId || window.estadoViagemPassageiro?.corridaId || window.corridaAtualId || window.corridaAtivaDados?.id || null;
+      if (!texto || !meuId || !idCorridaEnvio) return;
 
       inputEl.value = '';
       inputEl.focus();
 
-      const payload = {
+      const payloadBase = {
         corrida_id: idCorridaEnvio,
         remetente_id: meuId,
         remetente_nome: obterMeuNomeSessao(),
         mensagem: texto
       };
-      if (outroParticipanteChatId) {
-        payload.destinatario_id = String(outroParticipanteChatId);
+
+      let { error } = await supabaseClient
+        .from('mensagens_chat')
+        .insert([payloadBase]);
+
+      if (error && String(error.message || '').includes('remetente_nome')) {
+        const retry = await supabaseClient
+          .from('mensagens_chat')
+          .insert([{
+            corrida_id: idCorridaEnvio,
+            remetente_id: meuId,
+            mensagem: texto
+          }]);
+        error = retry.error;
       }
 
-      const { error } = await supabaseClient
-        .from('mensagens_chat')
-        .insert([payload]);
-
       if (error) {
-        alert('Falha de rede ao enviar mensagem: ' + error.message);
+        alert('Falha ao enviar mensagem: ' + error.message);
         return;
       }
 
@@ -1683,6 +1883,10 @@
       if (canalRealtimeCorridasPassageiro) {
         supabaseClient.removeChannel(canalRealtimeCorridasPassageiro);
         canalRealtimeCorridasPassageiro = null;
+      }
+      if (canalBadgeChatGlobal) {
+        supabaseClient.removeChannel(canalBadgeChatGlobal);
+        canalBadgeChatGlobal = null;
       }
       await encerrarChamadaP2P(true);
       pararRealtimeChatCorrida();
